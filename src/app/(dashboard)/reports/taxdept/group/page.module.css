@@ -1,0 +1,92 @@
+.page {
+  min-height: 100vh;
+  background: #f5f7fb;
+  color: #1f2d3d;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  width: 100%;
+  max-width: 1240px;
+  margin: 20px auto 32px;
+  padding: 0 20px;
+  flex: 1;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #d7deeb;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.headRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #eef3fb;
+  border-bottom: 1px solid #d7deeb;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.title h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #223043;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #4b5568;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 1100px;
+  background: #fff;
+}
+
+.table th,
+.table td {
+  padding: 8px 10px;
+  border-bottom: 1px dashed #cbd5e1;
+  vertical-align: top;
+}
+
+.table th {
+  background: #e8effa;
+  font-weight: 700;
+  text-align: left;
+  color: #1f2d3d;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.numberCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowName {
+  white-space: pre-line;
+}
+
+.footerRow {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 24px;
+  font-size: 13px;
+  font-weight: 700;
+}

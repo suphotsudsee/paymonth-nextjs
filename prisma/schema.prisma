@@ -1,0 +1,289 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model bank {
+  id       BigInt  @id @default(autoincrement())
+  CID      String  @db.VarChar(13)
+  IDBANK   String  @default("") @db.VarChar(255)
+  NAMEBANK String? @db.VarChar(255)
+
+  @@index([CID], map: "cid")
+}
+
+model cheque {
+  ID         BigInt    @id @default(autoincrement())
+  CHEQUE     String    @unique(map: "cheque") @db.VarChar(11)
+  CHEQUENAME String    @db.VarChar(255)
+  ACCNUMBER  String    @db.VarChar(10)
+  PAYDATE    DateTime? @db.Date
+  DUPDATE    DateTime  @db.DateTime(0)
+}
+
+model cmonth {
+  ID           String @id @unique(map: "id") @db.VarChar(2)
+  NAMEMONTH_TH String @db.VarChar(255)
+  NAMEMONTH_EN String @db.VarChar(255)
+}
+
+model cpay {
+  IDPAY   String  @id @db.VarChar(5)
+  PAYNAME String? @db.VarChar(255)
+  PAYTYPE String? @db.Char(1)
+
+  @@index([IDPAY], map: "idpay")
+}
+
+model deegar {
+  ID        BigInt   @id @default(autoincrement())
+  PNUMBER   String   @db.VarChar(10)
+  NODEEGAR  String   @default("1") @db.VarChar(4)
+  ACCNUMBER String   @db.VarChar(10)
+  ACCNAME   String   @db.VarChar(255)
+  TAX       Decimal  @default(0.00) @db.Decimal(10, 2)
+  FEE       Decimal  @default(0.00) @db.Decimal(10, 2)
+  MONEY     Decimal  @default(0.00) @db.Decimal(10, 2)
+  CHEQUE    String?  @db.VarChar(11)
+  DUPDATE   DateTime @db.DateTime(0)
+
+  @@unique([PNUMBER, NODEEGAR], map: "PNUMBER")
+}
+
+model officer {
+  OFFICERID BigInt    @default(autoincrement())
+  CID       String    @id @unique(map: "idp") @db.VarChar(13)
+  IDCOOP    String?   @db.VarChar(5)
+  IDMAN     String?   @db.VarChar(10)
+  NO        String?   @db.VarChar(10)
+  CODE      String?   @default("000") @db.VarChar(10)
+  ID        String?   @db.VarChar(10)
+  NAME      String?   @db.VarChar(255)
+  SEX       String?   @db.VarChar(1)
+  LPOS      String?   @db.VarChar(255)
+  DUPDATE   DateTime? @db.DateTime(0)
+  MOBILE    String?   @db.VarChar(10)
+  EMAIL     String?   @db.VarChar(100)
+
+  @@index([CODE], map: "code")
+  @@index([OFFICERID], map: "officerid")
+}
+
+model paydirect {
+  ID           BigInt  @id @default(autoincrement())
+  A            String  @db.VarChar(4)
+  B            String  @db.VarChar(2)
+  C            String  @db.VarChar(13)
+  D            String? @db.VarChar(255)
+  E            String? @db.VarChar(255)
+  F            String? @db.VarChar(255)
+  G            String? @db.VarChar(255)
+  H            String? @db.VarChar(255)
+  I            String? @db.VarChar(255)
+  J            String? @db.VarChar(255)
+  K            String? @db.VarChar(255)
+  L            String? @db.VarChar(255)
+  M            String? @db.VarChar(255)
+  SALARY       String? @db.VarChar(255)
+  O            String? @db.VarChar(255)
+  SALPOS       String? @db.VarChar(255)
+  Q            String? @db.VarChar(255)
+  R            String? @db.VarChar(255)
+  S            String? @db.VarChar(255)
+  T            String? @db.VarChar(255)
+  U            String? @db.VarChar(255)
+  V            String? @db.VarChar(255)
+  W            String? @db.VarChar(255)
+  NOCLINIC     String? @db.VarChar(255)
+  Y            String? @db.VarChar(255)
+  SUBJECT      String? @db.VarChar(255)
+  AA           String? @db.VarChar(255)
+  AB           String? @db.VarChar(255)
+  AC           String? @db.VarChar(255)
+  AD           String? @db.VarChar(255)
+  AE           String? @db.VarChar(255)
+  AF           String? @db.VarChar(255)
+  AG           String? @db.VarChar(255)
+  AH           String? @db.VarChar(255)
+  AI           String? @db.VarChar(255)
+  AJ           String? @db.VarChar(255)
+  AK           String? @db.VarChar(255)
+  AL           String? @db.VarChar(255)
+  AM           String? @db.VarChar(255)
+  AN           String? @db.VarChar(255)
+  AO           String? @db.VarChar(255)
+  AP           String? @db.VarChar(255)
+  TOTALINCOME  String? @db.VarChar(255)
+  TAX          String? @db.VarChar(255)
+  ASS          String? @db.VarChar(255)
+  COOP         String? @db.VarChar(255)
+  AU           String? @db.VarChar(255)
+  RETIRE       String? @db.VarChar(255)
+  RETIRE2      String? @db.VarChar(255)
+  GHBANK       String? @db.VarChar(255)
+  AY           String? @db.VarChar(255)
+  AZ           String? @db.VarChar(255)
+  BA           String? @db.VarChar(255)
+  BB           String? @db.VarChar(255)
+  BC           String? @db.VarChar(255)
+  BD           String? @db.VarChar(255)
+  BE           String? @db.VarChar(255)
+  INSURE       String? @db.VarChar(255)
+  BG           String? @db.VarChar(255)
+  BH           String? @db.VarChar(255)
+  OTH          String? @db.VarChar(255)
+  BJ           String? @db.VarChar(255)
+  OTH1         String? @db.VarChar(255)
+  BL           String? @db.VarChar(255)
+  BM           String? @db.VarChar(255)
+  BN           String? @db.VarChar(255)
+  BO           String? @db.VarChar(255)
+  BP           String? @db.VarChar(255)
+  BQ           String? @db.VarChar(255)
+  BR           String? @db.VarChar(255)
+  BS           String? @db.VarChar(255)
+  BT           String? @db.VarChar(255)
+  BU           String? @db.VarChar(255)
+  BV           String? @db.VarChar(255)
+  BW           String? @db.VarChar(255)
+  BX           String? @db.VarChar(255)
+  TOTALOUTCOME String? @db.VarChar(255)
+  BALANCE      String? @db.VarChar(255)
+  CA           String? @db.VarChar(255)
+
+  @@unique([A, B, C], map: "key")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model rawofficer {
+  CODEMEM    Float?  @db.Float
+  IDCOOP     Float?  @db.Float
+  IDP        String? @db.VarChar(13)
+  IDMAN      String? @db.VarChar(7)
+  NO         Float?  @db.Float
+  CODE       String? @db.VarChar(3)
+  ID_CODE    Float?  @db.Float
+  ID         String? @db.VarChar(6)
+  IDS        Float?  @db.Float
+  C          Float?  @db.Float
+  NAME       String? @db.VarChar(30)
+  SEX        String? @db.VarChar(1)
+  LPOS       String? @db.VarChar(25)
+  STEP       Float?  @db.Float
+  TAX        Float?  @db.Float
+  CHILD      Float?  @db.Float
+  BANK       Float?  @db.Float
+  COOP       Float?  @db.Float
+  CAR        Float?  @db.Float
+  INSURE     Float?  @db.Float
+  OTH        Float?  @db.Float
+  SHOP       Float?  @db.Float
+  REMARK     String? @db.VarChar(10)
+  RNO        Float?  @db.Float
+  IDBANK     String? @db.VarChar(13)
+  TGBANK     Float?  @db.Float
+  GHBANK     Float?  @db.Float
+  SAVINGBANK Float?  @db.Float
+  KRUNBANK   Float?  @db.Float
+  BALANCE    Float?  @db.Float
+  RNO1       Float?  @db.Float
+  IDBANK1    String? @db.VarChar(15)
+  SALARY     Float?  @db.Float
+  AIA1       Float?  @db.Float
+  AIA2       Float?  @db.Float
+  OTH1       Float?  @db.Float
+  PARTY      Float?  @db.Float
+  TOTAL      Float?  @db.Float
+  RM         String? @db.VarChar(25)
+  COLD       String? @db.VarChar(1)
+  CNEW       String? @db.VarChar(1)
+  BATH1      Float?  @db.Float
+  BATH2      Float?  @db.Float
+  BATH3      Float?  @db.Float
+  YMD1       String? @db.VarChar(12)
+  YMD2       String? @db.VarChar(12)
+  NUMDAY     Float?  @db.Float
+  MONTH1     String? @db.VarChar(25)
+  MONTH2     Float?  @db.Float
+  DAY        Float?  @db.Float
+  DNO        String? @db.VarChar(5)
+  NUMADD     Float?  @db.Float
+  MARK       String? @db.VarChar(10)
+  SALPOS     Float?  @db.Float
+  NOCLINIC   Float?  @db.Float
+  SUBJECT    Float?  @db.Float
+  PTYPE      String? @db.VarChar(1)
+  CH         Float?  @db.Float
+  RETIRE     Float?  @db.Float
+  NO1        Float?  @db.Float
+  CK         Float?  @db.Float
+  ATM        String? @db.VarChar(1)
+  IDCHILD    String? @db.VarChar(17)
+  APRSALARY  Float?  @db.Float
+  OCTSALARY  Float?  @db.Float
+  DATERETIRE String? @db.VarChar(8)
+  YEAR       String? @default("2557") @db.VarChar(4)
+  MONTH      String? @default("09") @db.VarChar(2)
+
+  @@ignore
+}
+
+model regisdeegar {
+  ID          BigInt    @id @default(autoincrement())
+  PNUMBER     String    @unique(map: "PNUMBER") @db.VarChar(10)
+  REGISDATE   DateTime  @db.Date
+  NAME        String    @db.VarChar(255)
+  MONEY       Decimal   @default(0.00) @db.Decimal(10, 2)
+  TAX         Decimal   @default(0.00) @db.Decimal(10, 2)
+  MONEYDRAW   Decimal   @default(0.00) @db.Decimal(10, 2)
+  SENDDATE    DateTime? @db.Date
+  GFMISNUMBER String    @db.VarChar(10)
+  BANKDATE    DateTime? @db.Date
+  MONEYBANK   Decimal?  @default(0.00) @db.Decimal(10, 2)
+  GFMISREGIS  String?   @db.VarChar(10)
+  GFMISDATE   DateTime? @db.Date
+  CODEBUDGET  String    @db.VarChar(16)
+  CODEACTIVE  String    @db.VarChar(5)
+  DUPDATE     DateTime  @db.DateTime(0)
+}
+
+model salary {
+  ID        BigInt   @unique(map: "ID") @default(autoincrement())
+  CID       String   @db.VarChar(13)
+  IDPAY     String   @db.VarChar(5)
+  BANKID    BigInt?  @db.BigInt
+  PNUMBER   String   @default("P000000000") @db.Char(10)
+  NODEEGAR  String   @default("1") @db.VarChar(4)
+  NUM       String   @default("1") @db.Char(1)
+  MONTHTHAI String   @db.VarChar(2)
+  YEARTHAI  String   @db.VarChar(4)
+  MONEY     Decimal  @default(0.00) @db.Decimal(10, 2)
+  DUPDATE   DateTime @db.DateTime(0)
+
+  @@unique([CID, IDPAY, PNUMBER, NODEEGAR, NUM, MONTHTHAI, YEARTHAI], map: "IDPYEAR")
+}
+
+model station {
+  CODE        String  @id @unique(map: "code") @db.VarChar(3)
+  DEPART      String? @db.VarChar(255)
+  CODEPLACE   String? @db.VarChar(5)
+  NAMESTATION String? @db.VarChar(255)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model user {
+  id          Int    @id @default(autoincrement())
+  username    String @default("") @db.VarChar(50)
+  password    String @default("") @db.VarChar(50)
+  cid         String @db.VarChar(13)
+  fname       String @default("") @db.VarChar(255)
+  lname       String @default("") @db.VarChar(50)
+  status      String @default("") @db.VarChar(255)
+  accessLevel Int    @default(0)
+  mobile      String @default("") @db.VarChar(50)
+  email       String @default("") @db.VarChar(100)
+}

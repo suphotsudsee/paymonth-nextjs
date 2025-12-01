@@ -1,0 +1,176 @@
+.page {
+  min-height: 100vh;
+  background: #f5f7fb;
+  color: #1f2d3d;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  width: 100%;
+  max-width: 1240px;
+  margin: 20px auto 32px;
+  padding: 0 20px;
+  flex: 1;
+}
+
+.tableCard {
+  background: #ffffff;
+  border: 1px solid #d7deeb;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.searchBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #eef3fb;
+  border-bottom: 1px solid #d7deeb;
+}
+
+.inputGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #1f2d3d;
+}
+
+.inlineLabel {
+  white-space: nowrap;
+}
+
+.searchInput {
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  min-width: 240px;
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.findBtn {
+  padding: 8px 14px;
+  background: #0a5cb5;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.findBtn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.resetBtn {
+  padding: 8px 14px;
+  background: #e5e7eb;
+  color: #1f2937;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.resetBtn:hover {
+  background: #d1d5db;
+}
+
+.resultText {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5c72;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.error {
+  padding: 10px 14px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-top: 1px solid #f5d5d5;
+  border-bottom: 1px solid #f5d5d5;
+  font-size: 14px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table thead th {
+  background: linear-gradient(180deg, #7ba7d2 0%, #6c9fce 100%);
+  color: #ffffff;
+  text-align: left;
+  padding: 9px 10px;
+  border: 1px solid #d1d9e6;
+  font-weight: 700;
+}
+
+.table td {
+  padding: 9px 10px;
+  border: 1px solid #dfe5f0;
+  color: #243449;
+  background: #ffffff;
+  vertical-align: middle;
+}
+
+.table tbody tr:nth-child(even) td {
+  background: #f5f9ff;
+}
+
+.table tfoot td {
+  background: #f0f6ff;
+  font-weight: 700;
+  border: 1px solid #d1d9e6;
+}
+
+.numberCell {
+  text-align: center;
+}
+
+.moneyCell {
+  text-align: right;
+  font-weight: 700;
+}
+
+.totalLabel {
+  text-align: right;
+  font-weight: 700;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 14px;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+@media (max-width: 960px) {
+  .resultText {
+    width: 100%;
+    text-align: left;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .table {
+    min-width: 820px;
+  }
+}

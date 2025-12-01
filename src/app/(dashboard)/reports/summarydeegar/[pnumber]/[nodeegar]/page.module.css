@@ -1,0 +1,143 @@
+.page {
+  min-height: 100vh;
+  background: #f6f8fb;
+  color: #1f2d3d;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  width: 100%;
+  max-width: 1240px;
+  margin: 20px auto 32px;
+  padding: 0 20px;
+  flex: 1;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #d7deeb;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.headRow {
+  padding: 14px 16px;
+  background: #eef3fb;
+  border-bottom: 1px solid #d7deeb;
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #223043;
+}
+
+.subTitle {
+  margin: 4px 0 0;
+  color: #4b5568;
+  font-size: 13px;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 1100px;
+}
+
+.table th {
+  background: #4d80ba;
+  color: #ffffff;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid #d1d9e6;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 8px 10px;
+  border: 1px solid #e3e8f1;
+  background: #ffffff;
+  color: #243449;
+  vertical-align: middle;
+}
+
+.table tbody tr:nth-child(even) td {
+  background: #f5f9ff;
+}
+
+.numberCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.centerCell {
+  text-align: center;
+}
+
+.metaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #f6f9fd;
+  border-top: 1px solid #d7deeb;
+  font-size: 13px;
+  color: #2f3f56;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.totals {
+  display: flex;
+  gap: 16px;
+}
+
+.totals strong {
+  color: #0b4570;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.linkBtn {
+  padding: 6px 10px;
+  border: 1px solid #c6d3e8;
+  border-radius: 4px;
+  background: #fff;
+  color: #0a5cb5;
+  cursor: pointer;
+}
+
+.error {
+  padding: 10px 14px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-top: 1px solid #f5d5d5;
+  border-bottom: 1px solid #f5d5d5;
+  font-size: 14px;
+}
+
+.empty {
+  text-align: center;
+  padding: 14px;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.loading {
+  text-align: center;
+  padding: 14px;
+  color: #0a5cb5;
+  font-weight: 600;
+}

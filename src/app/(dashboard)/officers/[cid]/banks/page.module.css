@@ -1,0 +1,168 @@
+.page {
+    min-height: 100vh;
+    background: #fff;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.main {
+    width: 100%;
+    max-width: 1200px;
+    margin: 20px auto 32px;
+    padding: 0 20px;
+    flex: 1;
+}
+
+.sectionTitle h1 {
+    font-size: 24px;
+    font-weight: normal;
+    color: #000;
+    margin-bottom: 20px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 20px;
+    align-items: start;
+}
+
+.tableCard {
+    background: transparent;
+}
+
+.tableTop {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.results {
+    font-size: 13px;
+    color: #444;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+    border-top: 2px solid #6fa8dc;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: #fff;
+}
+
+.table thead th {
+    background: #6fa8dc;
+    color: #fff;
+    text-align: center;
+    padding: 6px 8px;
+    border-right: 1px solid #fff;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.table thead th:last-child {
+    border-right: none;
+}
+
+.filterRow th {
+    background: #fff;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+.filterInput {
+    width: 100%;
+    padding: 2px 4px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    font-size: 12px;
+}
+
+.table tbody tr:nth-child(odd) {
+    background: #eef6fb;
+}
+
+.table tbody tr:nth-child(even) {
+    background: #fff;
+}
+
+.table td {
+    padding: 6px 8px;
+    border: none;
+    vertical-align: middle;
+    color: #333;
+}
+
+.toolsHead {
+    text-align: center;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+.iconSearch {
+    color: #555;
+    cursor: pointer;
+}
+
+.iconEdit {
+    color: #d9a300;
+    cursor: pointer;
+}
+
+.operations {
+    background: #fff;
+}
+
+.opsHeader {
+    background: #9fc5e8;
+    color: #0b5394;
+    font-weight: bold;
+    padding: 6px 10px;
+    border-left: 4px solid #3d85c6;
+    font-size: 14px;
+}
+
+.opsBody {
+    background: #f0ffff;
+    padding: 10px;
+    min-height: 50px;
+}
+
+.createLink {
+    color: #0066cc;
+    font-weight: bold;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.createLink:hover {
+    text-decoration: underline;
+}
+
+.footer {
+    margin-top: auto;
+    text-align: center;
+    padding: 20px;
+    color: #444;
+    font-size: 12px;
+    border-top: 1px solid #ddd;
+}
+
+@media (max-width: 900px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+}

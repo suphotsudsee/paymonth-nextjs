@@ -1,0 +1,138 @@
+.page {
+  min-height: 100vh;
+  background: #f5f7fb;
+  color: #1f2d3d;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  width: 100%;
+  max-width: 1240px;
+  margin: 20px auto 32px;
+  padding: 0 20px;
+  flex: 1;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #d7deeb;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  padding: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #223043;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.input {
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.button {
+  padding: 8px 12px;
+  background: #0a5cb5;
+  color: #fff;
+  border: 1px solid #0a5cb5;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.chart {
+  margin-top: 16px;
+  padding-bottom: 16px;
+}
+
+.bars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.barGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.bar {
+  width: 28px;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+}
+
+.incomeBar {
+  background: #2c7be5;
+}
+
+.outcomeBar {
+  background: #e600a8;
+}
+
+.barLabel {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #111;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.month {
+  font-size: 12px;
+  text-align: center;
+}
+
+.legend {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.legendItem {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.legendSwatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
