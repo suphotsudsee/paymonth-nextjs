@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import { verifySession } from '@/lib/auth';
 
 const PROTECTED_PATHS = ['/deegars', '/cheques', '/regisdeegars', '/salaries', '/paydirect', '/regisdeegar', '/officers'];
@@ -13,9 +14,19 @@ export async function middleware(req: NextRequest) {
   }
 
   const token = req.cookies.get('session')?.value;
-  const session = await verifySession(token);
+  const session = await verifySession(token, { skipNextAuth: true });
 
-  if (!session) {
+  if (session) {
+    return NextResponse.next();
+  }
+
+  const nextAuthToken = await getToken({
+    req,
+    secureCookie: process.env.NODE_ENV === 'production',
+    secret: process.env.AUTH_SECRET,
+  });
+
+  if (!nextAuthToken) {
     const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = '/login';
     loginUrl.searchParams.set('next', pathname);

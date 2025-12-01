@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [thaiIdLoading, setThaiIdLoading] = useState(false);
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const [captchaSrc, setCaptchaSrc] = useState('/api/auth/captcha');
 
@@ -45,11 +47,24 @@ export default function LoginPage() {
       } else {
         setResult(data.error || 'Login failed');
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Login error', error);
       setResult('Network error');
     } finally {
       setLoading(false);
       refreshCaptcha();
+    }
+  };
+
+  const startThaiIdLogin = async () => {
+    setThaiIdLoading(true);
+    try {
+      const next = new URLSearchParams(window.location.search).get('next');
+      await signIn('thaiid', {
+        callbackUrl: next || '/officers',
+      });
+    } finally {
+      setThaiIdLoading(false);
     }
   };
 
@@ -142,6 +157,8 @@ export default function LoginPage() {
             </div>
             <div style={{ display: 'grid', gap: 6 }}>
               <label style={{ fontSize: 13, color: '#2b2b2b' }}>Verification Code</label>
+              {/* Captcha image comes from server; Next/Image is not ideal for this endpoint */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={captchaSrc}
                 alt="captcha"
@@ -192,9 +209,41 @@ export default function LoginPage() {
                 color: '#000',
               }}
             >
-              {loading ? 'Signing in…' : 'Login'}
+              {loading ? 'Signing in...' : 'Login'}
             </button>
           </form>
+          <div
+            style={{
+              marginTop: 16,
+              padding: '12px',
+              background: '#f4f6ff',
+              border: '1px dashed #97a8ff',
+              borderRadius: 6,
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, color: '#1b2a5a' }}>
+              หรือเข้าสู่ระบบด้วย ThaiID (DOPA Digital ID)
+            </div>
+            <button
+              type="button"
+              onClick={startThaiIdLogin}
+              disabled={thaiIdLoading}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                background: 'linear-gradient(90deg, #1f52ff, #3a79ff)',
+                color: '#fff',
+                fontWeight: 700,
+                letterSpacing: 0.2,
+                border: 'none',
+                borderRadius: 4,
+                cursor: thaiIdLoading ? 'wait' : 'pointer',
+                boxShadow: '0 8px 20px rgba(31,82,255,0.25)',
+              }}
+            >
+              {thaiIdLoading ? 'กำลังพาไปยัง ThaiID...' : 'เข้าสู่ระบบด้วย ThaiID'}
+            </button>
+          </div>
           {result && (
             <div
               style={{

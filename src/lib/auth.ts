@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
+import { auth as nextAuth } from '@/auth';
 
 const secret = process.env.AUTH_SECRET || 'dev-secret';
 const encodedSecret = new TextEncoder().encode(secret);
@@ -19,14 +20,56 @@ export async function signSession(payload: SessionPayload) {
     .sign(encodedSecret);
 }
 
-export async function verifySession(token?: string): Promise<SessionPayload | null> {
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, encodedSecret);
-    return payload as unknown as SessionPayload;
-  } catch {
+export async function verifySession(
+  token?: string,
+  options?: { skipNextAuth?: boolean },
+): Promise<SessionPayload | null> {
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, encodedSecret);
+      return payload as unknown as SessionPayload;
+    } catch {
+      // fall through to NextAuth verification
+    }
+  }
+
+  if (options?.skipNextAuth) {
     return null;
   }
+
+  try {
+    const nextSession = await nextAuth();
+    if (nextSession?.user) {
+      const user = nextSession.user as Record<string, unknown>;
+      const name = typeof user.name === 'string' ? user.name.trim() : '';
+      const [fname, ...rest] = name.split(/\s+/);
+      const cid =
+        typeof user.citizenId === 'string'
+          ? user.citizenId
+          : typeof user.cid === 'string'
+            ? user.cid
+            : typeof user.email === 'string'
+              ? user.email
+              : 'thaiid-user';
+      const accessLevelRaw = user.accessLevel;
+      const accessLevel =
+        typeof accessLevelRaw === 'number' && Number.isFinite(accessLevelRaw)
+          ? accessLevelRaw
+          : Number(accessLevelRaw);
+
+      return {
+        id: Number(user.id ?? 0),
+        cid: String(cid),
+        accessLevel: Number.isFinite(accessLevel) ? accessLevel : 0,
+        fname: fname || undefined,
+        lname: rest.join(' ').trim() || undefined,
+      };
+    }
+  } catch {
+    // ignore NextAuth errors and return null
+  }
+
+  return null;
 }
 
 export type { SessionPayload };
