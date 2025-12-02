@@ -69,6 +69,13 @@ async function exchangeToken(code: string, redirectUri: string) {
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl;
+  const forwardedProto = req.headers.get("x-forwarded-proto");
+  const forwardedHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const origin =
+    forwardedProto && forwardedHost
+      ? `${forwardedProto}://${forwardedHost}`
+      : url.origin;
+
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   if (!code) {
@@ -77,7 +84,7 @@ export async function GET(req: NextRequest) {
 
   const redirectUri =
     process.env.AUTH_THAIID_CALLBACK ||
-    `${url.origin}/callback`;
+    `${origin}/callback`;
 
   try {
     const token = await exchangeToken(code, redirectUri);
@@ -120,7 +127,7 @@ export async function GET(req: NextRequest) {
       }
     }
     // Ensure absolute URL for redirect
-    const targetUrl = new URL(targetPath, url.origin).toString();
+    const targetUrl = new URL(targetPath, origin).toString();
 
     const res = NextResponse.redirect(targetUrl);
     res.cookies.set("session", tokenSession, {
