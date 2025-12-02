@@ -11,16 +11,17 @@ export default function LogoPage() {
         </p>
         <h1 className="text-3xl font-bold text-slate-900">PayMonth</h1>
         <p className="text-slate-600">
-          Updated identity in SVG format for crisp rendering.
+          Updated identity preview for crisp rendering.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm flex items-center justify-center">
         <Image
-          src="/logo.svg"
+          src="/logo.png"
           alt="PayMonth logo"
           width={220}
           height={60}
+          className="mx-auto"
           priority
         />
       </div>
