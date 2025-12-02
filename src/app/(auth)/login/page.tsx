@@ -13,9 +13,6 @@ export default function LoginPage() {
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const [captchaSrc, setCaptchaSrc] = useState('/api/auth/captcha');
 
-
-
-
   const refreshCaptcha = () => {
     setCaptcha('');
     setCaptchaSrc(`/api/auth/captcha?ts=${Date.now()}`);
@@ -36,11 +33,8 @@ export default function LoginPage() {
       if (res.ok) {
         const fullName = `Welcome ${data.user?.fname || ''} ${data.user?.lname || ''}`.trim();
         setResult(fullName);
-
-        // Store user name for header display
         const userLabel = [data.user?.fname, data.user?.lname].filter(Boolean).join(" ").trim() || data.user?.cid || "User";
         window.localStorage.setItem("userName", userLabel);
-
         const next = new URLSearchParams(window.location.search).get('next');
         setRedirectTo(next || '/officers');
         setTimeout(() => {
@@ -163,7 +157,6 @@ export default function LoginPage() {
             </div>
             <div style={{ display: 'grid', gap: 6 }}>
               <label style={{ fontSize: 13, color: '#2b2b2b' }}>Verification Code</label>
-              {/* Captcha image comes from server; Next/Image is not ideal for this endpoint */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={captchaSrc}
@@ -225,10 +218,24 @@ export default function LoginPage() {
               background: '#f4f6ff',
               border: '1px dashed #97a8ff',
               borderRadius: 6,
+              display: 'grid',
+              gap: 10,
+              alignItems: 'center',
             }}
           >
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, color: '#1b2a5a' }}>
-              หรือเข้าสู่ระบบด้วย ThaiID (DOPA Digital ID)
+            <img
+              src="/ThaID_banner.jpg"
+              alt="ThaiID banner"
+              style={{
+                width: '100%',
+                maxHeight: 160,
+                objectFit: 'cover',
+                borderRadius: 4,
+                border: '1px solid #cfd3ff',
+              }}
+            />
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#1b2a5a' }}>
+              เข้าสู่ระบบด้วย ThaiID (DOPA Digital ID)
             </div>
             <button
               type="button"
@@ -247,7 +254,7 @@ export default function LoginPage() {
                 boxShadow: '0 8px 20px rgba(31,82,255,0.25)',
               }}
             >
-              {thaiIdLoading ? 'กำลังพาไปยัง ThaiID...' : 'เข้าสู่ระบบด้วย ThaiID'}
+              {thaiIdLoading ? 'กำลังเชื่อมต่อ ThaiID...' : 'เข้าสู่ระบบด้วย ThaiID'}
             </button>
           </div>
           {result && (
