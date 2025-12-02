@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -13,6 +12,9 @@ export default function LoginPage() {
   const [thaiIdLoading, setThaiIdLoading] = useState(false);
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const [captchaSrc, setCaptchaSrc] = useState('/api/auth/captcha');
+
+
+
 
   const refreshCaptcha = () => {
     setCaptcha('');
@@ -57,13 +59,17 @@ export default function LoginPage() {
   };
 
   const startThaiIdLogin = async () => {
+    console.log('Starting ThaiID login flow');
     setThaiIdLoading(true);
     try {
+      const currentHost = window.location.origin;
       const next = new URLSearchParams(window.location.search).get('next');
-      await signIn('thaiid', {
-        callbackUrl: next || '/officers',
-      });
-    } finally {
+      const state = encodeURIComponent(next || '/officers');
+      const thaiIdUrl = `https://imauth.bora.dopa.go.th/api/v2/oauth2/auth/?client_id=ZWcyY3NoanR2ZVBBV2xQckV0VHdrVVlzMUxYUkJnbDQ&response_type=code&state=${state}&scope=pid&redirect_uri=${encodeURIComponent(`${currentHost}/callback`)}`;
+      window.location.href = thaiIdUrl;
+    } catch (error) {
+      console.error('ThaiID login error:', error);
+      setResult('ThaiID login failed');
       setThaiIdLoading(false);
     }
   };
