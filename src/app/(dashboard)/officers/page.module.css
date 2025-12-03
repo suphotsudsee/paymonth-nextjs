@@ -354,6 +354,10 @@
   overflow: hidden;
 }
 
+.wideModal {
+  width: min(1000px, 100%);
+}
+
 .modalHeader {
   display: flex;
   align-items: center;
@@ -486,6 +490,87 @@
 .bankTable td {
   padding: 8px 10px;
   border: 1px solid #d9dfe6;
+}
+
+.paydirectHeader {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+  color: #1f2937;
+}
+
+.paydirectName {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.paydirectMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.paydirectTableSection {
+  border: 1px solid #d7deeb;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.tableTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f3f6fb;
+  padding: 10px 12px;
+  border-bottom: 1px solid #d7deeb;
+}
+
+.tableTitle {
+  font-weight: 700;
+  color: #2e3c50;
+}
+
+.results {
+  font-size: 13px;
+  color: #4b5c72;
+}
+
+.paydirectTableWrap {
+  overflow-x: auto;
+}
+
+.paydirectTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.paydirectTable th {
+  background: #6c9fce;
+  color: #ffffff;
+  text-align: left;
+  padding: 9px 10px;
+  border: 1px solid #d1d9e6;
+}
+
+.paydirectTable td {
+  padding: 9px 10px;
+  border: 1px solid #dfe5f0;
+  color: #243449;
+}
+
+.paydirectTable tbody tr:nth-child(even) td {
+  background: #eef3fb;
+}
+
+.paydirectTable a {
+  text-decoration: none;
+  font-weight: 700;
+  color: #0a5cb5;
 }
 
 @media (max-width: 640px) {

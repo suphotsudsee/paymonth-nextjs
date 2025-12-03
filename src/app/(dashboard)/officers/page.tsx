@@ -66,6 +66,30 @@ type DeegarOption = {
   NODEEGAR: string;
 };
 
+type PaydirectItem = {
+  id: string;
+  A: string | null;
+  B: string | null;
+  NAMEMONTH_TH: string | null;
+  TOTALINCOME: string | null;
+  TOTALOUTCOME: string | null;
+  BALANCE: string | null;
+};
+
+type PaydirectResponse = {
+  officer: {
+    cid: string;
+    name?: string | null;
+    position?: string | null;
+    station?: string | null;
+  } | null;
+  items: PaydirectItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
 
 
 const actionIcons = [
@@ -130,6 +154,16 @@ export default function OfficersPage() {
   const [deegarLoading, setDeegarLoading] = useState(false);
   const [payBanks, setPayBanks] = useState<BankRow[]>([]);
   const [payBanksLoading, setPayBanksLoading] = useState(false);
+  const [payDirectModal, setPayDirectModal] = useState(false);
+  const [payDirectOfficer, setPayDirectOfficer] = useState<{
+    cid: string;
+    name?: string | null;
+    position?: string | null;
+    station?: string | null;
+  } | null>(null);
+  const [payDirectData, setPayDirectData] = useState<PaydirectResponse | null>(null);
+  const [payDirectLoading, setPayDirectLoading] = useState(false);
+  const [payDirectError, setPayDirectError] = useState<string | null>(null);
 
   const emptyOfficer: OfficerDetail = {
     CID: "",
@@ -617,12 +651,77 @@ export default function OfficersPage() {
     }
   };
 
+  const formatMoney = (value: string | number | null | undefined) => {
+    if (value === null || value === undefined) return "-";
+    const cleaned = typeof value === "string" ? value.replace(/,/g, "").trim() : value;
+    const num = typeof cleaned === "number" ? cleaned : Number(cleaned);
+    if (!Number.isFinite(num)) return String(value);
+
+    const amountInBaht = num / 100; // paydirect amounts are stored in satang
+    return amountInBaht.toLocaleString("th-TH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const loadPayDirect = async (cid: string, targetPage = 1) => {
+    if (!cid) return;
+    setPayDirectLoading(true);
+    setPayDirectError(null);
+    try {
+      const params = new URLSearchParams({
+        page: String(targetPage),
+        pageSize: "10",
+      });
+      const res = await fetch(`/api/officers/${cid}/paydirect?${params.toString()}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setPayDirectError(json.error || "ไม่สามารถโหลดข้อมูลจ่ายตรงได้");
+        setPayDirectData(null);
+      } else {
+        setPayDirectData(json);
+      }
+    } catch (err) {
+      setPayDirectError("ไม่สามารถโหลดข้อมูลจ่ายตรงได้");
+      setPayDirectData(null);
+    } finally {
+      setPayDirectLoading(false);
+    }
+  };
+
+  const openPayDirect = (row: OfficerRow) => {
+    setPayDirectOfficer({
+      cid: row.CID,
+      name: row.NAME,
+      position: row.LPOS,
+      station: row.NAMESTATION,
+    });
+    setPayDirectModal(true);
+    void loadPayDirect(row.CID, 1);
+  };
+
+  const closePayDirect = () => {
+    setPayDirectModal(false);
+    setPayDirectError(null);
+    setPayDirectData(null);
+  };
+
   const displayRange = useMemo(() => {
     if (!data) return "0-0";
     const start = (page - 1) * pageSize + 1;
     const end = Math.min(page * pageSize, data.total);
     return `${start}-${end}`;
   }, [data, page]);
+
+  const payDirectDisplayRange = useMemo(() => {
+    if (!payDirectData) return "0-0";
+    const start = (payDirectData.page - 1) * payDirectData.pageSize + 1;
+    const end = Math.min(payDirectData.page * payDirectData.pageSize, payDirectData.total);
+    return `${start}-${end}`;
+  }, [payDirectData]);
 
   const monthChoices: MonthOption[] =
     monthOptions.length > 0
@@ -677,6 +776,7 @@ export default function OfficersPage() {
                     <th>ปฏิบัติงานที่</th>
                     <th className={styles.toolsCol}>เครื่องมือ</th>
                     <th className={styles.payCol}>+รับจ่าย</th>
+                    <th className={styles.payCol}>จ่ายตรง</th>
                   </tr>
                   <tr className={styles.filterRow}>
                     <th>
@@ -719,6 +819,7 @@ export default function OfficersPage() {
                         placeholder="เลือกพื้นที่"
                       />
                     </th>
+                    <th />
                     <th />
                     <th />
                   </tr>
@@ -771,9 +872,19 @@ export default function OfficersPage() {
                           onClick={() => openPayModal(row)}
                           disabled={loading}
                         >
-                          +รับจ่าย
+                          + เพิ่มจ่ายเงิน
                         </button>
                       </td>
+                      <td className={styles.payCell}>
+                        <button
+                          type="button"
+                          className={styles.createBtn}
+                          onClick={() => openPayDirect(row)}
+                          disabled={loading}
+                        >
+                          จ่ายตรง
+                        </button>
+                      </td>                      
                     </tr>
                   ))}
 
@@ -790,7 +901,7 @@ export default function OfficersPage() {
 
             {data && data.totalPages > 1 && (
               <div className={styles.pagination}>
-                <span>Go to page:</span>
+                <span>ไปหน้า:</span>
                 <button
                   className={styles.pageBtn}
                   onClick={() => load(Math.max(page - 1, 1))}
@@ -831,7 +942,127 @@ export default function OfficersPage() {
 
       <AppFooter />
 
-      {payModal && (
+            {payDirectModal && (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
+          <div className={`${styles.modal} ${styles.wideModal}`}>
+            <div className={styles.modalHeader}>
+              <h2>
+                ประวัติการจ่ายตรง {payDirectOfficer?.name ? `(${payDirectOfficer.name})` : ""}
+              </h2>
+              <button className={styles.modalClose} onClick={closePayDirect} aria-label="Close">
+                ปิด
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.paydirectHeader}>
+                <div className={styles.paydirectName}>{payDirectOfficer?.name ?? "-"}</div>
+                <div className={styles.paydirectMetaRow}>
+                  <span>CID: {payDirectOfficer?.cid ?? "-"}</span>
+                  <span>{payDirectOfficer?.position ?? "-"}</span>
+                </div>
+                <div className={styles.paydirectMetaRow}>
+                  <span>{payDirectOfficer?.station ?? "-"}</span>
+                </div>
+              </div>
+
+              {payDirectError && <div className={styles.error}>{payDirectError}</div>}
+
+              <div className={styles.paydirectTableSection}>
+                <div className={styles.tableTop}>
+                  <span className={styles.tableTitle}>ประวัติการจ่ายตรง</span>
+                  <span className={styles.results}>
+                    แสดง {payDirectDisplayRange} จาก {payDirectData?.total ?? 0} รายการ
+                  </span>
+                </div>
+                <div className={styles.paydirectTableWrap}>
+                  <table className={styles.paydirectTable}>
+                    <thead>
+                      <tr>
+                        <th>เดือน</th>
+                        <th>พ.ศ.</th>
+                        <th>รายรับ</th>
+                        <th>รายจ่าย</th>
+                        <th>คงเหลือ</th>
+                        <th>สลิป</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payDirectLoading && (
+                        <tr>
+                          <td colSpan={6} className={styles.emptyState}>
+                            กำลังโหลด...
+                          </td>
+                        </tr>
+                      )}
+                      {!payDirectLoading &&
+                        payDirectData?.items?.map((item) => (
+                          <tr key={item.id}>
+                            <td>{item.NAMEMONTH_TH ?? "-"}</td>
+                            <td>{item.A ?? "-"}</td>
+                            <td>{formatMoney(item.TOTALINCOME)}</td>
+                            <td>{formatMoney(item.TOTALOUTCOME)}</td>
+                            <td>{formatMoney(item.BALANCE)}</td>
+                            <td>
+                              <a
+                                className={styles.payLink}
+                                href={`/officers/paydirect/${item.PAYID}`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                สลิปเงินเดือนจ่ายตรง
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      {!payDirectLoading && (!payDirectData || payDirectData.items.length === 0) && (
+                        <tr>
+                          <td colSpan={6} className={styles.emptyState}>
+                            ไม่พบข้อมูล
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {payDirectData && payDirectData.totalPages > 1 && (
+                  <div className={styles.pagination}>
+                    <span>ไปหน้า:</span>
+                    <button
+                      className={styles.pageBtn}
+                      onClick={() => loadPayDirect(payDirectOfficer?.cid || "", Math.max(payDirectData.page - 1, 1))}
+                      disabled={payDirectData.page === 1 || payDirectLoading}
+                    >
+                      &lt; ก่อนหน้า
+                    </button>
+                    {Array.from({ length: Math.min(payDirectData.totalPages, 10) }).map((_, idx) => {
+                      const p = idx + 1;
+                      return (
+                        <button
+                          key={p}
+                          className={`${styles.pageBtn} ${p === payDirectData.page ? styles.currentPage : ""}`}
+                          onClick={() => loadPayDirect(payDirectOfficer?.cid || "", p)}
+                          disabled={p === payDirectData.page || payDirectLoading}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+                    <button
+                      className={styles.pageBtn}
+                      onClick={() => loadPayDirect(payDirectOfficer?.cid || "", Math.min(payDirectData.page + 1, payDirectData.totalPages))}
+                      disabled={payDirectData.page === payDirectData.totalPages || payDirectLoading}
+                    >
+                      ถัดไป &gt;
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+{payModal && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
             <div className={styles.modalHeader}>
