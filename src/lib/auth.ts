@@ -10,6 +10,7 @@ type SessionPayload = {
   accessLevel: number;
   fname?: string;
   lname?: string;
+  status?: string;
 };
 
 export async function signSession(payload: SessionPayload) {
@@ -56,6 +57,12 @@ export async function verifySession(
         typeof accessLevelRaw === 'number' && Number.isFinite(accessLevelRaw)
           ? accessLevelRaw
           : Number(accessLevelRaw);
+      const status =
+        typeof user.status === 'string'
+          ? user.status
+          : typeof user.role === 'string'
+            ? user.role
+            : undefined;
 
       return {
         id: Number(user.id ?? 0),
@@ -63,6 +70,7 @@ export async function verifySession(
         accessLevel: Number.isFinite(accessLevel) ? accessLevel : 0,
         fname: fname || undefined,
         lname: rest.join(' ').trim() || undefined,
+        status,
       };
     }
   } catch {

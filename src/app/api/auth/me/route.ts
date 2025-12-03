@@ -16,6 +16,8 @@ export async function GET() {
             fname: session.fname,
             lname: session.lname,
             cid: session.cid,
+            status: session.status,
+            accessLevel: session.accessLevel,
         },
     });
 }

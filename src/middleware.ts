@@ -17,6 +17,20 @@ export async function middleware(req: NextRequest) {
   const session = await verifySession(token, { skipNextAuth: true });
 
   if (session) {
+    const status = typeof session.status === 'string' ? session.status.toLowerCase() : '';
+    const isLimitedUser = status === 'user';
+
+    if (isLimitedUser) {
+      const isPaydirectPage =
+        pathname === '/officers/paydirect' || pathname.startsWith('/officers/paydirect/');
+
+      if (!isPaydirectPage) {
+        const targetUrl = req.nextUrl.clone();
+        targetUrl.pathname = '/officers/paydirect';
+        targetUrl.search = '';
+        return NextResponse.redirect(targetUrl);
+      }
+    }
     return NextResponse.next();
   }
 
