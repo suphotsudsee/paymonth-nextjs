@@ -36,9 +36,18 @@ export default function LoginPage() {
         const userLabel = [data.user?.fname, data.user?.lname].filter(Boolean).join(" ").trim() || data.user?.cid || "User";
         window.localStorage.setItem("userName", userLabel);
         const status: string = String(data.user?.status || '').toLowerCase();
+        const userCid: string = String(data.user?.cid || '').trim();
         window.localStorage.setItem("userStatus", status);
+        if (userCid) {
+          window.localStorage.setItem("userCid", userCid);
+        }
         const next = new URLSearchParams(window.location.search).get('next');
-        const defaultTarget = status === 'user' ? '/officers/paydirect' : '/officers';
+        const defaultTarget =
+          status === 'user' && userCid
+            ? `/officers/${userCid}/paydirect`
+            : status === 'user'
+              ? '/officers/paydirect'
+              : '/officers';
         const target = status === 'user' ? defaultTarget : (next || defaultTarget);
         setRedirectTo(target);
         setTimeout(() => {

@@ -70,6 +70,8 @@ export function AppHeader({ activePath }: { activePath?: string }) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
   const [userLabel, setUserLabel] = useState<string | null>(null);
+  const [userStatus, setUserStatus] = useState<string | null>(null);
+  const [userCid, setUserCid] = useState<string | null>(null);
   const isActive = (item: NavItem) => {
     if (!activePath || item.href === "#") return false;
     return activePath === item.href || activePath.startsWith(`${item.href}/`);
@@ -83,6 +85,8 @@ export function AppHeader({ activePath }: { activePath?: string }) {
     if (typeof window === "undefined") return;
 
     const storedName = window.localStorage.getItem("userName");
+    const storedStatus = window.localStorage.getItem("userStatus");
+    const storedCid = window.localStorage.getItem("userCid");
     if (storedName) {
       setUserLabel(storedName);
     } else {
@@ -97,10 +101,26 @@ export function AppHeader({ activePath }: { activePath?: string }) {
           const label = name || data.user.cid || "User";
           setUserLabel(label);
           window.localStorage.setItem("userName", label);
+          if (data.user?.status) {
+            const statusLower = String(data.user.status).toLowerCase();
+            setUserStatus(statusLower);
+            window.localStorage.setItem("userStatus", statusLower);
+          }
+          if (data.user?.cid) {
+            setUserCid(data.user.cid);
+            window.localStorage.setItem("userCid", data.user.cid);
+          }
         })
         .catch(() => {
           // ignore errors
         });
+    }
+
+    if (storedStatus) {
+      setUserStatus(storedStatus);
+    }
+    if (storedCid) {
+      setUserCid(storedCid);
     }
   }, []);
 
@@ -122,7 +142,7 @@ export function AppHeader({ activePath }: { activePath?: string }) {
     <header className={styles.topBar}>
       <div className={styles.brand}>Salary Web Application</div>
       <nav className={styles.nav}>
-        {navItems.map((item) =>
+        {(userStatus === "user" ? [] : navItems).map((item) =>
           item.submenu ? (
             <div key={item.label} className={styles.navItemDropdown}>
               <Link

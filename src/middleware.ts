@@ -19,14 +19,18 @@ export async function middleware(req: NextRequest) {
   if (session) {
     const status = typeof session.status === 'string' ? session.status.toLowerCase() : '';
     const isLimitedUser = status === 'user';
+    const userCid = session.cid;
 
     if (isLimitedUser) {
-      const isPaydirectPage =
-        pathname === '/officers/paydirect' || pathname.startsWith('/officers/paydirect/');
+      const personalPaydirectBase = userCid ? `/officers/${userCid}/paydirect` : '/officers/paydirect';
+      const isOwnPaydirectList = pathname === personalPaydirectBase;
+      const isOwnPaydirectNested = pathname.startsWith(`${personalPaydirectBase}/`);
+      const isSlipPage = pathname.startsWith('/officers/paydirect/');
+      const isPaydirectRoot = pathname === '/officers/paydirect';
 
-      if (!isPaydirectPage) {
+      if (!(isOwnPaydirectList || isOwnPaydirectNested || isSlipPage || isPaydirectRoot)) {
         const targetUrl = req.nextUrl.clone();
-        targetUrl.pathname = '/officers/paydirect';
+        targetUrl.pathname = personalPaydirectBase;
         targetUrl.search = '';
         return NextResponse.redirect(targetUrl);
       }
