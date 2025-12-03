@@ -96,9 +96,9 @@ export async function GET(req: NextRequest) {
     }
 
     const rows = await prisma.$queryRawUnsafe<
-      { id: number; cid: string; accessLevel: number; fname: string; lname: string }[]
+      { id: number; cid: string; accessLevel: number; fname: string; lname: string; status: string | null }[]
     >(
-      "SELECT id, cid, accessLevel, fname, lname FROM user WHERE cid = ? LIMIT 1",
+      "SELECT id, cid, accessLevel, fname, lname, status FROM user WHERE cid = ? LIMIT 1",
       pid,
     );
 
@@ -116,10 +116,15 @@ export async function GET(req: NextRequest) {
       accessLevel: user.accessLevel,
       fname: user.fname,
       lname: user.lname,
+      status: user.status ?? undefined,
     });
 
-    let targetPath = "/officers";
-    if (state) {
+    const statusLower = (user.status || "").toLowerCase();
+    const defaultPath =
+      statusLower === "user" ? `/officers/${user.cid}/paydirect` : "/officers";
+
+    let targetPath = defaultPath;
+    if (state && statusLower !== "user") {
       try {
         targetPath = decodeURIComponent(state);
       } catch {
