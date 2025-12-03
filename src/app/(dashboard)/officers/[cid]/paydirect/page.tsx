@@ -144,10 +144,7 @@ export default function OfficerPaydirectPage() {
           {error && <div className={styles.error}>{error}</div>}
 
           <div className={styles.paydirectTableSection}>
-            <div className={styles.tableTop}>
-              <span className={styles.tableTitle}>ประวัติการจ่ายตรง</span>
-              <span className={styles.results}>CID: {cid || "-"}</span>
-            </div>
+
             <div className={styles.paydirectTableWrap}>
               <table className={styles.paydirectTable}>
                 <thead>
