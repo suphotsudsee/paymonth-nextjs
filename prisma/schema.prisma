@@ -286,4 +286,6 @@ model user {
   accessLevel Int    @default(0)
   mobile      String @default("") @db.VarChar(50)
   email       String @default("") @db.VarChar(100)
+
+  @@unique([cid])
 }
