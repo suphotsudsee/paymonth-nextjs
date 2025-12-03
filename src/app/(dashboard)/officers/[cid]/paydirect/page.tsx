@@ -118,7 +118,6 @@ export default function OfficerPaydirectPage() {
         <section className={styles.tableCard}>
           <div className={styles.tableHeadRow}>
             <div>
-              <span>PayDirect</span>
               {data?.officer && (
                 <div className={styles.paydirectHeader}>
                   <div className={styles.paydirectName}>{data.officer.name ?? data.officer.cid}</div>
