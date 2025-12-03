@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
 
-const ThaiIdProvider = {
+import type { OAuthConfig } from "next-auth/providers";
+
+const ThaiIdProvider: OAuthConfig<Record<string, unknown>> = {
   id: "thaiid",
   name: "ThaiID (DOPA Digital ID)",
   // Generic OAuth2 setup; explicit endpoints.

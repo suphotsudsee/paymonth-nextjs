@@ -206,7 +206,7 @@ export default function ManageUsersPage() {
         return;
       }
 
-      const url = isEdit ? `/api/users/${selectedUser.id}` : "/api/users";
+      const url = isEdit ? `/api/users/${selectedUser?.id ?? ""}` : "/api/users";
       const res = await fetch(url, {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },

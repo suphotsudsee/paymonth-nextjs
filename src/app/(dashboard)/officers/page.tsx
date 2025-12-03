@@ -84,7 +84,7 @@ export default function OfficersPage() {
   const [detail, setDetail] = useState<OfficerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [modalMode, setModalMode] = useState<"view" | "edit" | null>(null);
+  const [modalMode, setModalMode] = useState<"view" | "edit" | "create" | null>(null);
   const [form, setForm] = useState<OfficerDetail | null>(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [stations, setStations] = useState<StationOption[]>([]);
@@ -138,6 +138,7 @@ export default function OfficersPage() {
     IDCOOP: null,
     IDMAN: null,
     NO: null,
+    ID: null,
     CODE: null,
     NAME: null,
     SEX: null,
@@ -324,6 +325,7 @@ export default function OfficersPage() {
       IDCOOP: null,
       IDMAN: null,
       NO: null,
+      ID: null,
       CODE: null,
       NAME: null,
       SEX: null,
@@ -359,6 +361,7 @@ export default function OfficersPage() {
           IDCOOP: null,
           IDMAN: null,
           NO: null,
+          ID: null,
           CODE: null,
           NAME: null,
           SEX: null,
@@ -940,7 +943,7 @@ export default function OfficersPage() {
                     }}
                     onFocus={() => {
                       if (!deegarOptions.length) {
-                        void loadDeegar(1);
+                        void loadDeegar('');
                       }
                     }}
                   />

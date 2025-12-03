@@ -104,7 +104,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const addUpdate = (clause: string, value: string | number | null) => {
       updates.push(clause);
-      paramsUpdate.push(value);
+      paramsUpdate.push(value ?? "");
     };
 
     if (username !== undefined) addUpdate("username = ?", username);
