@@ -86,8 +86,8 @@
 
 .main {
   width: 100%;
-  max-width: 1240px;
-  margin: 22px auto 32px;
+  max-width: none;
+  margin: 22px 0 32px;
   padding: 0 20px;
   flex: 1;
 }
@@ -571,6 +571,85 @@
   text-decoration: none;
   font-weight: 700;
   color: #0a5cb5;
+}
+
+.paypersonSlip {
+  max-width: 680px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #d7deeb;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 18px 20px;
+  text-align: center;
+}
+
+.paypersonSlipTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.paypersonSlipSubtitle {
+  font-weight: 600;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.paypersonSlipMeta {
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.paypersonSlipLoading {
+  padding: 12px;
+}
+
+.paypersonBox {
+  border: 1px solid #c8e1c8;
+  margin-bottom: 12px;
+}
+
+.paypersonBoxHeader {
+  background: #1ba54a;
+  color: #fff;
+  padding: 8px 10px;
+  font-weight: 700;
+}
+
+.paypersonBoxBody {
+  padding: 6px 0;
+  display: grid;
+  gap: 4px;
+  background: #f7fff7;
+}
+
+.paypersonRow,
+.paypersonRowTotal,
+.paypersonRowBalance {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border: 1px solid #d6ead6;
+  background: #fff;
+}
+
+.paypersonRowTotal {
+  background: #e6ffe6;
+  font-weight: 700;
+}
+
+.paypersonRowBalance {
+  background: #dff4ff;
+  font-weight: 700;
+  border-color: #cfe7f7;
+}
+
+.paypersonNote {
+  font-size: 12px;
+  color: #374151;
+  padding: 8px;
+  border-top: 1px dashed #d7deeb;
 }
 
 @media (max-width: 640px) {

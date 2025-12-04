@@ -638,6 +638,10 @@ export default function OfficersPage() {
     router.push(`/officers/${row.CID}/paydirect`);
   };
 
+  const openPersonal = (row: OfficerRow) => {
+    router.push(`/officers/${row.CID}/payperson`);
+  };
+
   const displayRange = useMemo(() => {
     if (!data) return "0-0";
     const start = (page - 1) * pageSize + 1;
@@ -697,6 +701,7 @@ export default function OfficersPage() {
                     <th>ปฏิบัติงานที่</th>
                     <th className={styles.toolsCol}>เครื่องมือ</th>
                     <th className={styles.payCol}>+รับจ่าย</th>
+                    <th className={styles.payCol}>ส่วนบุคคล</th>
                     <th className={styles.payCol}>จ่ายตรง</th>
                   </tr>
                   <tr className={styles.filterRow}>
@@ -740,6 +745,7 @@ export default function OfficersPage() {
                         placeholder="เลือกพื้นที่"
                       />
                     </th>
+                    <th />
                     <th />
                     <th />
                     <th />
@@ -796,6 +802,16 @@ export default function OfficersPage() {
                           + เพิ่มจ่ายเงิน
                         </button>
                       </td>
+                      <td className={styles.payCell}>
+                        <button
+                          type="button"
+                          className={styles.createBtn}
+                          onClick={() => openPersonal(row)}
+                          disabled={loading}
+                        >
+                          ส่วนบุคคล
+                        </button>
+                      </td>                         
                       <td className={styles.payCell}>
                         <button
                           type="button"
