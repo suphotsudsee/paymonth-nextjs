@@ -151,7 +151,7 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
     <div className={styles.page}>
       <div className={styles.slip}>
         <header className={styles.header}>
-          <div>ใบรับรองการจ่ายเงินเดือนและเงินอื่น11</div>
+          <div>ใบรับรองการจ่ายเงินเดือนและเงินอื่น</div>
           <div>
             ประจำเดือน {monthLabel} ปี พ.ศ. {yearLabel}
           </div>
