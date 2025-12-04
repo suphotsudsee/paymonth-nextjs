@@ -140,7 +140,8 @@ export default function PaypersonSlipPage() {
               </div>
 
               <div className={styles.paypersonNote}>
-                (แปลงคงเหลือสามพันบาทคำวน)
+                โอนเข้าบัญชี ธนาคาร() เลขที่บัญชี (data.officer?.bankAccount ?? "-")<br />
+                หากมีข้อสงสัยกรุณาติดต่อ งานการเงิน สำนักงานสาธารณสุขจังหวัดอุบลราชธานี
               </div>
             </>
           )}
