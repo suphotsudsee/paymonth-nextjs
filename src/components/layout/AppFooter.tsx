@@ -1,12 +1,21 @@
-﻿import styles from "./HeaderFooter.module.css";
+﻿import { useEffect, useState } from "react";
+import styles from "./HeaderFooter.module.css";
 
 export function AppFooter() {
+  const [year, setYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    setYear(new Date().getFullYear());
+  }, []);
+
   return (
     <footer className={styles.footer}>
-      <div>Copyright © 2025 by สุพจน์ สุดสี.</div>
+      <div>
+        Copyright © {year} by สุพจน์ สุดสี.
+      </div>
       <div>All Rights Reserved.</div>
       <div>
-        ศูนย์เทคโนโลยีสารสนเทศ สำนักงานสาธารณสุขจังหวัดอุบลราชธานี
+        กลุ่มงานสุขภาพดิจิท้ล สำนักงานสาธารณสุขจังหวัดอุบลราชธานี
       </div>
     </footer>
   );
