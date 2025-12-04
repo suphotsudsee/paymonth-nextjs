@@ -100,9 +100,9 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
     { label: "เงินปจต. /วิชาชีพ /วิทยฐานะ(ตกเบิก)", amount: toBaht(detail.Q) },
     { label: "ต.ข.ท.ปจต./ต.ข.8-8ว./ต.ด.ข.1-7", amount: toBaht(detail.NOCLINIC) + toBaht(detail.SUBJECT) + toBaht(detail.AB) },
     { label: "ต.ข.ท.ปจต./ต.ข.8-8ว./ต.ด.ข.1-7(ตกเบิก)", amount: toBaht(detail.Y) + toBaht(detail.AA) },
-    { label: "เงินช่วยเหลือบุตร", amount: toBaht(detail.RETIRE) },
+    { label: "เงินช่วยเหลือบุตร", amount: 0 },
     { label: "เงิน พ.ส.ร/พ.ต.ก.", amount: toBaht(detail.S) },
-    { label: "เงินตอบแทนพิเศษ", amount: toBaht(detail.AC) + toBaht(detail.AI) },
+    { label: "เงินตอบแทนพิเศษ", amount: 0},
     { label: "อื่นๆ", amount: 0 },
   ];
 
