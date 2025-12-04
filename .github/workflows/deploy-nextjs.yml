@@ -1,0 +1,34 @@
+name: Deploy Next.js to Real Server (self-hosted)
+
+on:
+  push:
+    branches:
+      - main      # เปลี่ยนเป็น branch ที่คุณใช้ deploy
+
+jobs:
+  deploy:
+    runs-on: self-hosted    # ใช้ runner ที่อยู่บน server จริง
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci || npm install
+
+      - name: Build Next.js app
+        run: |
+          npm run build
+
+      - name: Restart app with PM2
+        run: |
+          # ถ้ายังไม่มี process ชื่อ my-next-app ให้ start ใหม่
+          pm2 start "npm run start -- -p 9102" --name my-next-app || pm2 restart my-next-app
+          pm2 save
