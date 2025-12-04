@@ -40,5 +40,5 @@ jobs:
         run: |
           cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
           pm2 del 0 
-          pm2 start "npm start" --name paymonth-nextjs || pm2 restart paymonth-nextjs
+          pm2 start "npm start" --name paymonth-nextjs || pm2 reload paymonth-nextjs
           pm2 save
