@@ -646,7 +646,8 @@
 }
 
 .paypersonNote {
-  font-size: 12px;
+  font-size: 16px;
+   font-weight: 700;
   color: #374151;
   padding: 8px;
   border-top: 1px dashed #d7deeb;

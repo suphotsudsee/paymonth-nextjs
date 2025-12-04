@@ -17,6 +17,8 @@ type OfficerInfo = {
   NAMEMONTH_TH: string | null;
   MONTHTHAI: string;
   YEARTHAI: string;
+  IDBANK: string | null;
+  NAMEBANK: string | null;
 };
 
 export async function GET(
@@ -43,11 +45,14 @@ export async function GET(
           station.NAMESTATION,
           cmonth.NAMEMONTH_TH,
           salary.MONTHTHAI,
-          salary.YEARTHAI
+          salary.YEARTHAI,
+          bank.IDBANK,
+          bank.NAMEBANK
         FROM salary
           INNER JOIN officer ON salary.CID = officer.CID
           INNER JOIN station ON officer.CODE = station.CODE
           INNER JOIN cmonth ON salary.MONTHTHAI = cmonth.ID
+          LEFT JOIN bank ON bank.id = salary.BANKID
         WHERE salary.CID = ? AND salary.MONTHTHAI = ? AND salary.YEARTHAI = ?
         LIMIT 1
       `,
@@ -95,6 +100,8 @@ export async function GET(
             monththai: officer.MONTHTHAI,
             yearthai: officer.YEARTHAI,
             monthName: officer.NAMEMONTH_TH,
+            bankAccount: officer.IDBANK ?? null,
+            bankName: officer.NAMEBANK ?? null,
           }
         : null,
       income,

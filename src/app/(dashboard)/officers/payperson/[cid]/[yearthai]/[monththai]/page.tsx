@@ -22,6 +22,8 @@ type SlipResponse = {
     monththai: string;
     yearthai: string;
     monthName: string | null;
+    bankAccount: string | null;
+    bankName: string | null;
   } | null;
   income: SlipRow[];
   outcome: SlipRow[];
@@ -140,8 +142,7 @@ export default function PaypersonSlipPage() {
               </div>
 
               <div className={styles.paypersonNote}>
-                โอนเข้าบัญชี ธนาคาร() เลขที่บัญชี (data.officer?.bankAccount ?? "-")<br />
-                หากมีข้อสงสัยกรุณาติดต่อ งานการเงิน สำนักงานสาธารณสุขจังหวัดอุบลราชธานี
+                 โอนเข้าบัญชี {officer.bankName ?? "-"} เลขที่บัญชี {officer.bankAccount ?? "-"}
               </div>
             </>
           )}
