@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 
+const canManageBanks = (session: { status?: unknown; accessLevel?: unknown }) => {
+  const statusStr =
+    typeof session.status === "string"
+      ? session.status.toLowerCase()
+      : String(session.status ?? "").toLowerCase();
+  if (statusStr.includes("admin") || statusStr.includes("manager")) return true;
+
+  const level = Number(session.accessLevel);
+  return Number.isFinite(level) && level >= 1;
+};
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -10,6 +21,9 @@ export async function PUT(
     const session = await verifySession(req.cookies.get("session")?.value);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!canManageBanks(session)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { id: idParam } = await params;
@@ -57,6 +71,9 @@ export async function DELETE(
     const session = await verifySession(req.cookies.get("session")?.value);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!canManageBanks(session)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { id: idParam } = await params;

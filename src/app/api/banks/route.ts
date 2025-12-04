@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 
+const canManageBanks = (session: { status?: unknown; accessLevel?: unknown }) => {
+  const statusStr =
+    typeof session.status === "string"
+      ? session.status.toLowerCase()
+      : String(session.status ?? "").toLowerCase();
+  if (statusStr.includes("admin") || statusStr.includes("manager")) return true;
+
+  const level = Number(session.accessLevel);
+  return Number.isFinite(level) && level >= 1;
+};
+
 export async function GET(req: NextRequest) {
   try {
     const session = await verifySession(req.cookies.get("session")?.value);
@@ -40,6 +51,9 @@ export async function POST(req: NextRequest) {
     const session = await verifySession(req.cookies.get("session")?.value);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!canManageBanks(session)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await req.json();
