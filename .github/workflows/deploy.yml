@@ -1,44 +1,43 @@
-name: Deploy paymonth-nextjs (self-hosted)
+name: Deploy paymonth-nextjs on self-hosted server
 
 on:
   push:
     branches:
-      - main   # ถ้า deploy จาก branch อื่น เปลี่ยนชื่อนี้
+      - main        # ถ้า deploy จาก branch อื่น เปลี่ยนตามจริง
 
 jobs:
   deploy:
-    runs-on: self-hosted   # ใช้ runner บน server คุณ
+    runs-on: self-hosted    # ใช้ runner ที่อยู่บน server เครื่องนี้
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Show current path (debug)
+      - name: Go to project folder
         run: |
+          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
           pwd
           ls
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: |
-            package-lock.json
+      - name: Git pull latest code
+        run: |
+          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
+          git pull origin main
 
       - name: Install dependencies
         run: |
-          npm ci || npm install
+          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
+          npm install
 
       - name: Prisma generate
         run: |
+          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
           npx prisma generate
 
       - name: Build Next.js
         run: |
+          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
           npm run build
 
-      - name: Restart via PM2
+      - name: Restart app with PM2
         run: |
+          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
           pm2 start "npm start" --name paymonth-nextjs || pm2 restart paymonth-nextjs
           pm2 save
