@@ -40,14 +40,6 @@ export async function PUT(
       return NextResponse.json({ error: "idbank is required" }, { status: 400 });
     }
 
-    const salaryCount = await prisma.salary.count({ where: { BANKID: id } });
-    if (salaryCount > 0) {
-      return NextResponse.json(
-        { error: "Cannot update bank because it is referenced by salary records" },
-        { status: 400 },
-      );
-    }
-
     const updated = await prisma.bank.update({
       where: { id },
       data: {
