@@ -36,8 +36,15 @@ jobs:
           cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
           npm run build
 
-      - name: Restart app with PM2
+      - name: Restart app with PM2 (no duplicate)
+        working-directory: /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
         run: |
-          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
-          pm2 start "npm start" --name paymonth-nextjs || pm2 restart paymonth-nextjs
+          if pm2 describe paymonth-nextjs > /dev/null 2>&1; then
+            echo "PM2 process exists -> restart"
+            pm2 restart paymonth-nextjs
+          else
+            echo "PM2 process not found -> start new"
+            pm2 start "npm start" --name paymonth-nextjs
+          fi
           pm2 save
+
