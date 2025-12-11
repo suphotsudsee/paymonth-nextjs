@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
         MONTHTHAI: string;
         YEARTHAI: string;
         NAMEMONTH_TH: string | null;
+        PAYNAME: string | null;
         INCOME: any;
         OUTCOME: any;
       }[]
@@ -62,13 +63,15 @@ export async function GET(req: NextRequest) {
           cmonth.NAMEMONTH_TH,
           salary.YEARTHAI,
           salary.CID,
+          cpay.PAYNAME,
           SUM(IF(cpay.PAYTYPE = '1', salary.MONEY, 0)) AS INCOME,
           SUM(IF(cpay.PAYTYPE <> '1', salary.MONEY, 0)) AS OUTCOME
         FROM (
           SELECT
             salary.CID,
             salary.MONTHTHAI,
-            salary.YEARTHAI
+            salary.YEARTHAI,
+            salary.IDPAY
           FROM salary
             INNER JOIN officer ON salary.CID = officer.CID
             INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
@@ -136,6 +139,7 @@ export async function GET(req: NextRequest) {
       MONTHTHAI: r.MONTHTHAI,
       NAMEMONTH_TH: r.NAMEMONTH_TH,
       YEARTHAI: r.YEARTHAI,
+      PAYNAME: r.PAYNAME,
       INCOME: Number(r.INCOME ?? 0),
       OUTCOME: Number(r.OUTCOME ?? 0),
     }));

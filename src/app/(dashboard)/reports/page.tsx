@@ -14,6 +14,7 @@ type ReportRow = {
   MONTHTHAI: string;
   NAMEMONTH_TH: string | null;
   YEARTHAI: string;
+  PAYNAME: string | null;
   INCOME: number;
   OUTCOME: number;
 };
@@ -226,6 +227,7 @@ export default function ReportsAllPage() {
                   <th>หน่วยงาน</th>
                   <th>เดือน</th>
                   <th>ปี</th>
+                  <th>PAYNAME</th>
                   <th>รายรับ</th>
                   <th>รายจ่าย</th>
                   <th>รายละเอียด</th>
@@ -240,6 +242,7 @@ export default function ReportsAllPage() {
                     <td>{row.STATION}</td>
                     <td>{row.NAMEMONTH_TH ?? row.MONTHTHAI}</td>
                     <td>{row.YEARTHAI}</td>
+                    <td>{row.PAYNAME ?? "-"}</td>
                     <td className={styles.numberCell}>{formatNumber(row.INCOME)}</td>
                     <td className={styles.numberCell}>{formatNumber(row.OUTCOME)}</td>
                     <td className={styles.actionsCell}>
