@@ -23,16 +23,36 @@ export async function middleware(req: NextRequest) {
     const userCid = session.cid;
 
     if (isLimitedUser) {
-      // Least privilege: users are confined to their own paydirect pages; other admin pages are blocked.
-      const personalPaydirectBase = userCid ? `/officers/${userCid}/paydirect` : '/officers/paydirect';
+      // Least privilege: users are confined to their own pay pages and selection screen.
+      const personalRoot = userCid ? `/officers/${userCid}` : '/officers/paydirect';
+      const personalPaydirectBase = userCid ? `${personalRoot}/paydirect` : '/officers/paydirect';
+      const personalPaypersonBase = userCid ? `${personalRoot}/payperson` : '/officers/payperson';
+
+      const isPersonalRoot = pathname === personalRoot;
       const isOwnPaydirectList = pathname === personalPaydirectBase;
       const isOwnPaydirectNested = pathname.startsWith(`${personalPaydirectBase}/`);
-      const isSlipPage = pathname.startsWith('/officers/paydirect/');
+      const isPaydirectSlip = pathname.startsWith('/officers/paydirect/');
       const isPaydirectRoot = pathname === '/officers/paydirect';
 
-      if (!(isOwnPaydirectList || isOwnPaydirectNested || isSlipPage || isPaydirectRoot)) {
+      const isOwnPaypersonList = pathname === personalPaypersonBase;
+      const isOwnPaypersonNested = pathname.startsWith(`${personalPaypersonBase}/`);
+      const isPaypersonSlip = userCid
+        ? pathname.startsWith(`/officers/payperson/${userCid}/`)
+        : pathname.startsWith('/officers/payperson/');
+
+      const allowed =
+        isPersonalRoot ||
+        isOwnPaydirectList ||
+        isOwnPaydirectNested ||
+        isPaydirectSlip ||
+        isPaydirectRoot ||
+        isOwnPaypersonList ||
+        isOwnPaypersonNested ||
+        isPaypersonSlip;
+
+      if (!allowed) {
         const targetUrl = req.nextUrl.clone();
-        targetUrl.pathname = personalPaydirectBase;
+        targetUrl.pathname = personalRoot;
         targetUrl.search = '';
         return NextResponse.redirect(targetUrl);
       }

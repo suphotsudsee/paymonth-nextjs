@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
 
     const statusLower = (user.status || "").toLowerCase();
     const defaultPath =
-      statusLower === "user" ? `/officers/${user.cid}/paydirect` : "/officers";
+      statusLower === "user" ? `/officers/${user.cid}` : "/officers";
 
     let targetPath = defaultPath;
     if (state && statusLower !== "user") {

@@ -42,13 +42,9 @@ export default function LoginPage() {
           window.localStorage.setItem("userCid", userCid);
         }
         const next = new URLSearchParams(window.location.search).get('next');
-        const defaultTarget =
-          status === 'user' && userCid
-            ? `/officers/${userCid}/paydirect`
-            : status === 'user'
-              ? '/officers/paydirect'
-              : '/officers';
-        const target = status === 'user' ? defaultTarget : (next || defaultTarget);
+        const userDefault = userCid ? `/officers/${userCid}` : '/officers/paydirect';
+        const defaultTarget = status === 'user' ? userDefault : '/officers';
+        const target = status === 'user' ? userDefault : (next || defaultTarget);
         setRedirectTo(target);
         setTimeout(() => {
           window.location.href = target;

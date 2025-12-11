@@ -653,6 +653,81 @@
   border-top: 1px dashed #d7deeb;
 }
 
+/* Slip choice screen */
+.choiceCard {
+  max-width: 960px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 40px 48px 48px;
+  box-shadow: 0 14px 30px rgba(17, 54, 71, 0.12);
+  display: grid;
+  gap: 28px;
+}
+
+.choiceHeader {
+  text-align: center;
+  display: grid;
+  gap: 8px;
+}
+
+.choiceTitle {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f2f3d;
+}
+
+.choiceSubtitle {
+  margin: 0;
+  color: #4b5563;
+  font-size: 16px;
+}
+
+.choiceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 22px;
+  justify-items: center;
+}
+
+.choiceButton {
+  width: 100%;
+  max-width: 360px;
+  padding: 28px 20px;
+  background: #0f617d;
+  color: #ffffff;
+  border-radius: 28px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 600;
+  border: 2px solid #0c5066;
+  box-shadow: 0 10px 24px rgba(15, 97, 125, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease;
+}
+
+.choiceButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(15, 97, 125, 0.28);
+  background: #0e5872;
+}
+
+.choiceButtonDisabled,
+.choiceButtonDisabled:hover {
+  cursor: not-allowed;
+  background: #94a3b8;
+  border-color: #94a3b8;
+  box-shadow: none;
+  transform: none;
+}
+
+.choiceError {
+  margin: 0;
+  text-align: center;
+  color: #b42318;
+  font-weight: 600;
+}
+
 @media (max-width: 640px) {
   .topBar {
     flex-direction: column;
