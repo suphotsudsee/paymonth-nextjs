@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -18,7 +18,7 @@ export default function LoginPage() {
     setCaptchaSrc(`/api/auth/captcha?ts=${Date.now()}`);
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setResult(null);
@@ -33,18 +33,18 @@ export default function LoginPage() {
       if (res.ok) {
         const fullName = `Welcome ${data.user?.fname || ''} ${data.user?.lname || ''}`.trim();
         setResult(fullName);
-        const userLabel = [data.user?.fname, data.user?.lname].filter(Boolean).join(" ").trim() || data.user?.cid || "User";
-        window.localStorage.setItem("userName", userLabel);
+        const userLabel = [data.user?.fname, data.user?.lname].filter(Boolean).join(' ').trim() || data.user?.cid || 'User';
+        window.localStorage.setItem('userName', userLabel);
         const status: string = String(data.user?.status || '').toLowerCase();
         const userCid: string = String(data.user?.cid || '').trim();
-        window.localStorage.setItem("userStatus", status);
+        window.localStorage.setItem('userStatus', status);
         if (userCid) {
-          window.localStorage.setItem("userCid", userCid);
+          window.localStorage.setItem('userCid', userCid);
         }
         const next = new URLSearchParams(window.location.search).get('next');
         const userDefault = userCid ? `/officers/${userCid}` : '/officers/paydirect';
         const defaultTarget = status === 'user' ? userDefault : '/officers';
-        const target = status === 'user' ? userDefault : (next || defaultTarget);
+        const target = status === 'user' ? userDefault : next || defaultTarget;
         setRedirectTo(target);
         setTimeout(() => {
           window.location.href = target;
@@ -232,38 +232,44 @@ export default function LoginPage() {
               alignItems: 'center',
             }}
           >
-            <img
-              src="/ThaID_banner.jpg"
-              alt="ThaiID banner"
-              style={{
-                width: '100%',
-                maxHeight: 160,
-                objectFit: 'cover',
-                borderRadius: 4,
-                border: '1px solid #cfd3ff',
-              }}
-            />
             <div style={{ fontSize: 14, fontWeight: 600, color: '#1b2a5a' }}>
-              เข้าสู่ระบบด้วย ThaiID (DOPA Digital ID)
+              Login with ThaiID (DOPA Digital ID)
             </div>
             <button
               type="button"
               onClick={startThaiIdLogin}
               disabled={thaiIdLoading}
               style={{
-                width: '100%',
-                padding: '10px 12px',
-                background: 'linear-gradient(90deg, #1f52ff, #3a79ff)',
-                color: '#fff',
-                fontWeight: 700,
-                letterSpacing: 0.2,
-                border: 'none',
+                padding: 0,
+                border: '1px solid #cfd3ff',
                 borderRadius: 4,
+                background: 'transparent',
                 cursor: thaiIdLoading ? 'wait' : 'pointer',
-                boxShadow: '0 8px 20px rgba(31,82,255,0.25)',
+                overflow: 'hidden',
               }}
             >
-              {thaiIdLoading ? 'กำลังเชื่อมต่อ ThaiID...' : 'เข้าสู่ระบบด้วย ThaiID'}
+              <img
+                src="/ThaID_banner.jpg"
+                alt="ThaiID banner"
+                style={{
+                  width: '100%',
+                  maxHeight: 160,
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+              <div
+                style={{
+                  padding: '10px 12px',
+                  textAlign: 'center',
+                  background: '#e9edff',
+                  color: '#1b2a5a',
+                  fontWeight: 600,
+                  fontSize: 14,
+                }}
+              >
+                {thaiIdLoading ? 'Connecting to ThaiID...' : 'Login with ThaiID'}
+              </div>
             </button>
           </div>
           {result && (
@@ -280,7 +286,7 @@ export default function LoginPage() {
               {result}
             </div>
           )}
-          {redirectTo && <div style={{ color: '#555', marginTop: 6 }}>redirecting to {redirectTo}…</div>}
+          {redirectTo && <div style={{ color: '#555', marginTop: 6 }}>redirecting to {redirectTo}...</div>}
         </div>
       </div>
     </div>
