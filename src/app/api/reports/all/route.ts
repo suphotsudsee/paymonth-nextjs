@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-    // Paginate at the grouped-key level inside the DB: first select the keyset with LIMIT/OFFSET, then aggregate only those keys.
+    // Paginate at the grouped-key level inside the DB: first select the keyset with LIMIT/OFFSET (derived table), then aggregate only those keys.
     const rows = await prisma.$queryRawUnsafe<
       {
         NAME: string | null;
@@ -56,34 +56,33 @@ export async function GET(req: NextRequest) {
       }[]
     >(
       `
-        WITH paged_keys AS (
-  SELECT s.CID, s.MONTHTHAI, s.YEARTHAI
-  FROM salary s
-  JOIN officer o ON o.CID = s.CID
-  ${whereClause}
-  GROUP BY s.CID, s.MONTHTHAI, s.YEARTHAI
-  ORDER BY s.YEARTHAI DESC, s.MONTHTHAI DESC, o.NAME ASC
-  LIMIT ? OFFSET ?
-)
-SELECT o.NAME,
-       o.LPOS,
-       st.NAMESTATION,
-       s.MONTHTHAI,
-       cm.NAMEMONTH_TH,
-       s.YEARTHAI,
-       s.CID,
-       GROUP_CONCAT(DISTINCT cp.PAYNAME ORDER BY cp.PAYNAME SEPARATOR ', ') AS PAYNAME,
-       SUM(CASE WHEN cp.PAYTYPE = '1' THEN s.MONEY ELSE 0 END) AS INCOME,
-       SUM(CASE WHEN cp.PAYTYPE <> '1' THEN s.MONEY ELSE 0 END) AS OUTCOME
-FROM paged_keys pk
-JOIN salary s ON s.CID = pk.CID AND s.MONTHTHAI = pk.MONTHTHAI AND s.YEARTHAI = pk.YEARTHAI
-JOIN officer o ON o.CID = s.CID
-LEFT JOIN station st ON st.CODE = o.CODE
-JOIN cpay cp ON cp.IDPAY = s.IDPAY
-LEFT JOIN cmonth cm ON cm.ID = s.MONTHTHAI
-${whereClause}
-GROUP BY s.CID, s.MONTHTHAI, s.YEARTHAI, o.NAME, o.LPOS, st.NAMESTATION, cm.NAMEMONTH_TH
-ORDER BY s.YEARTHAI DESC, s.MONTHTHAI DESC, o.NAME ASC;
+        SELECT o.NAME,
+               o.LPOS,
+               st.NAMESTATION,
+               s.MONTHTHAI,
+               cm.NAMEMONTH_TH,
+               s.YEARTHAI,
+               s.CID,
+               GROUP_CONCAT(DISTINCT cp.PAYNAME ORDER BY cp.PAYNAME SEPARATOR ', ') AS PAYNAME,
+               SUM(CASE WHEN cp.PAYTYPE = '1' THEN s.MONEY ELSE 0 END) AS INCOME,
+               SUM(CASE WHEN cp.PAYTYPE <> '1' THEN s.MONEY ELSE 0 END) AS OUTCOME
+        FROM (
+          SELECT s.CID, s.MONTHTHAI, s.YEARTHAI
+          FROM salary s
+          JOIN officer o ON o.CID = s.CID
+          ${whereClause}
+          GROUP BY s.CID, s.MONTHTHAI, s.YEARTHAI
+          ORDER BY s.YEARTHAI DESC, s.MONTHTHAI DESC, o.NAME ASC
+          LIMIT ? OFFSET ?
+        ) AS pk
+        JOIN salary s ON s.CID = pk.CID AND s.MONTHTHAI = pk.MONTHTHAI AND s.YEARTHAI = pk.YEARTHAI
+        JOIN officer o ON o.CID = s.CID
+        LEFT JOIN station st ON st.CODE = o.CODE
+        JOIN cpay cp ON cp.IDPAY = s.IDPAY
+        LEFT JOIN cmonth cm ON cm.ID = s.MONTHTHAI
+        ${whereClause}
+        GROUP BY s.CID, s.MONTHTHAI, s.YEARTHAI, o.NAME, o.LPOS, st.NAMESTATION, cm.NAMEMONTH_TH
+        ORDER BY s.YEARTHAI DESC, s.MONTHTHAI DESC, o.NAME ASC;
 
       `,
       ...params,
