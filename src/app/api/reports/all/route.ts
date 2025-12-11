@@ -80,7 +80,6 @@ export async function GET(req: NextRequest) {
         LEFT JOIN station st ON st.CODE = o.CODE
         JOIN cpay cp ON cp.IDPAY = s.IDPAY
         LEFT JOIN cmonth cm ON cm.ID = s.MONTHTHAI
-        ${whereClause}
         GROUP BY s.CID, s.MONTHTHAI, s.YEARTHAI, o.NAME, o.LPOS, st.NAMESTATION, cm.NAMEMONTH_TH
         ORDER BY s.YEARTHAI DESC, s.MONTHTHAI DESC, o.NAME ASC;
 
