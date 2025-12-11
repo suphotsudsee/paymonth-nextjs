@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
           cmonth.NAMEMONTH_TH,
           salary.YEARTHAI,
           salary.CID,
-          cpay.PAYNAME,
+          GROUP_CONCAT(DISTINCT cpay.PAYNAME ORDER BY cpay.PAYNAME SEPARATOR ', ') AS PAYNAME,
           SUM(IF(cpay.PAYTYPE = '1', salary.MONEY, 0)) AS INCOME,
           SUM(IF(cpay.PAYTYPE <> '1', salary.MONEY, 0)) AS OUTCOME
         FROM (
