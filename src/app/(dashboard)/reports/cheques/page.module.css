@@ -116,7 +116,7 @@
 .table thead th {
   background: linear-gradient(180deg, #7ba7d2 0%, #6c9fce 100%);
   color: #ffffff;
-  text-align: left;
+  text-align: center;
   padding: 9px 10px;
   border: 1px solid #d1d9e6;
   font-weight: 700;
@@ -174,4 +174,5 @@
     min-width: 820px;
   }
 }
+
 

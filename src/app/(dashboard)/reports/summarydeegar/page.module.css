@@ -170,7 +170,7 @@
 .table th {
   background: #4d80ba;
   color: #ffffff;
-  text-align: left;
+  text-align: center;
   padding: 8px 10px;
   border: 1px solid #d1d9e6;
 }
@@ -254,4 +254,5 @@
   color: #0a5cb5;
   font-weight: 600;
 }
+
 

@@ -74,7 +74,7 @@ export default function PaydirectPage() {
       {error && <div style={{ color: 'red' }}>{error}</div>}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', minWidth: 900 }}>
-          <thead>
+          <thead style={{ textAlign: 'center' }}>
             <tr>
               <th>Year(A)</th>
               <th>Month(B)</th>

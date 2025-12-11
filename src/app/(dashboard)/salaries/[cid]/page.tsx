@@ -27,7 +27,7 @@ export default async function SalarySummaryPage({ params }: { params: { cid: str
       <h1>Salary Summary for {params.cid}</h1>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', minWidth: 720 }}>
-          <thead>
+          <thead style={{ textAlign: 'center' }}>
             <tr>
               <th>Month</th>
               <th>Year</th>

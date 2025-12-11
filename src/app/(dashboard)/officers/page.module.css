@@ -161,7 +161,7 @@
 .table thead th {
   background: #6c9fce;
   color: #ffffff;
-  text-align: left;
+  text-align: center;
   padding: 9px 10px;
   border: 1px solid #d1d9e6;
   font-weight: 700;
@@ -482,7 +482,7 @@
 .bankTable th {
   background: #5a8acb;
   color: #fff;
-  text-align: left;
+  text-align: center;
   padding: 8px 10px;
   border-right: 1px solid rgba(255, 255, 255, 0.25);
 }
@@ -552,7 +552,7 @@
 .paydirectTable th {
   background: #6c9fce;
   color: #ffffff;
-  text-align: left;
+  text-align: center;
   padding: 9px 10px;
   border: 1px solid #d1d9e6;
 }

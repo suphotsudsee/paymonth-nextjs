@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { AlignCenter } from "lucide-react";
 
 type OfficerRow = {
   CID: string;
@@ -694,12 +695,13 @@ export default function OfficersPage() {
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
                 <thead>
-                  <tr>
+                  <tr className={styles.headerRow}>
                     <th>เลขบัตรประชาชน</th>
                     <th>สหกรณ์</th>
                     <th>ชื่อ-นามสกุล</th>
                     <th>ปฏิบัติงานที่</th>
                     <th className={styles.toolsCol}>เครื่องมือ</th>
+                    <th className={styles.payCol}>รายการรับ-จ่าย</th>
                     <th className={styles.payCol}>+รับจ่าย</th>
                     <th className={styles.payCol}>ส่วนบุคคล</th>
                     <th className={styles.payCol}>จ่ายตรง</th>
@@ -749,6 +751,7 @@ export default function OfficersPage() {
                     <th />
                     <th />
                     <th />
+                    <th />
                   </tr>
                 </thead>
                 <tbody>
@@ -791,6 +794,16 @@ export default function OfficersPage() {
                             {icon.symbol}
                           </button>
                         ))}
+                      </td>
+                      <td className={styles.payCell}>
+                        <button
+                          type="button"
+                          className={styles.createBtn}
+                          onClick={() => openPayModal(row)}
+                          disabled={loading}
+                        >
+                          รายการรับ-จ่ายเงิน
+                        </button>
                       </td>
                       <td className={styles.payCell}>
                         <button
