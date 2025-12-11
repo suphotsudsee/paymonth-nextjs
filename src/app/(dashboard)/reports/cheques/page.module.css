@@ -8,8 +8,8 @@
 
 .main {
   width: 100%;
-  max-width: 1240px;
-  margin: 20px auto 32px;
+  max-width: none;
+  margin: 22px 0 32px;
   padding: 0 20px;
   flex: 1;
 }
@@ -174,3 +174,4 @@
     min-width: 820px;
   }
 }
+
