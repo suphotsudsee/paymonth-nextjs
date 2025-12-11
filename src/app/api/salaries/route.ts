@@ -33,6 +33,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    const status = String(session.status || "").toLowerCase();
+    const isLimitedUser = status === "user";
+    if (isLimitedUser && session.cid !== cid) {
+      return NextResponse.json(
+        { error: "Forbidden: cannot create salary for other users" },
+        { status: 403 },
+      );
+    }
+
     const bank = await prisma.bank.findUnique({ where: { id: bankId } });
     if (!bank || bank.CID !== cid) {
       return NextResponse.json({ error: "Invalid bank account for officer" }, { status: 400 });

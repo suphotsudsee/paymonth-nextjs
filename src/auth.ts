@@ -2,6 +2,9 @@ import NextAuth from "next-auth";
 
 import type { OAuthConfig } from "next-auth/providers";
 
+const isProd = process.env.NODE_ENV === "production";
+const verboseAuthLog = !isProd || process.env.NEXTAUTH_DEBUG === "true";
+
 const ThaiIdProvider: OAuthConfig<Record<string, unknown>> = {
   id: "thaiid",
   name: "ThaiID (DOPA Digital ID)",
@@ -65,17 +68,16 @@ export const {
   signIn,
   signOut,
 } = NextAuth({
-  debug: true,
+  debug: !isProd,
   logger: {
     error: (...args) => console.error("[next-auth][error]", ...args),
     warn: (...args) => console.warn("[next-auth][warn]", ...args),
-    debug: (...args) => console.debug("[next-auth][debug]", ...args),
+    debug: (...args) => verboseAuthLog && console.debug("[next-auth][debug]", ...args),
   },
   events: {
     async signIn({ user, account, profile, isNewUser }) {
-      console.log("[thaiid][signin] user:", user);
-      console.log("[thaiid][signin] account:", account);
-      console.log("[thaiid][signin] profile:", profile);
+      if (!verboseAuthLog) return;
+      // Avoid logging sensitive PII in production; only log in verbose/dev mode.
       console.log("[thaiid][signin] isNewUser:", isNewUser);
     },
   },

@@ -11,6 +11,12 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const status = String(session.status || "").toLowerCase();
+    const accessLevel = Number(session.accessLevel || 0);
+    const isLimitedUser = status === "user" && accessLevel <= 0;
+    if (isLimitedUser) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(req.url);
     const pnumber = searchParams.get("pnumber")?.trim() || undefined;
@@ -63,6 +69,8 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
+    // ❗ important: NEVER interpolate user input directly into the SQL template string.
+    // Always pass dynamic values via "?" placeholders in the parameter list.
     const rows = await prisma.$queryRawUnsafe<
       {
         PNUMBER: string;

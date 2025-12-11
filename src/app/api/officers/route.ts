@@ -39,6 +39,8 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
+    // ❗ important: NEVER interpolate user input directly into the SQL template string.
+    // Always pass dynamic values via "?" placeholders in the parameter list.
     const itemsPromise = prisma.$queryRawUnsafe<
       {
         CID: string;
@@ -93,6 +95,12 @@ export async function POST(req: NextRequest) {
     const session = await verifySession(req.cookies.get("session")?.value);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const status = String(session.status || "").toLowerCase();
+    const accessLevel = Number(session.accessLevel || 0);
+    const isLimitedUser = status === "user" && accessLevel <= 0;
+    if (isLimitedUser) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await req.json();

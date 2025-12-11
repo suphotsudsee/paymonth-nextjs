@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { auth as nextAuth } from '@/auth';
 
-const secret = process.env.AUTH_SECRET || 'dev-secret';
+const secret = process.env.AUTH_SECRET || '8f3a1e9c4b7d20568f3a1e9c4b7d20568f3a1e9c4b7d20568f3a1e9c4b7d2056';
 const encodedSecret = new TextEncoder().encode(secret);
 
 type SessionPayload = {
