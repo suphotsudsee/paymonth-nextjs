@@ -107,8 +107,8 @@ export default function PaypersonSlipPage() {
                 <div className={styles.paypersonBoxHeader}>รายรับ</div>
                 <div className={styles.paypersonBoxBody}>
                   {data.income.length === 0 && <div className={styles.paypersonRow}>ไม่มีข้อมูลรายรับ</div>}
-                  {data.income.map((row) => (
-                    <div key={row.IDPAY} className={styles.paypersonRow}>
+                  {data.income.map((row, idx) => (
+                    <div key={`${row.IDPAY}-${idx}`} className={styles.paypersonRow}>
                       <span>{row.PAYNAME ?? row.IDPAY}</span>
                       <span>{formatMoney(row.MONEY)} บาท</span>
                     </div>
@@ -124,8 +124,8 @@ export default function PaypersonSlipPage() {
                 <div className={styles.paypersonBoxHeader}>รายจ่าย</div>
                 <div className={styles.paypersonBoxBody}>
                   {data.outcome.length === 0 && <div className={styles.paypersonRow}>ไม่มีข้อมูลรายจ่าย</div>}
-                  {data.outcome.map((row) => (
-                    <div key={row.IDPAY} className={styles.paypersonRow}>
+                  {data.outcome.map((row, idx) => (
+                    <div key={`${row.IDPAY}-${idx}`} className={styles.paypersonRow}>
                       <span>{row.PAYNAME ?? row.IDPAY}</span>
                       <span>{formatMoney(row.MONEY)} บาท</span>
                     </div>

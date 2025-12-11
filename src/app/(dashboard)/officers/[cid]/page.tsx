@@ -4,13 +4,14 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import styles from "../page.module.css";
 
 type PageProps = {
-  params?: {
+  params: Promise<{
     cid?: string;
-  };
+  }>;
 };
 
-export default function OfficerSlipChooser({ params }: PageProps) {
-  const cid = params?.cid ?? "";
+export default async function OfficerSlipChooser({ params }: PageProps) {
+  const resolved = await params;
+  const cid = resolved?.cid ?? "";
   const hasCid = Boolean(cid);
 
   return (
