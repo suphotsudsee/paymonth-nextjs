@@ -344,6 +344,11 @@ export default function ReportsAllPage() {
                     <td>{detailRow.YEARTHAI}</td>
                   </tr>
                   <tr>
+                    <th>PAYNAME</th>
+                    <td>{detailRow.PAYNAME}</td>
+                  </tr>
+                  
+                  <tr>
                     <th>รายรับ</th>
                     <td>{formatNumber(detailRow.INCOME)}</td>
                   </tr>
