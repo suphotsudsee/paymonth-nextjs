@@ -1,6 +1,84 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
+
+const hashPassword = (raw: string) => crypto.createHash('sha1').update(raw).digest('hex');
+
+const deriveNameParts = (
+  rawName: unknown,
+  cid: string,
+  overrides?: { fname?: unknown; lname?: unknown },
+) => {
+  const baseName = typeof rawName === 'string' ? rawName.trim() : '';
+  const fnameOverride = typeof overrides?.fname === 'string' ? overrides.fname.trim() : '';
+  const lnameOverride = typeof overrides?.lname === 'string' ? overrides.lname.trim() : '';
+
+  if (fnameOverride || lnameOverride) {
+    const username = [fnameOverride || baseName || cid, lnameOverride].filter(Boolean).join(' ').trim() || cid;
+    return {
+      fname: fnameOverride || baseName || cid,
+      lname: lnameOverride,
+      username,
+    };
+  }
+
+  const [first, ...rest] = baseName.split(/\s+/).filter(Boolean);
+  const fname = first || baseName || cid;
+  const lname = rest.join(' ').trim();
+  const username = [fname, lname].filter(Boolean).join(' ').trim() || cid;
+  return { fname, lname, username };
+};
+
+async function createUserForOfficer(params: {
+  cid: string;
+  name?: string | null;
+  fname?: string | null;
+  lname?: string | null;
+  idbank?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+}) {
+  const existingUser = await prisma.user.findUnique({ where: { cid: params.cid } });
+  if (existingUser) {
+    return { created: false, reason: 'user_exists' as const };
+  }
+
+  let bankAccount = typeof params.idbank === 'string' ? params.idbank.trim() : '';
+  if (!bankAccount) {
+    const bankRow = await prisma.bank.findFirst({
+      where: { CID: params.cid },
+      orderBy: { id: 'asc' },
+      select: { IDBANK: true },
+    });
+    bankAccount = bankRow?.IDBANK?.trim() ?? '';
+  }
+
+  if (!bankAccount) {
+    return { created: false, reason: 'missing_idbank' as const };
+  }
+
+  const { fname, lname, username } = deriveNameParts(params.name, params.cid, {
+    fname: params.fname ?? undefined,
+    lname: params.lname ?? undefined,
+  });
+
+  const user = await prisma.user.create({
+    data: {
+      username,
+      password: hashPassword(`##${bankAccount}##`),
+      cid: params.cid,
+      fname,
+      lname,
+      status: 'user',
+      accessLevel: 0,
+      mobile: params.mobile ? String(params.mobile).trim() : '',
+      email: params.email ? String(params.email).trim() : '',
+    },
+  });
+
+  return { created: true, reason: 'created' as const, userId: user.id };
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -116,6 +194,9 @@ export async function POST(req: NextRequest) {
       lpos,
       mobile,
       email,
+      fname,
+      lname,
+      idbank,
     } = body;
 
     if (!cid) {
@@ -151,7 +232,26 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ officer: newOfficer }, { status: 201 });
+    let userCreationResult: { created: boolean; reason?: string } = { created: false };
+    try {
+      userCreationResult = await createUserForOfficer({
+        cid,
+        name,
+        fname,
+        lname,
+        idbank,
+        mobile,
+        email,
+      });
+    } catch (userErr: any) {
+      console.error("auto create user failed", userErr);
+      userCreationResult = { created: false, reason: "user_creation_error" };
+    }
+
+    return NextResponse.json(
+      { officer: newOfficer, userCreated: userCreationResult.created, userCreateReason: userCreationResult.reason },
+      { status: 201 },
+    );
   } catch (err: any) {
     console.error("officer CREATE error", err);
     return NextResponse.json(
