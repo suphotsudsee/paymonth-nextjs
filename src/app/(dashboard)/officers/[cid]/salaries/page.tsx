@@ -71,6 +71,7 @@ export default function OfficerSalariesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
+    payname: "",
     idpay: "",
     pnumber: "",
     nodeegar: "",
@@ -112,6 +113,7 @@ export default function OfficerSalariesPage() {
         page: String(targetPage),
         pageSize: "10",
       });
+      if (currentFilters.payname.trim()) search.set("payname", currentFilters.payname.trim());
       if (currentFilters.idpay.trim()) search.set("idpay", currentFilters.idpay.trim());
       if (currentFilters.pnumber.trim()) search.set("pnumber", currentFilters.pnumber.trim());
       if (currentFilters.nodeegar.trim()) search.set("nodeegar", currentFilters.nodeegar.trim());
@@ -442,7 +444,14 @@ export default function OfficerSalariesPage() {
                       onChange={onFilterChange("idpay")}
                     />
                   </th>
-                  <th />
+                  <th>
+                    <input
+                      className={styles.filterInput}
+                      placeholder="Search detail"
+                      value={filters.payname}
+                      onChange={onFilterChange("payname")}
+                    />
+                  </th>
                   <th>
                     <select
                       className={styles.filterInput}

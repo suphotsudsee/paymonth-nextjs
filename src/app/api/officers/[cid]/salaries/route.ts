@@ -44,6 +44,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cid:
     const offset = (page - 1) * pageSize;
 
     const idpay = searchParams.get("idpay")?.trim() || undefined;
+    const payname = searchParams.get("payname")?.trim() || undefined;
     const pnumber = searchParams.get("pnumber")?.trim() || undefined;
     const nodeegar = searchParams.get("nodeegar")?.trim() || undefined;
     const monththai = searchParams.get("monththai")?.trim() || undefined;
@@ -55,6 +56,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cid:
     if (idpay) {
       filters.push("salary.IDPAY LIKE ?");
       paramsList.push(`%${idpay}%`);
+    }
+    if (payname) {
+      filters.push("cpay.PAYNAME LIKE ?");
+      paramsList.push(`%${payname}%`);
     }
     if (pnumber) {
       filters.push("salary.PNUMBER LIKE ?");
