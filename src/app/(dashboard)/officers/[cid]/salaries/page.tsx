@@ -434,6 +434,7 @@ export default function OfficerSalariesPage() {
                   <th>จำนวนเงิน</th>
                   <th>บัญชี/ธนาคาร</th>
                   <th>อัปเดตล่าสุด</th>
+                  <th>เครื่องมือ</th>
                 </tr>
                 <tr className={styles.filterRow}>
                   <th>
@@ -501,6 +502,7 @@ export default function OfficerSalariesPage() {
                   <th />
                   <th />
                   <th />
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -534,6 +536,26 @@ export default function OfficerSalariesPage() {
                       )}
                     </td>
                     <td>{formatDate(row.DUPDATE)}</td>
+                    <td className={styles.toolsCell}>
+                      <div className={styles.actionsCell}>
+                        <button
+                          type="button"
+                          className={styles.iconBtn}
+                          title="ดูรายละเอียด"
+                          onClick={() => alert(`ดูรายละเอียดรหัส ${row.IDPAY}`)}
+                        >
+                          🔍
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.iconBtn}
+                          title="แก้ไข"
+                          onClick={() => alert(`แก้ไขรหัส ${row.IDPAY}`)}
+                        >
+                          ✏️
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {!data?.items?.length && (

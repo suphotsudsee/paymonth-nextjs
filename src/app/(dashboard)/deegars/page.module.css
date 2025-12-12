@@ -160,9 +160,32 @@
   background: #f7fbff;
   color: #0f4fa8;
   border-radius: 4px;
-  padding: 4px 6px;
+  width: 34px;
+  height: 34px;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   font-size: 13px;
+  box-shadow: 0 1px 2px rgba(15, 79, 168, 0.08);
+  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.iconBtn:hover {
+  background: #e7f0ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(15, 79, 168, 0.15);
+}
+
+.iconBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(15, 79, 168, 0.12);
+}
+
+.toolsCell {
+  text-align: center;
+  min-width: 80px;
 }
 
 .emptyState {
@@ -348,4 +371,3 @@
     min-width: 820px;
   }
 }
-
