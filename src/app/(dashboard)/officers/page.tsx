@@ -525,28 +525,6 @@ export default function OfficersPage() {
     };
   };
 
-  const openPayModal = (row: OfficerRow) => {
-    const defaults = getDefaultMonthYear();
-    setPayForm({
-      cid: row.CID,
-      name: row.NAME ?? "",
-      bankId: "",
-      monththai: defaults.month,
-      yearthai: defaults.yearThai,
-      pnumber: "",
-      nodeegar: "1",
-      num: "1",
-      idpay: "",
-      money: "0.00",
-    });
-    setPayError(null);
-    setPayBanks([]);
-    setPayModal(true);
-    void loadPayOptions();
-    void loadPayBanks(row.CID);
-    setDeegarOptions([]);
-    void loadDeegar("");
-  };
 
   const handlePaySave = async () => {
     const defaults = getDefaultMonthYear();
@@ -635,6 +613,11 @@ export default function OfficersPage() {
       maximumFractionDigits: 2,
     });
   };
+
+  const openSalaryList = (row: OfficerRow) => {
+    router.push(`/officers/${row.CID}/salaries`);
+  };
+
   const openPayDirect = (row: OfficerRow) => {
     router.push(`/officers/${row.CID}/paydirect`);
   };
@@ -702,7 +685,7 @@ export default function OfficersPage() {
                     <th>ปฏิบัติงานที่</th>
                     <th className={styles.toolsCol}>เครื่องมือ</th>
                     <th className={styles.payCol}>รายการรับ-จ่าย</th>
-                    <th className={styles.payCol}>+รับจ่าย</th>
+                   
                     <th className={styles.payCol}>ส่วนบุคคล</th>
                     <th className={styles.payCol}>จ่ายตรง</th>
                   </tr>
@@ -748,7 +731,7 @@ export default function OfficersPage() {
                       />
                     </th>
                     <th />
-                    <th />
+                 
                     <th />
                     <th />
                     <th />
@@ -799,22 +782,13 @@ export default function OfficersPage() {
                         <button
                           type="button"
                           className={styles.createBtn}
-                          onClick={() => openPayModal(row)}
+                          onClick={() => openSalaryList(row)}
                           disabled={loading}
                         >
                           รายการรับ-จ่ายเงิน
                         </button>
                       </td>
-                      <td className={styles.payCell}>
-                        <button
-                          type="button"
-                          className={styles.createBtn}
-                          onClick={() => openPayModal(row)}
-                          disabled={loading}
-                        >
-                          + เพิ่มจ่ายเงิน
-                        </button>
-                      </td>
+       
                       <td className={styles.payCell}>
                         <button
                           type="button"
@@ -891,154 +865,6 @@ export default function OfficersPage() {
       </main>
 
       <AppFooter />
-{payModal && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>สร้างรายการรับ-จ่าย {payForm.name ? `: ${payForm.name}` : ""}</h2>
-              <button className={styles.modalClose} onClick={() => setPayModal(false)} aria-label="Close">
-                ✕
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <p className={styles.modalHint}>
-                Fields with * are required. {payOptionsLoading ? "กำลังโหลดข้อมูลอ้างอิง..." : ""}
-              </p>
-              <div className={styles.formGrid}>
-                <label>
-                  Cid *
-                  <input className={styles.input} value={payForm.cid} readOnly />
-                </label>
-                <label>
-                  หมายเลขบัญชีธนาคาร *
-                  <select
-                    className={styles.input}
-                    value={payForm.bankId}
-                    onChange={(e) => setPayForm((f) => ({ ...f, bankId: e.target.value }))}
-                    disabled={payBanksLoading || payBanks.length === 0}
-                  >
-                    <option value="">
-                      {payBanksLoading ? "กำลังโหลดบัญชี..." : "เลือกบัญชีธนาคาร"}
-                    </option>
-                    {payBanks.map((bank) => (
-                      <option key={bank.id} value={bank.id}>
-                        {bank.IDBANK} {bank.NAMEBANK ? `- ${bank.NAMEBANK}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  {!payBanksLoading && payBanks.length === 0 && (
-                    <div style={{ fontSize: "0.85rem", color: "#6b7280", marginTop: 4 }}>
-                      ยังไม่มีบัญชีธนาคารสำหรับเจ้าหน้าที่คนนี้
-                    </div>
-                  )}
-                </label>
-                <label>
-                  Monththai *
-                  <select
-                    className={styles.input}
-                    value={payForm.monththai}
-                    onChange={(e) => setPayForm((f) => ({ ...f, monththai: e.target.value }))}
-                  >
-                    {monthChoices.map((m) => (
-                      <option key={m.ID} value={m.ID}>
-                        {m.NAMEMONTH_TH}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Yearthai *
-                  <input
-                    className={styles.input}
-                    value={payForm.yearthai}
-                    onChange={(e) => setPayForm((f) => ({ ...f, yearthai: e.target.value }))}
-                  />
-                </label>
-                <label>
-                  Pnumber
-                  <input
-                    className={styles.input}
-                    list="pnumberOptions"
-                    placeholder="พิมพ์หรือเลือก Pnumber"
-                    value={payForm.pnumber}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      const match = deegarOptions.find((d) => d.PNUMBER === value);
-                      setPayForm((f) => ({
-                        ...f,
-                        pnumber: value,
-                        nodeegar: match?.NODEEGAR || f.nodeegar,
-                      }));
-                    }}
-                    onFocus={() => {
-                      if (!deegarOptions.length) {
-                        void loadDeegar('');
-                      }
-                    }}
-                  />
-                  <datalist id="pnumberOptions">
-                    {deegarOptions.map((item) => (
-                      <option key={`${item.PNUMBER}-${item.NODEEGAR}`} value={item.PNUMBER}>
-                        {item.PNUMBER} (ชุด {item.NODEEGAR})
-                      </option>
-                    ))}
-                  </datalist>
-                </label>
-                <label>
-                  Nodeegar *
-                  <input
-                    className={styles.input}
-                    value={payForm.nodeegar}
-                    onChange={(e) => setPayForm((f) => ({ ...f, nodeegar: e.target.value }))}
-                  />
-                </label>
-                <label>
-                  ครั้งที่ *
-                  <input
-                    className={styles.input}
-                    value={payForm.num}
-                    onChange={(e) => setPayForm((f) => ({ ...f, num: e.target.value }))}
-                  />
-                </label>
-                <label>
-                  Ipay *
-                  <select
-                    className={styles.input}
-                    value={payForm.idpay}
-                    onChange={(e) => setPayForm((f) => ({ ...f, idpay: e.target.value }))}
-                  >
-                    <option value="">โปรดเลือกรายการรับ-จ่าย</option>
-                    {cpayOptions.map((c) => (
-                      <option key={c.IDPAY} value={c.IDPAY}>
-                        {c.IDPAY} - {c.PAYNAME ?? ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Money *
-                  <input
-                    className={styles.input}
-                    type="number"
-                    step="0.01"
-                    value={payForm.money}
-                    onChange={(e) => setPayForm((f) => ({ ...f, money: e.target.value }))}
-                  />
-                </label>
-              </div>
-              {payError && <div className={styles.error}>{payError}</div>}
-              <div className={styles.saveRow}>
-                <button className={styles.primaryBtn} onClick={handlePaySave} disabled={paySaving}>
-                  {paySaving ? "Saving..." : "Save"}
-                </button>
-                <button className={styles.secondaryBtn} type="button" onClick={() => setPayModal(false)}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {modalMode && (detail || modalMode === "create") && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
