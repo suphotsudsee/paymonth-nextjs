@@ -77,18 +77,32 @@ export async function PUT(
     const body = await req.json();
     const toNull = (v: any) =>
       v === undefined || v === null || String(v).trim() === "" ? null : String(v).trim();
+    const toDateOrNull = (v: any) => {
+      const base = toNull(v);
+      if (base === null) return null;
+      // Accept both "YYYY-MM-DD HH:mm:ss" and ISO-like strings
+      const normalized = base.includes("T") ? base : base.replace(" ", "T");
+      const parsed = new Date(normalized);
+      if (!Number.isNaN(parsed.getTime())) return parsed;
+      const fallback = new Date(base);
+      return Number.isNaN(fallback.getTime()) ? null : fallback;
+    };
 
+    // Accept both camelCase (client form) and the existing UPPER_SNAKE fields
+    // so updates do not null out values when the client payload uses camelCase.
+    const rawDupdate = body.DUPDATE ?? body.dupdate;
     const updateValues = {
-      IDCOOP: toNull(body.IDCOOP),
-      IDMAN: toNull(body.IDMAN),
-      NO: toNull(body.NO),
-      CODE: toNull(body.CODE),
-      NAME: toNull(body.NAME),
-      SEX: toNull(body.SEX),
-      LPOS: toNull(body.LPOS),
-      DUPDATE: toNull(body.DUPDATE),
-      MOBILE: toNull(body.MOBILE),
-      EMAIL: toNull(body.EMAIL),
+      IDCOOP: toNull(body.IDCOOP ?? body.idcoop),
+      IDMAN: toNull(body.IDMAN ?? body.idman),
+      NO: toNull(body.NO ?? body.no),
+      CODE: toNull(body.CODE ?? body.code),
+      NAME: toNull(body.NAME ?? body.name),
+      SEX: toNull(body.SEX ?? body.sex),
+      LPOS: toNull(body.LPOS ?? body.lpos),
+      // Persist date updates; accept either raw string or a parseable date. Default to "now" when absent.
+      DUPDATE: toDateOrNull(rawDupdate) ?? new Date(),
+      MOBILE: toNull(body.MOBILE ?? body.mobile),
+      EMAIL: toNull(body.EMAIL ?? body.email),
     };
 
     await prisma.$executeRawUnsafe(

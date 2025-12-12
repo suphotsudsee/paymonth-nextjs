@@ -150,6 +150,28 @@ export default function OfficersPage() {
     NAMESTATION: null,
   };
 
+  const normalizeSexValue = (value: any): string | null => {
+    const raw = typeof value === "number" ? String(value) : typeof value === "string" ? value.trim() : "";
+    if (!raw) return null;
+    if (raw === "1" || raw === "ชาย") return "1";
+    if (raw === "2" || raw === "หญิง") return "2";
+    return raw;
+  };
+
+  const formatSex = (value: string | null) => {
+    if (value === "1") return "ชาย";
+    if (value === "2") return "หญิง";
+    if (!value) return "-";
+    return value;
+  };
+
+  const normalizeDupdate = (value: any) => {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string") return value.replace("T", " ").slice(0, 19);
+    if (value instanceof Date) return value.toISOString().replace("T", " ").slice(0, 19);
+    return String(value);
+  };
+
   const pageSize = 10;
 
   const load = async (
@@ -351,8 +373,13 @@ export default function OfficersPage() {
         setDetail(null);
         setForm(null);
       } else {
-        setDetail(json.officer);
-        setForm(json.officer);
+        const normalized = {
+          ...json.officer,
+          SEX: normalizeSexValue(json.officer?.SEX),
+          DUPDATE: normalizeDupdate(json.officer?.DUPDATE),
+        };
+        setDetail(normalized);
+        setForm(normalized);
       }
     } catch (err) {
       setDetailError("โหลดรายละเอียดไม่สำเร็จ");
@@ -925,7 +952,7 @@ export default function OfficersPage() {
                 </div>
                 <div className={styles.detailRow}>
                   <span>Sex</span>
-                  <strong>{detail.SEX ?? "-"}</strong>
+                  <strong>{formatSex(detail.SEX)}</strong>
                 </div>
                 <div className={styles.detailRow}>
                   <span>Lpos</span>
@@ -1033,7 +1060,7 @@ export default function OfficersPage() {
                       }
                     />
                   </label>
-                  <label>
+                                    <label>
                     Sex
                     <select
                       className={styles.select}
@@ -1042,9 +1069,9 @@ export default function OfficersPage() {
                         setForm((f) => (f ? { ...f, SEX: e.target.value } : f))
                       }
                     >
-                      <option value="">เลือก</option>
-                      <option value="ชาย">ชาย</option>
-                      <option value="หญิง">หญิง</option>
+                      <option value="">เลือกเพศ</option>
+                      <option value="1">ชาย</option>
+                      <option value="2">หญิง</option>
                     </select>
                   </label>
                   <label>
