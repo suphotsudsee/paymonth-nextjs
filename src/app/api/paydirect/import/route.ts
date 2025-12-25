@@ -89,6 +89,29 @@ const insertSql = `INSERT IGNORE INTO paydirect (${columns.join(",")}) VALUES ($
   .map(() => "?")
   .join(",")})`;
 
+const UTF8_BOM = Buffer.from([0xef, 0xbb, 0xbf]);
+const UTF16LE_BOM = Buffer.from([0xff, 0xfe]);
+const UTF16BE_BOM = Buffer.from([0xfe, 0xff]);
+
+function decodePaydirectFile(buffer: Buffer) {
+  if (buffer.subarray(0, 3).equals(UTF8_BOM)) {
+    return { text: buffer.subarray(3).toString("utf8"), encoding: "utf-8-bom" };
+  }
+  if (buffer.subarray(0, 2).equals(UTF16LE_BOM)) {
+    return { text: iconv.decode(buffer.subarray(2), "utf16le"), encoding: "utf-16le" };
+  }
+  if (buffer.subarray(0, 2).equals(UTF16BE_BOM)) {
+    return { text: iconv.decode(buffer.subarray(2), "utf16be"), encoding: "utf-16be" };
+  }
+
+  const utf8Text = buffer.toString("utf8");
+  if (utf8Text.includes("\uFFFD")) {
+    return { text: iconv.decode(buffer, "tis-620"), encoding: "tis-620" };
+  }
+
+  return { text: utf8Text, encoding: "utf-8" };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await verifySession(req.cookies.get("session")?.value);
@@ -103,10 +126,7 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    let text = buffer.toString("utf8");
-    if (text.includes("\uFFFD")) {
-      text = iconv.decode(buffer, "windows-874");
-    }
+    const { text, encoding } = decodePaydirectFile(buffer);
     const lines = text.split(/\r?\n/);
 
     let inserted = 0;
@@ -152,6 +172,7 @@ export async function POST(req: NextRequest) {
       skipped,
       totalLines: lines.length,
       skippedRows,
+      encoding,
       message: `นำเข้าข้อมูลสำเร็จ ${inserted} แถว (ข้ามซ้ำ ${skipped})`,
     });
   } catch (err: unknown) {
