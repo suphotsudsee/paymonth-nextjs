@@ -149,6 +149,7 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
 
   return (
     <div className={styles.page}>
+      <div className={styles.a4}> 
       <div className={styles.slip}>
         <header className={styles.header}>
           <div>ใบรับรองการจ่ายเงินเดือนและเงินอื่น</div>
@@ -239,6 +240,7 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
           <div>{today}</div>
           <div>วัน เดือน ปี ที่ออกหนังสือรับรอง</div>
         </section>
+      </div>
       </div>
     </div>
   );
