@@ -6,13 +6,14 @@
   padding: 32px 12px;
   color: #111827;
   font-family: "Sarabun", "Leelawadee UI", Tahoma, sans-serif;
+  align-items: flex-start; /* เอกสารเริ่มจากด้านบน */
 }
 
 .slip {
   background: #ffffff;
   border: 1px solid #d1d5db;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
-  max-width: 420px;
+  max-width: 520px;
   width: 100%;
   padding: 20px 18px 28px;
 }
