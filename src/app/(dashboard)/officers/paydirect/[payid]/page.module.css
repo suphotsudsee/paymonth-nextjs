@@ -22,7 +22,7 @@
   transform: rotate(-25deg);
   opacity: 0.025;
   pointer-events: none;
-  z-index: 0;
+  z-index: 2;
 }
 .a4 {
   width: 210mm;
