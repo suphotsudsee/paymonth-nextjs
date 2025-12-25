@@ -126,6 +126,58 @@ export default function LoginPage() {
           }}
         >
           <h1 style={{ margin: '0 0 20px', fontSize: 28, color: '#202124' }}>Login</h1>
+                    <div
+            style={{
+              marginTop: 16,
+              padding: '12px',
+              background: '#f4f6ff',
+              border: '1px dashed #97a8ff',
+              borderRadius: 6,
+              display: 'grid',
+              gap: 10,
+              alignItems: 'center',
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#1b2a5a' }}>
+              Login with ThaiID (DOPA Digital ID)
+            </div>
+            <button
+              type="button"
+              onClick={startThaiIdLogin}
+              disabled={thaiIdLoading}
+              style={{
+                padding: 0,
+                border: '1px solid #cfd3ff',
+                borderRadius: 4,
+                background: 'transparent',
+                cursor: thaiIdLoading ? 'wait' : 'pointer',
+                overflow: 'hidden',
+              }}
+            >
+              <img
+                src="/ThaID_banner.jpg"
+                alt="ThaiID banner"
+                style={{
+                  width: '100%',
+                  maxHeight: 160,
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+              <div
+                style={{
+                  padding: '10px 12px',
+                  textAlign: 'center',
+                  background: '#e9edff',
+                  color: '#1b2a5a',
+                  fontWeight: 600,
+                  fontSize: 14,
+                }}
+              >
+                {thaiIdLoading ? 'Connecting to ThaiID...' : 'Login with ThaiID'}
+              </div>
+            </button>
+          </div>
           <form onSubmit={onSubmit} style={{ display: 'grid', gap: '12px' }}>
             <div style={{ display: 'grid', gap: 4 }}>
               <label style={{ fontSize: 13, color: '#2b2b2b' }}>
@@ -220,58 +272,7 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Login'}
             </button>
           </form>
-          <div
-            style={{
-              marginTop: 16,
-              padding: '12px',
-              background: '#f4f6ff',
-              border: '1px dashed #97a8ff',
-              borderRadius: 6,
-              display: 'grid',
-              gap: 10,
-              alignItems: 'center',
-            }}
-          >
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#1b2a5a' }}>
-              Login with ThaiID (DOPA Digital ID)
-            </div>
-            <button
-              type="button"
-              onClick={startThaiIdLogin}
-              disabled={thaiIdLoading}
-              style={{
-                padding: 0,
-                border: '1px solid #cfd3ff',
-                borderRadius: 4,
-                background: 'transparent',
-                cursor: thaiIdLoading ? 'wait' : 'pointer',
-                overflow: 'hidden',
-              }}
-            >
-              <img
-                src="/ThaID_banner.jpg"
-                alt="ThaiID banner"
-                style={{
-                  width: '100%',
-                  maxHeight: 160,
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-              />
-              <div
-                style={{
-                  padding: '10px 12px',
-                  textAlign: 'center',
-                  background: '#e9edff',
-                  color: '#1b2a5a',
-                  fontWeight: 600,
-                  fontSize: 14,
-                }}
-              >
-                {thaiIdLoading ? 'Connecting to ThaiID...' : 'Login with ThaiID'}
-              </div>
-            </button>
-          </div>
+
           {result && (
             <div
               style={{
