@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import iconv from "iconv-lite";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 
@@ -101,7 +102,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "กรุณาเลือกไฟล์เพื่ออัปโหลด" }, { status: 400 });
     }
 
-    const text = await file.text();
+    const buffer = Buffer.from(await file.arrayBuffer());
+    let text = buffer.toString("utf8");
+    if (text.includes("\uFFFD")) {
+      text = iconv.decode(buffer, "windows-874");
+    }
     const lines = text.split(/\r?\n/);
 
     let inserted = 0;
