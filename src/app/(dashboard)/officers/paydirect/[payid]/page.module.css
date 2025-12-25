@@ -133,8 +133,13 @@
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-.page {
+  .page {
     background: #ffffff;
+    padding: 0;
+  }
+  .a4 {
+    min-height: auto;
+    height: auto;
     padding: 0;
   }
   .slip {
