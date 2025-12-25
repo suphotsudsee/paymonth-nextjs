@@ -14,27 +14,28 @@
 /* ✅ ลายน้ำจางมากๆ */
 .page::before {
   content: "สำนักงานสาธารณสุขจังหวัดอุบลราชธานี";
-  position: fixed;
+  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-25deg);
   font-size: 48px;
   font-weight: 600;
   letter-spacing: 2px;
-  color: rgba(0, 0, 0, 0.025);  /* ✅ จางมาก */
+  color: #000;
+  opacity: 0.025;
   white-space: nowrap;
   pointer-events: none;
   z-index: 0;
 }
-
 .a4 {
   width: 210mm;
   min-height: 297mm;
   background: #fff;
   padding: 12mm;
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 }
-
 .slip {
   background: #ffffff;
   border: 1px solid #d1d5db;
