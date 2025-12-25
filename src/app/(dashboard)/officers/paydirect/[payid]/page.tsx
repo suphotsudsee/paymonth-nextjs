@@ -103,7 +103,7 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
     { label: "เงินช่วยเหลือบุตร", amount: 0 },
     { label: "เงิน พ.ส.ร/พ.ต.ก.", amount: toBaht(detail.S) },
     { label: "เงินตอบแทนพิเศษ", amount: 0},
-    { label: "อื่นๆ", amount: 0 },
+    { label: "อื่นๆ", amount: toBaht(detail.AC) + toBaht(detail.AI) },
   ];
 
   const outcomeRows = [
