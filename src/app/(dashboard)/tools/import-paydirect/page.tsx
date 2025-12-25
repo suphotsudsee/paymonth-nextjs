@@ -10,6 +10,7 @@ type ImportResult = {
   inserted: number;
   skipped: number;
   totalLines: number;
+  skippedRows?: Array<{ line: number; A: string; B: string; C: string }>;
   message: string;
 };
 
@@ -120,6 +121,29 @@ export default function ImportPaydirectPage() {
                 <span>ข้าม/ซ้ำ</span>
                 <strong>{result.skipped}</strong>
               </div>
+              {result.skippedRows && result.skippedRows.length > 0 && (
+                <details style={{ marginTop: 12 }}>
+                  <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+                    Show skipped rows ({result.skippedRows.length})
+                  </summary>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      maxHeight: 280,
+                      overflow: "auto",
+                      border: "1px solid rgba(0,0,0,0.1)",
+                      borderRadius: 8,
+                      padding: 10,
+                      background: "rgba(0,0,0,0.02)",
+                      fontSize: 13,
+                      lineHeight: 1.4,
+                      whiteSpace: "pre",
+                    }}
+                  >
+                    {["line,A,B,C", ...result.skippedRows.map((row) => `${row.line},${row.A},${row.B},${row.C}`)].join("\n")}
+                  </div>
+                </details>
+              )}
             </div>
           )}
         </section>

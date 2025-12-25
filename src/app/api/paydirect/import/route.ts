@@ -106,8 +106,10 @@ export async function POST(req: NextRequest) {
 
     let inserted = 0;
     let skipped = 0;
+    const skippedRows: Array<{ line: number; A: string; B: string; C: string }> = [];
 
-    for (const rawLine of lines) {
+    for (let index = 0; index < lines.length; index += 1) {
+      const rawLine = lines[index];
       const line = rawLine.trim();
       if (!line) {
         continue;
@@ -126,6 +128,12 @@ export async function POST(req: NextRequest) {
         inserted += 1;
       } else {
         skipped += 1;
+        skippedRows.push({
+          line: index + 1,
+          A: values[0] ?? "",
+          B: values[1] ?? "",
+          C: values[2] ?? "",
+        });
       }
     }
 
@@ -138,6 +146,7 @@ export async function POST(req: NextRequest) {
       inserted,
       skipped,
       totalLines: lines.length,
+      skippedRows,
       message: `นำเข้าข้อมูลสำเร็จ ${inserted} แถว (ข้ามซ้ำ ${skipped})`,
     });
   } catch (err: unknown) {
