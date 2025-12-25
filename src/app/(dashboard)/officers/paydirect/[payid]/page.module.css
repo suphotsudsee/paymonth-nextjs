@@ -16,7 +16,7 @@
   content: "";
   position: absolute;
   inset: -50%;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='260'%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle' font-family='Sarabun,Leelawadee UI,Tahoma,sans-serif' font-size='28' font-weight='600' fill='black' letter-spacing='2'%3Eสำนักงานสาธารณสุข จังหวัด อุบลราชธานี %3C/text%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='260'%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle' font-family='Sarabun,Leelawadee UI,Tahoma,sans-serif' font-size='28' font-weight='600' fill='black' letter-spacing='2'%3E   สำนักงานสาธารณสุข  จังหวัด  อุบลราชธานี    %3C/text%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 420px 260px;
   transform: rotate(-25deg);
