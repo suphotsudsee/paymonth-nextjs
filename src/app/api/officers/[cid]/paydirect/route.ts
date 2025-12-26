@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAppSessionFromRequest } from "@/lib/session";
-import { buildOfficerAccessClause, buildPaydirectAccessClause } from "@/lib/paydirect-access";
+import { buildOfficerAccessClause, buildPaydirectAccessClause } from "@/lib/paydirectAccess";
 
 type PaydirectRow = {
   NAMESTATION: string | null;

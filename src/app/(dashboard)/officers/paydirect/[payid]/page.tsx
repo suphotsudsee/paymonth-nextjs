@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getAppSession } from "@/lib/session";
-import { buildPaydirectAccessClause } from "@/lib/paydirect-access";
+import { buildPaydirectAccessClause } from "@/lib/paydirectAccess";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
