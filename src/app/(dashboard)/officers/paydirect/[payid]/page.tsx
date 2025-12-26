@@ -71,7 +71,7 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
   const idNum = Number(resolved.payid);
   if (!Number.isFinite(idNum)) return notFound();
 
-  const rows = await prisma.$queryRawUnsafe<PaydirectDetail[]>(
+  const rows = (await prisma.$queryRawUnsafe(
     `
       SELECT
         paydirect.*,
@@ -88,7 +88,7 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
       LIMIT 1
     `,
     idNum,
-  );
+  )) as PaydirectDetail[];
 
   const detail = rows[0];
   if (!detail) return notFound();

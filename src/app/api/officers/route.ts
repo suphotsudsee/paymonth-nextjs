@@ -119,16 +119,7 @@ export async function GET(req: NextRequest) {
 
     // ❗ important: NEVER interpolate user input directly into the SQL template string.
     // Always pass dynamic values via "?" placeholders in the parameter list.
-    const itemsPromise = prisma.$queryRawUnsafe<
-      {
-        CID: string;
-        IDCOOP: string | null;
-        NAME: string | null;
-        LPOS: string | null;
-        CODE: string | null;
-        NAMESTATION: string | null;
-      }[]
-    >(
+    const itemsPromise = prisma.$queryRawUnsafe(
       `
         SELECT o.CID, o.IDCOOP, o.NAME, o.LPOS, o.CODE, s.NAMESTATION
         FROM officer o
@@ -140,9 +131,18 @@ export async function GET(req: NextRequest) {
       ...params,
       pageSize,
       offset,
-    );
+    ) as Promise<
+      {
+        CID: string;
+        IDCOOP: string | null;
+        NAME: string | null;
+        LPOS: string | null;
+        CODE: string | null;
+        NAMESTATION: string | null;
+      }[]
+    >;
 
-    const countPromise = prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countPromise = prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
         FROM officer o
@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
         ${whereClause}
       `,
       ...params,
-    );
+    ) as Promise<{ total: bigint }[]>;
 
     const [items, countRows] = await Promise.all([itemsPromise, countPromise]);
     const total = Number(countRows?.[0]?.total ?? 0);

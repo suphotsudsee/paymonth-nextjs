@@ -13,19 +13,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'cid is required' }, { status: 400 });
   }
 
-  const rows = await prisma.$queryRawUnsafe<
-    {
-      NAME: string;
-      LPOS: string | null;
-      NAMESTATION: string | null;
-      CID: string;
-      MONTHTHAI: string;
-      YEARTHAI: string;
-      NAMEMONTH_TH: string;
-      INCOME: number;
-      OUTCOME: number;
-    }[]
-  >(
+  const rows = (await prisma.$queryRawUnsafe(
     `
       SELECT
         officer.NAME,
@@ -47,7 +35,17 @@ export async function GET(req: NextRequest) {
       ORDER BY CONCAT(salary.YEARTHAI, salary.MONTHTHAI) DESC
     `,
     cid,
-  );
+  )) as {
+    NAME: string;
+    LPOS: string | null;
+    NAMESTATION: string | null;
+    CID: string;
+    MONTHTHAI: string;
+    YEARTHAI: string;
+    NAMEMONTH_TH: string;
+    INCOME: number;
+    OUTCOME: number;
+  }[];
 
   return NextResponse.json({ items: rows });
 }

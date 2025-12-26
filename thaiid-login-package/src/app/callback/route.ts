@@ -95,12 +95,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "pid_missing_in_token", token }, { status: 400 });
     }
 
-    const rows = await prisma.$queryRawUnsafe<
-      { id: number; cid: string; accessLevel: number; fname: string; lname: string; status: string | null }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       "SELECT id, cid, accessLevel, fname, lname, status FROM user WHERE cid = ? LIMIT 1",
       pid,
-    );
+    )) as {
+      id: number;
+      cid: string;
+      accessLevel: number;
+      fname: string;
+      lname: string;
+      status: string | null;
+    }[];
 
     const user = rows[0];
     if (!user) {

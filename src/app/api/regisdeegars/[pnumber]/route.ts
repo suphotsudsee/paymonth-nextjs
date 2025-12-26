@@ -16,21 +16,7 @@ export async function GET(
     const key = pnumber?.trim();
     if (!key) return NextResponse.json({ error: "Missing pnumber" }, { status: 400 });
 
-    const rows = await prisma.$queryRawUnsafe<
-      {
-        ID: bigint;
-        PNUMBER: string;
-        NAME: string;
-        MONEY: any;
-        TAX: any;
-        MONEYDRAW: any;
-        REGISDATE: Date;
-        SENDDATE: Date | null;
-        CODEBUDGET: string;
-        CODEACTIVE: string;
-        GFMISNUMBER: string;
-      }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT ID, PNUMBER, NAME, MONEY, TAX, MONEYDRAW, REGISDATE, SENDDATE, CODEBUDGET, CODEACTIVE, GFMISNUMBER
         FROM regisdeegar
@@ -38,7 +24,19 @@ export async function GET(
         LIMIT 1
       `,
       key,
-    );
+    )) as {
+      ID: bigint;
+      PNUMBER: string;
+      NAME: string;
+      MONEY: any;
+      TAX: any;
+      MONEYDRAW: any;
+      REGISDATE: Date;
+      SENDDATE: Date | null;
+      CODEBUDGET: string;
+      CODEACTIVE: string;
+      GFMISNUMBER: string;
+    }[];
 
     if (!rows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const r = rows[0];

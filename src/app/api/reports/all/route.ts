@@ -41,20 +41,7 @@ export async function GET(req: NextRequest) {
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
     // Paginate at the grouped-key level inside the DB: first select the keyset with LIMIT/OFFSET (derived table), then aggregate only those keys.
-    const rows = await prisma.$queryRawUnsafe<
-      {
-        NAME: string | null;
-        LPOS: string | null;
-        NAMESTATION: string | null;
-        CID: string;
-        MONTHTHAI: string;
-        YEARTHAI: string;
-        NAMEMONTH_TH: string | null;
-        PAYNAME: string | null;
-        INCOME: any;
-        OUTCOME: any;
-      }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT o.NAME,
                o.LPOS,
@@ -87,9 +74,20 @@ export async function GET(req: NextRequest) {
       ...params,
       pageSize,
       offset,
-    );
+    )) as {
+      NAME: string | null;
+      LPOS: string | null;
+      NAMESTATION: string | null;
+      CID: string;
+      MONTHTHAI: string;
+      YEARTHAI: string;
+      NAMEMONTH_TH: string | null;
+      PAYNAME: string | null;
+      INCOME: any;
+      OUTCOME: any;
+    }[];
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) AS total
         FROM (
@@ -101,11 +99,11 @@ export async function GET(req: NextRequest) {
         ) AS count_q
       `,
       ...params,
-    );
+    )) as { total: bigint }[];
 
     const totalRows = Number(countRows?.[0]?.total ?? 0);
 
-    const totals = await prisma.$queryRawUnsafe<{ income: any; outcome: any }[]>(
+    const totals = (await prisma.$queryRawUnsafe(
       `
         SELECT
           SUM(IF(cpay.PAYTYPE = '1', salary.MONEY, 0)) AS income,
@@ -116,7 +114,7 @@ export async function GET(req: NextRequest) {
         ${whereClause.replace(/s\./g, "salary.").replace(/o\./g, "officer.")}
       `,
       ...params,
-    );
+    )) as { income: any; outcome: any }[];
 
     const totalIncome = Number(totals?.[0]?.income ?? 0);
     const totalOutcome = Number(totals?.[0]?.outcome ?? 0);

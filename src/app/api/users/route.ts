@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-    const itemsPromise = prisma.$queryRawUnsafe<UserRow[]>(
+    const itemsPromise = prisma.$queryRawUnsafe(
       `
         SELECT u.id, u.username, u.password, u.cid, u.fname, u.lname, u.status, u.accessLevel, u.mobile, u.email
         FROM user u
@@ -76,16 +76,16 @@ export async function GET(req: NextRequest) {
       ...params,
       pageSize,
       offset,
-    );
+    ) as Promise<UserRow[]>;
 
-    const countPromise = prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countPromise = prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
         FROM user u
         ${whereClause}
       `,
       ...params,
-    );
+    ) as Promise<{ total: bigint }[]>;
 
     const [items, countRows] = await Promise.all([itemsPromise, countPromise]);
     const total = Number(countRows?.[0]?.total ?? 0);

@@ -71,18 +71,7 @@ export async function GET(req: NextRequest) {
 
     // ❗ important: NEVER interpolate user input directly into the SQL template string.
     // Always pass dynamic values via "?" placeholders in the parameter list.
-    const rows = await prisma.$queryRawUnsafe<
-      {
-        PNUMBER: string;
-        NODEEGAR: string;
-        ACCNUMBER: string | null;
-        ACCNAME: string | null;
-        TAX: number | null;
-        PAY: number | null;
-        MONEY: number | null;
-        CHEQUE: string | null;
-      }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
           deegar.PNUMBER,
@@ -101,16 +90,25 @@ export async function GET(req: NextRequest) {
       ...params,
       pageSize,
       offset,
-    );
+    )) as {
+      PNUMBER: string;
+      NODEEGAR: string;
+      ACCNUMBER: string | null;
+      ACCNAME: string | null;
+      TAX: number | null;
+      PAY: number | null;
+      MONEY: number | null;
+      CHEQUE: string | null;
+    }[];
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
         FROM deegar
         ${whereClause}
       `,
       ...params,
-    );
+    )) as { total: bigint }[];
 
     const total = Number(countRows?.[0]?.total ?? 0);
 

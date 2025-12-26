@@ -17,22 +17,7 @@ export async function GET(
       return NextResponse.json({ error: "CID is required" }, { status: 400 });
     }
 
-    const rows = await prisma.$queryRawUnsafe<
-      {
-        CID: string;
-        IDCOOP: string | null;
-        IDMAN: string | null;
-        NO: string | null;
-        CODE: string | null;
-        NAME: string | null;
-        SEX: string | null;
-        LPOS: string | null;
-        DUPDATE: string | null;
-        MOBILE: string | null;
-        EMAIL: string | null;
-        NAMESTATION: string | null;
-      }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT o.CID, o.IDCOOP, o.IDMAN, o.NO, o.CODE, o.NAME, o.SEX, o.LPOS, o.DUPDATE, o.MOBILE, o.EMAIL, s.NAMESTATION
         FROM officer o
@@ -41,7 +26,20 @@ export async function GET(
         LIMIT 1
       `,
       cid,
-    );
+    )) as {
+      CID: string;
+      IDCOOP: string | null;
+      IDMAN: string | null;
+      NO: string | null;
+      CODE: string | null;
+      NAME: string | null;
+      SEX: string | null;
+      LPOS: string | null;
+      DUPDATE: string | null;
+      MOBILE: string | null;
+      EMAIL: string | null;
+      NAMESTATION: string | null;
+    }[];
 
     const officer = rows[0];
 
@@ -124,22 +122,7 @@ export async function PUT(
       cid,
     );
 
-    const updated = await prisma.$queryRawUnsafe<
-      {
-        CID: string;
-        IDCOOP: string | null;
-        IDMAN: string | null;
-        NO: string | null;
-        CODE: string | null;
-        NAME: string | null;
-        SEX: string | null;
-        LPOS: string | null;
-        DUPDATE: string | null;
-        MOBILE: string | null;
-        EMAIL: string | null;
-        NAMESTATION: string | null;
-      }[]
-    >(
+    const updated = (await prisma.$queryRawUnsafe(
       `
         SELECT o.CID, o.IDCOOP, o.IDMAN, o.NO, o.CODE, o.NAME, o.SEX, o.LPOS, o.DUPDATE, o.MOBILE, o.EMAIL, s.NAMESTATION
         FROM officer o
@@ -148,7 +131,20 @@ export async function PUT(
         LIMIT 1
       `,
       cid,
-    );
+    )) as {
+      CID: string;
+      IDCOOP: string | null;
+      IDMAN: string | null;
+      NO: string | null;
+      CODE: string | null;
+      NAME: string | null;
+      SEX: string | null;
+      LPOS: string | null;
+      DUPDATE: string | null;
+      MOBILE: string | null;
+      EMAIL: string | null;
+      NAMESTATION: string | null;
+    }[];
 
     return NextResponse.json({ officer: updated[0] ?? null });
   } catch (err: any) {

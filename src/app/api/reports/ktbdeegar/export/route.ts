@@ -15,21 +15,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Missing pnumber or nodeegar' }, { status: 400 });
     }
 
-    const rows = await prisma.$queryRawUnsafe<
-      {
-        IDBANK: string | null;
-        ACCNAME: string | null;
-        NAME: string | null;
-        MOBILE: string | null;
-        EMAIL: string | null;
-        CID: string | null;
-        MONEY: any;
-        PNUMBER: string | null;
-        NODEEGAR: string | null;
-        CHEQUE: string | null;
-        PAYDATE: Date | null;
-      }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT salary.ID, bank.IDBANK, officer.NAME, officer.MOBILE, officer.EMAIL, salary.CID, salary.MONEY,
           salary.PNUMBER, salary.NODEEGAR, salary.NUM, cpay.PAYTYPE, cpay.IDPAY, deegar.CHEQUE, deegar.ACCNAME, cheque.PAYDATE
@@ -44,7 +30,19 @@ export async function GET(req: NextRequest) {
       `,
       pnumber,
       nodeegar,
-    );
+    )) as {
+      IDBANK: string | null;
+      ACCNAME: string | null;
+      NAME: string | null;
+      MOBILE: string | null;
+      EMAIL: string | null;
+      CID: string | null;
+      MONEY: any;
+      PNUMBER: string | null;
+      NODEEGAR: string | null;
+      CHEQUE: string | null;
+      PAYDATE: Date | null;
+    }[];
 
     const toNumber = (v: any) => (typeof v === 'bigint' ? Number(v) : Number(v ?? 0));
     const toDate = (d: Date | null) => {

@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
         NUM: num,
         MONTHTHAI: monththai,
         YEARTHAI: yearthai,
-        MONEY: new Prisma.Decimal(moneyValue),
+        MONEY: moneyValue,
         DUPDATE: new Date(),
       },
     });

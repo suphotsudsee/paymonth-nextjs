@@ -18,13 +18,18 @@ export async function POST(req: NextRequest) {
 
     const sha1 = crypto.createHash('sha1').update(String(password).trim()).digest('hex');
 
-    const rows = await prisma.$queryRawUnsafe<
-      { id: number; cid: string; accessLevel: number; fname: string; lname: string; status: string | null }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       'SELECT id, cid, accessLevel, fname, lname, status FROM user WHERE username = ? AND password = ? LIMIT 1',
       String(username).trim(),
       sha1,
-    );
+    )) as {
+      id: number;
+      cid: string;
+      accessLevel: number;
+      fname: string;
+      lname: string;
+      status: string | null;
+    }[];
 
     const user = rows[0];
 

@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const rows = await prisma.$queryRawUnsafe<Row[]>(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
           bank.IDBANK,
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
       cheque,
       pageSize,
       offset,
-    );
+    )) as Row[];
 
     const toNumber = (v: any) => (typeof v === 'bigint' ? Number(v) : Number(v ?? 0));
 

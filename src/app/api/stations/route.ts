@@ -60,9 +60,7 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-    const rows = await prisma.$queryRawUnsafe<
-      { CODE: string; DEPART: string | null; CODEPLACE: string | null; NAMESTATION: string | null }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT CODE, DEPART, CODEPLACE, NAMESTATION
         FROM station
@@ -73,16 +71,16 @@ export async function GET(req: NextRequest) {
       ...params,
       pageSize,
       offset,
-    );
+    )) as { CODE: string; DEPART: string | null; CODEPLACE: string | null; NAMESTATION: string | null }[];
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
         FROM station
         ${whereClause}
       `,
       ...params,
-    );
+    )) as { total: bigint }[];
 
     const total = Number(countRows?.[0]?.total ?? 0);
     return NextResponse.json({

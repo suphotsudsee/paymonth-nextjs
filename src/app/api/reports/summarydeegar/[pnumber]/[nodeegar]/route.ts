@@ -28,7 +28,7 @@ export async function GET(
 
     const { pnumber, nodeegar } = await params;
 
-    const rows = await prisma.$queryRawUnsafe<Row[]>(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
           cheque.ID,
@@ -55,7 +55,7 @@ export async function GET(
       `,
       pnumber,
       nodeegar,
-    );
+    )) as Row[];
 
     const toNumber = (value: any) =>
       typeof value === 'bigint' ? Number(value) : Number(value ?? 0);

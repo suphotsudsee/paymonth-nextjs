@@ -51,9 +51,7 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-    const rows = await prisma.$queryRawUnsafe<
-      { IDPAY: string; PAYNAME: string | null; PAYTYPE: string | null }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT IDPAY, PAYNAME, PAYTYPE
         FROM cpay
@@ -64,16 +62,16 @@ export async function GET(req: NextRequest) {
       ...params,
       pageSize,
       offset,
-    );
+    )) as { IDPAY: string; PAYNAME: string | null; PAYTYPE: string | null }[];
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
         FROM cpay
         ${whereClause}
       `,
       ...params,
-    );
+    )) as { total: bigint }[];
 
     const total = Number(countRows?.[0]?.total ?? 0);
     return NextResponse.json({

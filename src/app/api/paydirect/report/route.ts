@@ -12,32 +12,7 @@ export async function GET(req: NextRequest) {
   const session = verifySession(req.cookies.get('session')?.value);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const rows = await prisma.$queryRawUnsafe<
-    {
-      ID: number;
-      A: string | null;
-      B: string | null;
-      C: string | null;
-      D: string | null;
-      E: string | null;
-      F: string | null;
-      DEPART: string | null;
-      NAMESTATION: string | null;
-      SALARY: number | null;
-      O: string | null;
-      SALPOS: string | null;
-      NOCLINIC: string | null;
-      SUBJECT: string | null;
-      S: string | null;
-      AC: string | null;
-      AB: string | null;
-      AI: string | null;
-      RETIRE: string | null;
-      Q: string | null;
-      Y: string | null;
-      AA: string | null;
-    }[]
-  >(
+  const rows = (await prisma.$queryRawUnsafe(
     `
       SELECT
         paydirect.ID,
@@ -72,7 +47,30 @@ export async function GET(req: NextRequest) {
     `%${xmonth}%`,
     `%${xtype}%`,
     `%${nameprn}%`,
-  );
+  )) as {
+    ID: number;
+    A: string | null;
+    B: string | null;
+    C: string | null;
+    D: string | null;
+    E: string | null;
+    F: string | null;
+    DEPART: string | null;
+    NAMESTATION: string | null;
+    SALARY: number | null;
+    O: string | null;
+    SALPOS: string | null;
+    NOCLINIC: string | null;
+    SUBJECT: string | null;
+    S: string | null;
+    AC: string | null;
+    AB: string | null;
+    AI: string | null;
+    RETIRE: string | null;
+    Q: string | null;
+    Y: string | null;
+    AA: string | null;
+  }[];
 
   return NextResponse.json({ items: rows });
 }

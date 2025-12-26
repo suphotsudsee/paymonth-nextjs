@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const yearthai = searchParams.get('yearthai')?.trim() || '2557';
 
-    const rows = await prisma.$queryRawUnsafe<Row[]>(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
           cpay.PAYTYPE,
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         GROUP BY cpay.PAYTYPE, salary.MONTHTHAI
       `,
       yearthai,
-    );
+    )) as Row[];
 
     const toNumber = (v: any) => (typeof v === 'bigint' ? Number(v) : Number(v ?? 0));
 

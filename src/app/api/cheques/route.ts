@@ -40,9 +40,7 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-    const rows = await prisma.$queryRawUnsafe<
-      { CHEQUE: string; CHEQUENAME: string; ACCNUMBER: string; PAYDATE: Date | null; DUPDATE: Date }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT CHEQUE, CHEQUENAME, ACCNUMBER, PAYDATE, DUPDATE
         FROM cheque
@@ -53,16 +51,16 @@ export async function GET(req: NextRequest) {
       ...params,
       pageSize,
       offset,
-    );
+    )) as { CHEQUE: string; CHEQUENAME: string; ACCNUMBER: string; PAYDATE: Date | null; DUPDATE: Date }[];
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
         FROM cheque
         ${whereClause}
       `,
       ...params,
-    );
+    )) as { total: bigint }[];
 
     const toIso = (d: Date | null) => (d ? d.toISOString() : null);
 

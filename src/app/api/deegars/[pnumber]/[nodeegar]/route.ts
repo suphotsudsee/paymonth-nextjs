@@ -19,19 +19,7 @@ export async function GET(
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
     }
 
-    const rows = await prisma.$queryRawUnsafe<
-      {
-        ID: bigint;
-        PNUMBER: string;
-        NODEEGAR: string;
-        ACCNUMBER: string;
-        ACCNAME: string;
-        TAX: any;
-        PAY: any;
-        MONEY: any;
-        CHEQUE: string | null;
-      }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT ID, PNUMBER, NODEEGAR, ACCNUMBER, ACCNAME, TAX, FEE AS PAY, MONEY, CHEQUE
         FROM deegar
@@ -40,7 +28,17 @@ export async function GET(
       `,
       pnumber,
       nodeegar,
-    );
+    )) as {
+      ID: bigint;
+      PNUMBER: string;
+      NODEEGAR: string;
+      ACCNUMBER: string;
+      ACCNAME: string;
+      TAX: any;
+      PAY: any;
+      MONEY: any;
+      CHEQUE: string | null;
+    }[];
 
     if (!rows.length) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -21,7 +21,7 @@ type OfficerRow = {
 };
 
 async function loadOfficer(cid: string): Promise<OfficerRow | null> {
-  const rows = await prisma.$queryRawUnsafe<OfficerRow[]>(
+  const rows = (await prisma.$queryRawUnsafe(
     `
       SELECT CID, NAME
       FROM officer
@@ -29,7 +29,7 @@ async function loadOfficer(cid: string): Promise<OfficerRow | null> {
       LIMIT 1
     `,
     cid,
-  );
+  )) as OfficerRow[];
   return rows[0] ?? null;
 }
 
@@ -70,7 +70,7 @@ export default async function ManageBanksPage({
     );
   }
 
-  const banks = await prisma.bank.findMany({
+  const banks: BankRow[] = await prisma.bank.findMany({
     where: { CID: cid },
     orderBy: { id: "asc" },
   });

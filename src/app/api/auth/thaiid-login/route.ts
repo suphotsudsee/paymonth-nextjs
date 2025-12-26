@@ -17,7 +17,7 @@ function clampString(value: unknown, max: number): string | null {
 function extractClientIp(req: NextRequest): string | null {
   const forwarded = req.headers.get("x-forwarded-for");
   const realIp = req.headers.get("x-real-ip");
-  let ip = (forwarded ? forwarded.split(",")[0] : realIp || req.ip || "").trim();
+  let ip = (forwarded ? forwarded.split(",")[0] : realIp || "").trim();
   if (!ip) return null;
   if (ip === "::1") return "127.0.0.1";
   if (ip.startsWith("::ffff:")) ip = ip.slice(7);
@@ -56,12 +56,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "missing pid" }, { status: 400 });
     }
 
-    const rows = await prisma.$queryRawUnsafe<
-      { id: number; cid: string; accessLevel: number; fname: string; lname: string; status: string | null }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       "SELECT id, cid, accessLevel, fname, lname, status FROM user WHERE cid = ? LIMIT 1",
       cid,
-    );
+    )) as { id: number; cid: string; accessLevel: number; fname: string; lname: string; status: string | null }[];
     const user = rows[0];
 
     if (!user) {

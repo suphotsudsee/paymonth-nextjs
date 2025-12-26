@@ -45,18 +45,7 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-    const rows = await prisma.$queryRawUnsafe<
-      {
-        PNUMBER: string;
-        NAME: string;
-        MONEY: any;
-        TAX: any;
-        MONEYDRAW: any;
-        REGISDATE: Date;
-        SENDDATE: Date | null;
-        DUPDATE: Date;
-      }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT PNUMBER, NAME, MONEY, TAX, MONEYDRAW, REGISDATE, SENDDATE, DUPDATE
         FROM regisdeegar
@@ -67,16 +56,25 @@ export async function GET(req: NextRequest) {
       ...params,
       pageSize,
       offset,
-    );
+    )) as {
+      PNUMBER: string;
+      NAME: string;
+      MONEY: any;
+      TAX: any;
+      MONEYDRAW: any;
+      REGISDATE: Date;
+      SENDDATE: Date | null;
+      DUPDATE: Date;
+    }[];
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
         FROM regisdeegar
         ${whereClause}
       `,
       ...params,
-    );
+    )) as { total: bigint }[];
 
     const items = rows.map((r) => ({
       PNUMBER: r.PNUMBER,

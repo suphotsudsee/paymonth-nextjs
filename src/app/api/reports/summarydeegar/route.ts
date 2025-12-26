@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
     // Paginate inside the DB at the grouped level to avoid fetching all rows.
-    const rows = await prisma.$queryRawUnsafe<Row[]>(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
           agg.PNUMBER,
@@ -81,9 +81,9 @@ export async function GET(req: NextRequest) {
       ...params,
       pageSize,
       offset,
-    );
+    )) as Row[];
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) AS total FROM (
           SELECT d.PNUMBER, d.NODEEGAR
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
         ) grouped
       `,
       ...params,
-    );
+    )) as { total: bigint }[];
 
     const items = rows.map((row) => ({
       PNUMBER: row.PNUMBER ?? '',

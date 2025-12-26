@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
     }
 
-    const rows = await prisma.$queryRawUnsafe<UserRow[]>(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT id, username, password, cid, fname, lname, status, accessLevel, mobile, email
         FROM user
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         LIMIT 1
       `,
       id,
-    );
+    )) as UserRow[];
 
     const user = rows[0];
 

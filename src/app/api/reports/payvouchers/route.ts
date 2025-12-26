@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
-    const rows = await prisma.$queryRawUnsafe<Row[]>(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
           cheque.PAYDATE,
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
       ...params,
       pageSize,
       offset,
-    );
+    )) as Row[];
 
     const toNumber = (v: any) => (typeof v === 'bigint' ? Number(v) : Number(v ?? 0));
 
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
 
     const total = toNumber(items?.[0]?.totalRows ?? 0);
 
-    const totals = await prisma.$queryRawUnsafe<{ totalMoney: any }[]>(
+    const totals = (await prisma.$queryRawUnsafe(
       `
         SELECT SUM(salary.MONEY) AS totalMoney
         FROM cheque
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
         ${whereClause}
       `,
       ...params,
-    );
+    )) as { totalMoney: any }[];
 
     const totalMoney = toNumber(totals?.[0]?.totalMoney ?? 0);
 

@@ -80,7 +80,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cid:
 
     const whereClause = `WHERE ${filters.join(" AND ")}`;
 
-    const rows = await prisma.$queryRawUnsafe<SalaryRow[]>(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
           salary.ID,
@@ -117,9 +117,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cid:
       ...paramsList,
       pageSize,
       offset,
-    );
+    )) as SalaryRow[];
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
         FROM salary
@@ -131,7 +131,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cid:
         ${whereClause}
       `,
       ...paramsList,
-    );
+    )) as { total: bigint }[];
 
     const total = Number(countRows?.[0]?.total ?? 0);
     const officer = rows[0]

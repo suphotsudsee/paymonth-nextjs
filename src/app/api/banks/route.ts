@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 
+type BankRow = {
+  id: bigint | number;
+  CID: string;
+  IDBANK: string;
+  NAMEBANK: string | null;
+};
+
 const canManageBanks = (session: { status?: unknown; accessLevel?: unknown }) => {
   const statusStr =
     typeof session.status === "string"
@@ -26,7 +33,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "cid is required" }, { status: 400 });
     }
 
-    const banks = await prisma.bank.findMany({
+    const banks: BankRow[] = await prisma.bank.findMany({
       where: { CID: cid },
       orderBy: { id: "asc" },
     });
@@ -65,7 +72,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "cid and idbank are required" }, { status: 400 });
     }
 
-    const bank = await prisma.bank.create({
+    const bank: BankRow = await prisma.bank.create({
       data: {
         CID: cid,
         IDBANK: idbank,
@@ -73,7 +80,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const banks = await prisma.bank.findMany({
+    const banks: BankRow[] = await prisma.bank.findMany({
       where: { CID: cid },
       orderBy: { id: "asc" },
     });

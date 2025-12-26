@@ -43,26 +43,7 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
-    const rows = await prisma.$queryRawUnsafe<
-      {
-        ID: number;
-        IDBANK: string | null;
-        NAME: string | null;
-        CID: string;
-        MONEY: number;
-        PNUMBER: string;
-        NODEEGAR: string;
-        NUM: string | null;
-        PAYTYPE: string | null;
-        IDPAY: string | null;
-        CHEQUE: string | null;
-        PAYDATE: Date | null;
-        ACCNUMBER?: string | null;
-        ACCNAME?: string | null;
-        TAX?: number | null;
-        PAY?: number | null;
-      }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
           salary.ID,
@@ -94,7 +75,24 @@ export async function GET(req: NextRequest) {
       ...params,
       pageSize,
       offset,
-    );
+    )) as {
+      ID: number;
+      IDBANK: string | null;
+      NAME: string | null;
+      CID: string;
+      MONEY: number;
+      PNUMBER: string;
+      NODEEGAR: string;
+      NUM: string | null;
+      PAYTYPE: string | null;
+      IDPAY: string | null;
+      CHEQUE: string | null;
+      PAYDATE: Date | null;
+      ACCNUMBER?: string | null;
+      ACCNAME?: string | null;
+      TAX?: number | null;
+      PAY?: number | null;
+    }[];
 
     const safeRows = rows.map((row) => ({
       ...row,
@@ -105,7 +103,7 @@ export async function GET(req: NextRequest) {
       PAYDATE: row.PAYDATE instanceof Date ? row.PAYDATE.toISOString() : row.PAYDATE,
     }));
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
         FROM salary
@@ -117,7 +115,7 @@ export async function GET(req: NextRequest) {
         ${whereClause}
       `,
       ...params,
-    );
+    )) as { total: bigint }[];
 
     const total = Number(countRows?.[0]?.total ?? 0);
 

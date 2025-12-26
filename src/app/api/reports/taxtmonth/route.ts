@@ -36,9 +36,9 @@ export async function GET(req: NextRequest) {
 
     // If year not provided, pick the latest YEARTHAI from salary as a sensible default.
     if (!yearthai) {
-      const latest = await prisma.$queryRawUnsafe<{ latest: string | null }[]>(
+      const latest = (await prisma.$queryRawUnsafe(
         `SELECT MAX(YEARTHAI) as latest FROM salary WHERE YEARTHAI IS NOT NULL`,
-      );
+      )) as { latest: string | null }[];
       yearthai = latest?.[0]?.latest ?? '';
     if (!yearthai) {
       return NextResponse.json({
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-    const rows = await prisma.$queryRawUnsafe<Row[]>(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT "" AS ID, m.IDPAY, m.PAYNAME, m.YEARTHAI,
           SUM(IF(m.MONTHTHAI='01', m.SUMMONEY, NULL)) AS m01,
@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
       `%${station}%`,
       pageSize,
       offset,
-    );
+    )) as Row[];
 
     const toNumber = (v: any) => (typeof v === 'bigint' ? Number(v) : Number(v ?? 0));
 

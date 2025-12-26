@@ -19,16 +19,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const rows = await prisma.$queryRawUnsafe<
-      {
-        ACCNUMBER: string | null;
-        CHEQUE: string | null;
-        PAYDATE: Date | null;
-        PNUMBER: string | null;
-        NODEEGAR: string | null;
-        MONEY: number | null;
-      }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
           deegar.ACCNUMBER,
@@ -46,9 +37,16 @@ export async function GET(req: NextRequest) {
       `,
       `%${cheque}%`,
       pageSize,
-    );
+    )) as {
+      ACCNUMBER: string | null;
+      CHEQUE: string | null;
+      PAYDATE: Date | null;
+      PNUMBER: string | null;
+      NODEEGAR: string | null;
+      MONEY: number | null;
+    }[];
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
         FROM salary
@@ -57,7 +55,7 @@ export async function GET(req: NextRequest) {
         WHERE deegar.CHEQUE LIKE ?
       `,
       `%${cheque}%`,
-    );
+    )) as { total: bigint }[];
 
     const safeRows = rows.map((row) => ({
       ACCNUMBER: row.ACCNUMBER ?? '-',

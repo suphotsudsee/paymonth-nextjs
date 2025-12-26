@@ -31,9 +31,9 @@ export async function GET(req: NextRequest) {
     const offset = (page - 1) * pageSize;
 
     if (!yearthai) {
-      const latest = await prisma.$queryRawUnsafe<{ latest: string | null }[]>(
+      const latest = (await prisma.$queryRawUnsafe(
         `SELECT MAX(YEARTHAI) as latest FROM salary WHERE YEARTHAI IS NOT NULL`,
-      );
+      )) as { latest: string | null }[];
       yearthai = latest?.[0]?.latest ?? '';
       if (!yearthai) {
         return NextResponse.json({
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const rows = await prisma.$queryRawUnsafe<Row[]>(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
           agg.ID,
@@ -101,9 +101,9 @@ export async function GET(req: NextRequest) {
       `%${depart}%`,
       pageSize,
       offset,
-    );
+    )) as Row[];
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total FROM (
           SELECT officer.CID
@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
       `,
       yearthai,
       `%${depart}%`,
-    );
+    )) as { total: bigint }[];
 
     const items = rows.map((row) => ({
       ID: Number(row.ID ?? 0),

@@ -36,7 +36,7 @@ export async function GET(
       return NextResponse.json({ error: "cid, monththai, and yearthai are required" }, { status: 400 });
     }
 
-    const officerRows = await prisma.$queryRawUnsafe<OfficerInfo[]>(
+    const officerRows = (await prisma.$queryRawUnsafe(
       `
         SELECT
           officer.CID,
@@ -59,11 +59,11 @@ export async function GET(
       cid,
       monththai,
       yearthai,
-    );
+    )) as OfficerInfo[];
 
     const officer = officerRows[0] ?? null;
 
-    const rows = await prisma.$queryRawUnsafe<SlipRow[]>(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT salary.IDPAY, cpay.PAYNAME, cpay.PAYTYPE, salary.MONEY
         FROM salary
@@ -75,7 +75,7 @@ export async function GET(
       cid,
       monththai,
       yearthai,
-    );
+    )) as SlipRow[];
 
     const income = rows
       .filter((r) => r.PAYTYPE === "1")

@@ -16,9 +16,7 @@ export async function GET(
       return NextResponse.json({ error: "Missing cheque id" }, { status: 400 });
     }
 
-    const rows = await prisma.$queryRawUnsafe<
-      { ID: bigint; CHEQUE: string; CHEQUENAME: string; ACCNUMBER: string; PAYDATE: Date | null }[]
-    >(
+    const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT ID, CHEQUE, CHEQUENAME, ACCNUMBER, PAYDATE
         FROM cheque
@@ -26,7 +24,7 @@ export async function GET(
         LIMIT 1
       `,
       chequeId,
-    );
+    )) as { ID: bigint; CHEQUE: string; CHEQUENAME: string; ACCNUMBER: string; PAYDATE: Date | null }[];
 
     if (!rows.length) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

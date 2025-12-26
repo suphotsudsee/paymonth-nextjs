@@ -34,7 +34,7 @@ export async function GET(
     const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 10)));
     const offset = (page - 1) * pageSize;
 
-    const items = await prisma.$queryRawUnsafe<PersonalRow[]>(
+    const items = (await prisma.$queryRawUnsafe(
       `
         SELECT
           officer.NAME,
@@ -59,9 +59,9 @@ export async function GET(
       cid,
       pageSize,
       offset,
-    );
+    )) as PersonalRow[];
 
-    const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+    const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
         FROM (
@@ -76,7 +76,7 @@ export async function GET(
         ) AS grouped
       `,
       cid,
-    );
+    )) as { total: bigint }[];
 
     const total = Number(countRows?.[0]?.total ?? 0);
     const officer = items[0]

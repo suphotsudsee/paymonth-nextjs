@@ -36,7 +36,7 @@ export async function GET(
   const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 10)));
   const offset = (page - 1) * pageSize;
 
-  const items = await prisma.$queryRawUnsafe<PaydirectRow[]>(
+  const items = (await prisma.$queryRawUnsafe(
     `
       SELECT
         station.NAMESTATION,
@@ -63,16 +63,16 @@ export async function GET(
     cid,
     pageSize,
     offset,
-  );
+  )) as PaydirectRow[];
 
-  const countRows = await prisma.$queryRawUnsafe<{ total: bigint }[]>(
+  const countRows = (await prisma.$queryRawUnsafe(
     `
       SELECT COUNT(*) as total
       FROM paydirect
       WHERE C = ?
     `,
     cid,
-  );
+  )) as { total: bigint }[];
 
   const total = Number(countRows?.[0]?.total ?? 0);
   const officerInfo = items[0]
