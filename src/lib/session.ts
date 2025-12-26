@@ -20,11 +20,11 @@ export type AppSession = {
 const deriveRole = (session: SessionPayload): AppRole => {
   const status = String(session.status ?? "").toLowerCase();
   const accessLevel = Number(session.accessLevel ?? 0);
-  const isAdmin = status.includes("admin") || status.includes("manager") || accessLevel >= 1;
-  if (isAdmin) return "ADMIN";
+  if (status.includes("admin") || status.includes("manager")) return "ADMIN";
   if (status.includes("editor")) return "EDITOR";
-  if (status === "user" || accessLevel <= 0) return "USER";
-  return "EDITOR";
+  if (status === "user") return "USER";
+  if (accessLevel >= 1) return "ADMIN";
+  return "USER";
 };
 
 export async function getAppSessionFromToken(token?: string): Promise<AppSession | null> {
