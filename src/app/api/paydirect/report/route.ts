@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAppSessionFromRequest } from '@/lib/session';
-import { buildPaydirectAccessClause } from '../../../../lib/paydirect-access';
+import { buildPaydirectAccessClause } from '@/lib/paydirect-access';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
