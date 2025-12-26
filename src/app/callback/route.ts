@@ -2,6 +2,43 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { signSession } from "@/lib/auth";
 
+type LoginAttempt = {
+  username: string | null;
+  password: string | null;
+  logined: "Y" | "N";
+  ipv4: string | null;
+};
+
+function clampString(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  return value.length > max ? value.slice(0, max) : value;
+}
+
+function extractClientIp(req: NextRequest): string | null {
+  const forwarded = req.headers.get("x-forwarded-for");
+  const realIp = req.headers.get("x-real-ip");
+  let ip = (forwarded ? forwarded.split(",")[0] : realIp || "").trim();
+  if (!ip) return null;
+  if (ip === "::1") return "127.0.0.1";
+  if (ip.startsWith("::ffff:")) ip = ip.slice(7);
+  if (ip.includes(".") && ip.includes(":")) ip = ip.split(":")[0];
+  return ip;
+}
+
+async function logLoginAttempt(attempt: LoginAttempt) {
+  try {
+    await prisma.$executeRawUnsafe(
+      "INSERT INTO useronline (username, password, logined, ipv4, logindate) VALUES (?, ?, ?, ?, NOW())",
+      attempt.username,
+      attempt.password,
+      attempt.logined,
+      attempt.ipv4,
+    );
+  } catch (error) {
+    console.error("Login audit insert failed", error);
+  }
+}
+
 async function exchangeToken(code: string, redirectUri: string) {
   const clientId =
     process.env.AUTH_THAIID_ID || process.env.THAID_CLIENT_ID || "";
@@ -87,11 +124,19 @@ export async function GET(req: NextRequest) {
     `${origin}/callback`;
 
   try {
+    const ipv4 = extractClientIp(req);
     const token = await exchangeToken(code, redirectUri);
     const pid =
       typeof token === "object" && token !== null ? (token as any).pid : null;
+    const username = clampString(pid, 50);
 
     if (typeof pid !== "string" || !pid) {
+      await logLoginAttempt({
+        username,
+        password: null,
+        logined: "N",
+        ipv4,
+      });
       return NextResponse.json({ error: "pid_missing_in_token", token }, { status: 400 });
     }
 
@@ -109,6 +154,12 @@ export async function GET(req: NextRequest) {
 
     const user = rows[0];
     if (!user) {
+      await logLoginAttempt({
+        username,
+        password: null,
+        logined: "N",
+        ipv4,
+      });
       return NextResponse.json(
         { error: "not_found", message: `ไม่พบข้อมูล ${pid} ในฐานข้อมูล`, pid },
         { status: 404 },
@@ -146,6 +197,12 @@ export async function GET(req: NextRequest) {
       path: "/",
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 8,
+    });
+    await logLoginAttempt({
+      username,
+      password: null,
+      logined: "Y",
+      ipv4,
     });
     return res;
   } catch (error: any) {
