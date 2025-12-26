@@ -7,7 +7,7 @@ type LoginAttempt = {
   username: string | null;
   password: string | null;
   logined: 'Y' | 'N';
-  ipv4: number | null;
+  ipv4: string | null;
 };
 
 function clampString(value: unknown, max: number): string | null {
@@ -20,17 +20,10 @@ function extractClientIp(req: NextRequest): string | null {
   const realIp = req.headers.get('x-real-ip');
   let ip = (forwarded ? forwarded.split(',')[0] : realIp || req.ip || '').trim();
   if (!ip) return null;
+  if (ip === '::1') return '127.0.0.1';
   if (ip.startsWith('::ffff:')) ip = ip.slice(7);
   if (ip.includes('.') && ip.includes(':')) ip = ip.split(':')[0];
   return ip;
-}
-
-function ipv4ToInt(ip: string): number | null {
-  const parts = ip.split('.');
-  if (parts.length !== 4) return null;
-  const nums = parts.map((part) => Number.parseInt(part, 10));
-  if (nums.some((num) => Number.isNaN(num) || num < 0 || num > 255)) return null;
-  return (nums[0] * 256 ** 3 + nums[1] * 256 ** 2 + nums[2] * 256 + nums[3]) >>> 0;
 }
 
 async function logLoginAttempt(attempt: LoginAttempt) {
@@ -51,7 +44,7 @@ export async function POST(req: NextRequest) {
   try {
     const { username, password, captcha } = await req.json().catch(() => ({}));
     const clientIp = extractClientIp(req);
-    const ipv4 = clientIp ? ipv4ToInt(clientIp) : null;
+    const ipv4 = clientIp;
     const usernameRaw = clampString(username, 50);
     const passwordRaw = clampString(password, 50);
     const usernameTrim = String(username || '').trim();
