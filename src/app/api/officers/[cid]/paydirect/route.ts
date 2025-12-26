@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifySession } from "@/lib/auth";
+import { getAppSessionFromRequest } from "@/lib/session";
+import { buildOfficerAccessClause, buildPaydirectAccessClause } from "@/lib/paydirect-access";
 
 type PaydirectRow = {
   NAMESTATION: string | null;
@@ -21,7 +22,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ cid: string }> },
 ) {
-  const session = await verifySession(req.cookies.get("session")?.value);
+  const session = await getAppSessionFromRequest(req);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -35,6 +36,31 @@ export async function GET(
   const page = Math.max(1, Number(searchParams.get("page") || 1));
   const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 10)));
   const offset = (page - 1) * pageSize;
+
+  if (session.role === "EDITOR" && !session.orgId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const officerAccess = buildOfficerAccessClause(session, "officer");
+  const officerRows = (await prisma.$queryRawUnsafe(
+    `
+      SELECT officer.CID
+      FROM officer
+      WHERE officer.CID = ?
+        AND ${officerAccess.clause}
+      LIMIT 1
+    `,
+    cid,
+    ...officerAccess.params,
+  )) as { CID: string }[];
+
+  if (!officerRows.length) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const paydirectAccess = buildPaydirectAccessClause(session, { paydirect: "paydirect", officer: "officer" });
+  const whereClause = `paydirect.C = ? AND ${paydirectAccess.clause}`;
+  const whereParams = [cid, ...paydirectAccess.params];
 
   const items = (await prisma.$queryRawUnsafe(
     `
@@ -55,12 +81,12 @@ export async function GET(
       INNER JOIN paydirect ON officer.CID = paydirect.C
       INNER JOIN station ON officer.CODE = station.CODE
       INNER JOIN cmonth ON paydirect.B = cmonth.ID
-      WHERE paydirect.C = ?
+      WHERE ${whereClause}
       GROUP BY paydirect.A, paydirect.B
       ORDER BY CONCAT(paydirect.A, paydirect.B) DESC
       LIMIT ? OFFSET ?
     `,
-    cid,
+    ...whereParams,
     pageSize,
     offset,
   )) as PaydirectRow[];
@@ -69,9 +95,10 @@ export async function GET(
     `
       SELECT COUNT(*) as total
       FROM paydirect
-      WHERE C = ?
+      INNER JOIN officer ON officer.CID = paydirect.C
+      WHERE ${whereClause}
     `,
-    cid,
+    ...whereParams,
   )) as { total: bigint }[];
 
   const total = Number(countRows?.[0]?.total ?? 0);

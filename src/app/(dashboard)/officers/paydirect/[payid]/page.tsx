@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { getAppSession } from "@/lib/session";
+import { buildPaydirectAccessClause } from "@/lib/paydirect-access";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -71,6 +73,11 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
   const idNum = Number(resolved.payid);
   if (!Number.isFinite(idNum)) return notFound();
 
+  const session = await getAppSession();
+  if (!session) return notFound();
+
+  const access = buildPaydirectAccessClause(session, { paydirect: "paydirect", officer: "officer" });
+
   const rows = (await prisma.$queryRawUnsafe(
     `
       SELECT
@@ -85,9 +92,11 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
       LEFT JOIN station ON officer.CODE = station.CODE
       LEFT JOIN cmonth ON paydirect.B = cmonth.ID
       WHERE paydirect.ID = ?
+        AND ${access.clause}
       LIMIT 1
     `,
     idNum,
+    ...access.params,
   )) as PaydirectDetail[];
 
   const detail = rows[0];

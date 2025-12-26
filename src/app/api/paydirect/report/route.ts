@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { verifySession } from '@/lib/auth';
+import { getAppSessionFromRequest } from '@/lib/session';
+import { buildPaydirectAccessClause } from '@/lib/paydirect-access';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -9,8 +10,14 @@ export async function GET(req: NextRequest) {
   const xtype = searchParams.get('xtype_pis')?.trim() ?? '';
   const nameprn = searchParams.get('nameprn')?.trim() ?? '';
 
-  const session = verifySession(req.cookies.get('session')?.value);
+  const session = await getAppSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (session.role === "EDITOR" && !session.orgId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const access = buildPaydirectAccessClause(session, { paydirect: "paydirect", officer: "officer" });
 
   const rows = (await prisma.$queryRawUnsafe(
     `
@@ -42,11 +49,13 @@ export async function GET(req: NextRequest) {
         LEFT JOIN station ON officer.CODE = station.CODE
       WHERE paydirect.A LIKE ? AND paydirect.B LIKE ?
         AND station.DEPART LIKE ? AND station.NAMESTATION LIKE ?
+        AND ${access.clause}
     `,
     `%${xyear}%`,
     `%${xmonth}%`,
     `%${xtype}%`,
     `%${nameprn}%`,
+    ...access.params,
   )) as {
     ID: number;
     A: string | null;
