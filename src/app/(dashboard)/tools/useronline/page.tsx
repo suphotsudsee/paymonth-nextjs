@@ -29,7 +29,11 @@ const formatDateTime = (value: string | null) => {
   if (!value) return "-";
   const dt = new Date(value);
   if (Number.isNaN(dt.getTime())) return value;
-  return dt.toLocaleString("th-TH", { dateStyle: "short", timeStyle: "medium" });
+  return dt.toLocaleString("th-TH", {
+    dateStyle: "short",
+    timeStyle: "medium",
+    timeZone: "Asia/Bangkok",
+  });
 };
 
 const maskPassword = (value: string | null) => {
