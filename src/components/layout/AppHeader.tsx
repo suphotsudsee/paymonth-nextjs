@@ -61,6 +61,7 @@ const navItems: NavItem[] = [
     submenu: [
       { label: "จัดการผู้ใช้", href: "/tools/users" },
       { label: "นำเข้าข้อมูลเงินเดือน", href: "/tools/import-paydirect" },
+      { label: "รายงานการใช้งาน useronline", href: "/tools/useronline" },
    
     ],
   },
