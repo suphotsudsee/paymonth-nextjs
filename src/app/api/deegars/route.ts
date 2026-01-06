@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
     const tax = searchParams.get("tax")?.trim();
     const pay = searchParams.get("pay")?.trim();
     const money = searchParams.get("money")?.trim();
+    const pnumberOnly = searchParams.get("pnumberOnly") === "1";
     const page = Math.max(1, Number(searchParams.get("page") || 1));
     const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 10)));
     const offset = (page - 1) * pageSize;
@@ -67,6 +68,9 @@ export async function GET(req: NextRequest) {
     if (money && !Number.isNaN(Number(money))) {
       filters.push("deegar.MONEY = ?");
       params.push(Number(money));
+    }
+    if (pnumberOnly) {
+      filters.push("UPPER(deegar.PNUMBER) LIKE 'P%'");
     }
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";

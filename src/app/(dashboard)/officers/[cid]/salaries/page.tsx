@@ -226,6 +226,7 @@ export default function OfficerSalariesPage() {
       const params = new URLSearchParams({
         page: "1",
         pageSize: "10",
+        pnumberOnly: "1",
       });
       if (query.trim()) params.set("pnumber", query.trim());
       const res = await fetch(`/api/deegars?${params.toString()}`, {
