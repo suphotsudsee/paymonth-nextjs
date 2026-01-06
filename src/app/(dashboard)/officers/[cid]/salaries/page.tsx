@@ -404,13 +404,6 @@ export default function OfficerSalariesPage() {
               <button
                 type="button"
                 className={styles.createBtn}
-                onClick={() => router.push("/officers")}
-              >
-                กลับรายชื่อจนท.
-              </button>
-              <button
-                type="button"
-                className={styles.createBtn}
                 onClick={openPayModal}
                 disabled={loading || !cid}
               >
