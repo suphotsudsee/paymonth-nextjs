@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 
+const PNUMBER_MAX_LENGTH = 10;
+
 // POST /api/salaries
 // Body: { cid, idpay, bankId, pnumber?, nodeegar?, num?, monththai, yearthai, money }
 export async function POST(req: NextRequest) {
@@ -39,6 +41,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Forbidden: cannot create salary for other users" },
         { status: 403 },
+      );
+    }
+
+    if (pnumber.length > PNUMBER_MAX_LENGTH) {
+      return NextResponse.json(
+        { error: `PNUMBER must be at most ${PNUMBER_MAX_LENGTH} characters` },
+        { status: 400 },
       );
     }
 

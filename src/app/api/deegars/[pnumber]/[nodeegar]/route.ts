@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 
+const PNUMBER_MAX_LENGTH = 10;
+
 export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ pnumber: string; nodeegar: string }> },
@@ -98,6 +100,13 @@ export async function PUT(
 
     if (!pnumber || !accnumber || !accname) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    if (pnumber.length > PNUMBER_MAX_LENGTH) {
+      return NextResponse.json(
+        { error: `PNUMBER must be at most ${PNUMBER_MAX_LENGTH} characters` },
+        { status: 400 },
+      );
     }
 
     const updated = await prisma.deegar.update({

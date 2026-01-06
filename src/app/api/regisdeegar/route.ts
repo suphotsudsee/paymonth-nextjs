@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
 
+const PNUMBER_MAX_LENGTH = 10;
+
 export async function GET(req: NextRequest) {
   const session = verifySession(req.cookies.get('session')?.value);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -36,13 +38,22 @@ export async function POST(req: NextRequest) {
     CODEACTIVE = '',
   } = body;
 
-  if (!PNUMBER || !REGISDATE || !NAME || !CODEBUDGET || !CODEACTIVE) {
+  const pnumber = String(PNUMBER ?? '').trim();
+
+  if (!pnumber || !REGISDATE || !NAME || !CODEBUDGET || !CODEACTIVE) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  }
+
+  if (pnumber.length > PNUMBER_MAX_LENGTH) {
+    return NextResponse.json(
+      { error: `PNUMBER must be at most ${PNUMBER_MAX_LENGTH} characters` },
+      { status: 400 },
+    );
   }
 
   const created = await prisma.regisdeegar.create({
     data: {
-      PNUMBER,
+      PNUMBER: pnumber,
       REGISDATE: new Date(REGISDATE),
       NAME,
       MONEY,
