@@ -10,25 +10,11 @@ jobs:
     runs-on: self-hosted    # ใช้ runner ที่อยู่บน server เครื่องนี้
 
     steps:
-      - name: Setup SSH for Git
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-          ssh -T git@github.com || true  # Test connection (ignore error if first time)
-
       - name: Go to project folder
         run: |
           cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
           pwd
           ls
-          git remote -v  # เช็ค remote URL
-
-      - name: Ensure SSH remote URL
-        run: |
-          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
-          git remote set-url origin git@github.com:suphotsudsee/test-paymonth.phoubon.in.th.git  # เปลี่ยน yourusername/repo จริง
 
       - name: Git pull latest code
         run: |
