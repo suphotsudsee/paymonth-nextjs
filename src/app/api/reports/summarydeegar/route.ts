@@ -36,8 +36,8 @@ export async function GET(req: NextRequest) {
       params.push(`%${pnumber}%`);
     }
     if (cheque) {
-      filters.push('TRIM(cheque.CHEQUE) LIKE ?');
-      params.push(`%${cheque}%`);
+      filters.push('(TRIM(cheque.CHEQUE) LIKE ? OR TRIM(d.CHEQUE) LIKE ?)');
+      params.push(`%${cheque}%`, `%${cheque}%`);
     }
     if (accname) {
       filters.push('d.ACCNAME LIKE ?');
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
             d.NODEEGAR,
             d.MONEY,
             d.ACCNAME,
-            cheque.CHEQUE,
+            COALESCE(cheque.CHEQUE, d.CHEQUE) AS CHEQUE,
             IF(cheque.PAYDATE LIKE '0000%', NULL, cheque.PAYDATE) AS PAYDATE,
             SUM(s.MONEY) AS MPAYALL,
             IF(d.DUPDATE LIKE '0000%', NULL, d.DUPDATE) AS DUPDATE
