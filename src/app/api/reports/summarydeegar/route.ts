@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
       params.push(`%${pnumber}%`);
     }
     if (cheque) {
-      filters.push('cheque.CHEQUE LIKE ?');
+      filters.push('TRIM(cheque.CHEQUE) LIKE ?');
       params.push(`%${cheque}%`);
     }
     if (accname) {
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
             IF(d.DUPDATE LIKE '0000%', NULL, d.DUPDATE) AS DUPDATE
           FROM deegar AS d
             LEFT JOIN salary AS s ON d.PNUMBER = s.PNUMBER AND d.NODEEGAR = s.NODEEGAR
-            LEFT JOIN cheque ON cheque.CHEQUE = d.CHEQUE
+            LEFT JOIN cheque ON TRIM(d.CHEQUE) = cheque.CHEQUE
           ${whereClause}
           GROUP BY d.PNUMBER, d.NODEEGAR
           ORDER BY d.PNUMBER DESC, d.NODEEGAR DESC
@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
           SELECT d.PNUMBER, d.NODEEGAR
           FROM deegar AS d
             LEFT JOIN salary AS s ON d.PNUMBER = s.PNUMBER AND d.NODEEGAR = s.NODEEGAR
-            LEFT JOIN cheque ON cheque.CHEQUE = d.CHEQUE
+            LEFT JOIN cheque ON TRIM(d.CHEQUE) = cheque.CHEQUE
           ${whereClause}
           GROUP BY d.PNUMBER, d.NODEEGAR
         ) grouped
