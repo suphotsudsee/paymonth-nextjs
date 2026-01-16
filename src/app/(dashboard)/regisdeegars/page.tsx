@@ -39,6 +39,8 @@ type ApiResult = {
   totalPages: number;
 };
 
+const PNUMBER_MAX_LENGTH = 10;
+
 export default function RegisdeegarsListPage() {
   const [data, setData] = useState<ApiResult | null>(null);
   const [page, setPage] = useState(1);
@@ -328,6 +330,7 @@ export default function RegisdeegarsListPage() {
                     <input
                       className={styles.filterInput}
                       placeholder="ค้นหา Pnumber"
+                      maxLength={PNUMBER_MAX_LENGTH}
                       value={filters.pnumber}
                       onChange={onFilterChange("pnumber")}
                     />
@@ -452,7 +455,12 @@ export default function RegisdeegarsListPage() {
               <div className={styles.formGrid}>
                 <label>
                   Pnumber *
-                  <input className={styles.input} value={form.pnumber} onChange={onFormChange("pnumber")} />
+                  <input
+                    className={styles.input}
+                    maxLength={PNUMBER_MAX_LENGTH}
+                    value={form.pnumber}
+                    onChange={onFormChange("pnumber")}
+                  />
                 </label>
                 <label>
                   ชื่อ *

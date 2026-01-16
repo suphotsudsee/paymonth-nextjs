@@ -30,6 +30,8 @@ type ApiResult = {
   totalPages: number;
 };
 
+const CHEQUE_MAX_LENGTH = 11;
+
 export default function ChequePage() {
   const [data, setData] = useState<ApiResult | null>(null);
   const [page, setPage] = useState(1);
@@ -273,6 +275,7 @@ export default function ChequePage() {
                     <input
                       className={styles.filterInput}
                       placeholder="ค้นหา เลขที่เช็ค"
+                      maxLength={CHEQUE_MAX_LENGTH}
                       value={filters.cheque}
                       onChange={onFilterChange("cheque")}
                     />
@@ -393,7 +396,12 @@ export default function ChequePage() {
               <div className={styles.formGrid}>
                 <label>
                   Cheque *
-                  <input className={styles.input} value={createForm.cheque} onChange={onCreateChange("cheque")} />
+                  <input
+                    className={styles.input}
+                    maxLength={CHEQUE_MAX_LENGTH}
+                    value={createForm.cheque}
+                    onChange={onCreateChange("cheque")}
+                  />
                 </label>
                 <label>
                   Chequename *

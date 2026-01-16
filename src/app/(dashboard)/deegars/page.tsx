@@ -29,6 +29,9 @@ type DeegarDetail = DeegarRow & {
   ID: number;
 };
 
+const PNUMBER_MAX_LENGTH = 10;
+const CHEQUE_MAX_LENGTH = 11;
+
 export default function DeegarPage() {
   const [data, setData] = useState<ApiResult | null>(null);
   const [page, setPage] = useState(1);
@@ -310,6 +313,7 @@ export default function DeegarPage() {
                     <input
                       className={styles.filterInput}
                       placeholder="ค้นหา Pnumber"
+                      maxLength={PNUMBER_MAX_LENGTH}
                       value={filters.pnumber}
                       onChange={onFilterChange("pnumber")}
                     />
@@ -366,6 +370,7 @@ export default function DeegarPage() {
                     <input
                       className={styles.filterInput}
                       placeholder="เลขที่เช็ค"
+                      maxLength={CHEQUE_MAX_LENGTH}
                       value={filters.cheque}
                       onChange={onFilterChange("cheque")}
                     />
@@ -464,7 +469,12 @@ export default function DeegarPage() {
               <div className={styles.formGrid}>
                 <label>
                   Pnumber *
-                  <input className={styles.input} value={createForm.pnumber} onChange={onCreateChange("pnumber")} />
+                  <input
+                    className={styles.input}
+                    maxLength={PNUMBER_MAX_LENGTH}
+                    value={createForm.pnumber}
+                    onChange={onCreateChange("pnumber")}
+                  />
                 </label>
                 <label>
                   Nodeegar *
@@ -492,7 +502,12 @@ export default function DeegarPage() {
                 </label>
                 <label>
                   เลขที่เช็ค
-                  <input className={styles.input} value={createForm.cheque} onChange={onCreateChange("cheque")} />
+                  <input
+                    className={styles.input}
+                    maxLength={CHEQUE_MAX_LENGTH}
+                    value={createForm.cheque}
+                    onChange={onCreateChange("cheque")}
+                  />
                 </label>
               </div>
               {formError && <div className={styles.error}>{formError}</div>}
