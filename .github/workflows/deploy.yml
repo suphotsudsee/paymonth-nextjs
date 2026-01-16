@@ -11,29 +11,34 @@ jobs:
 
     steps:
       - name: Go to project folder
+        working-directory: /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
         run: |
-          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
           pwd
           ls
 
-      - name: Git pull latest code
+      - name: Configure git auth for pull
+        working-directory: /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
         run: |
-          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
+      - name: Git pull latest code
+        working-directory: /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
+        run: |
           git pull origin main
 
       - name: Install dependencies
+        working-directory: /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
         run: |
-          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
           npm install
 
       - name: Prisma generate
+        working-directory: /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
         run: |
-          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
           npx prisma generate
 
       - name: Build Next.js
+        working-directory: /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
         run: |
-          cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
           npm run build
 
       - name: Restart app with PM2 (no duplicate)
