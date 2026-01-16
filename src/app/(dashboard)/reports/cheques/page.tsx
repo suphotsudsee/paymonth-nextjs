@@ -29,11 +29,50 @@ export default function ReportChequeSearchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({ cheque: "" });
+  const [chequeOptions, setChequeOptions] = useState<string[]>([]);
+  const [chequeQuery, setChequeQuery] = useState("");
 
-  const onFilterChange =
-    (field: keyof typeof filters) =>
-    (e: ChangeEvent<HTMLInputElement>) =>
-      setFilters((prev) => ({ ...prev, [field]: e.target.value }));
+  const onChequeFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFilters((prev) => ({ ...prev, cheque: value }));
+    setChequeQuery(value);
+  };
+
+  const loadChequeOptions = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      const params = new URLSearchParams({
+        page: "1",
+        pageSize: "10",
+        recent: "1",
+      });
+      if (trimmed.length >= 2) {
+        params.set("cheque", trimmed);
+      }
+      const res = await fetch(`/api/cheques?${params.toString()}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok || !Array.isArray(json.items)) {
+        setChequeOptions([]);
+        return;
+      }
+      const items = (json.items as { CHEQUE?: string }[])
+        .map((item) => String(item.CHEQUE || "").trim())
+        .filter(Boolean);
+      setChequeOptions(Array.from(new Set(items)));
+    } catch {
+      setChequeOptions([]);
+    }
+  };
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      void loadChequeOptions(chequeQuery);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [chequeQuery]);
 
   const fetchData = async (currentFilters: typeof filters = filters) => {
     setLoading(true);
@@ -128,7 +167,11 @@ export default function ReportChequeSearchPage() {
                 id="cheque"
                 className={styles.searchInput}
                 value={filters.cheque}
-                onChange={onFilterChange("cheque")}
+                list="chequeOptions"
+                onChange={onChequeFilterChange}
+                onFocus={(e) => {
+                  void loadChequeOptions(e.currentTarget.value);
+                }}
                 placeholder="ระบุเลขที่เช็ค"
               />
             </div>
@@ -144,6 +187,11 @@ export default function ReportChequeSearchPage() {
               Total {data?.total ?? 0} result{(data?.total || 0) === 1 ? "" : "s"}. แสดง {displayRange}
             </span>
           </form>
+          <datalist id="chequeOptions">
+            {chequeOptions.map((cheque) => (
+              <option key={cheque} value={cheque} />
+            ))}
+          </datalist>
 
           {error && <div className={styles.error}>{error}</div>}
 

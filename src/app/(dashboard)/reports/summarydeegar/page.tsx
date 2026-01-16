@@ -59,6 +59,8 @@ export default function SummaryDeegarPage() {
     cheque: '',
     accname: '',
   });
+  const [chequeOptions, setChequeOptions] = useState<string[]>([]);
+  const [chequeQuery, setChequeQuery] = useState('');
 
   const fetchData = async (
     targetPage: number,
@@ -131,6 +133,48 @@ export default function SummaryDeegarPage() {
       setFilters((prev) => ({ ...prev, [field]: value }));
     };
 
+  const onChequeFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFilters((prev) => ({ ...prev, cheque: value }));
+    setChequeQuery(value);
+  };
+
+  const loadChequeOptions = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      const params = new URLSearchParams({
+        page: '1',
+        pageSize: '10',
+        recent: '1',
+      });
+      if (trimmed.length >= 2) {
+        params.set('cheque', trimmed);
+      }
+      const res = await fetch(`/api/cheques?${params.toString()}`, {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      const json = await res.json();
+      if (!res.ok || !Array.isArray(json.items)) {
+        setChequeOptions([]);
+        return;
+      }
+      const items = (json.items as { CHEQUE?: string }[])
+        .map((item) => String(item.CHEQUE || '').trim())
+        .filter(Boolean);
+      setChequeOptions(Array.from(new Set(items)));
+    } catch {
+      setChequeOptions([]);
+    }
+  };
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      void loadChequeOptions(chequeQuery);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [chequeQuery]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     void fetchData(1, pageSize);
@@ -196,9 +240,13 @@ export default function SummaryDeegarPage() {
                 <span>เลขเช็ค</span>
                 <input
                   value={filters.cheque}
-                  onChange={onFilterChange('cheque')}
+                  onChange={onChequeFilterChange}
+                  onFocus={(e) => {
+                    void loadChequeOptions(e.currentTarget.value);
+                  }}
                   className={styles.filterInput}
                   placeholder="ค้นหาเลขเช็ค"
+                  list="chequeOptions"
                 />
               </label>
               <label className={styles.filterField}>
@@ -213,6 +261,11 @@ export default function SummaryDeegarPage() {
 
             </div>
           </form>
+          <datalist id="chequeOptions">
+            {chequeOptions.map((cheque) => (
+              <option key={cheque} value={cheque} />
+            ))}
+          </datalist>
 
           {error && <div className={styles.error}>{error}</div>}
 

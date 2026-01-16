@@ -66,6 +66,8 @@ export default function DeegarPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detail, setDetail] = useState<DeegarDetail | null>(null);
+  const [chequeOptions, setChequeOptions] = useState<string[]>([]);
+  const [chequeQuery, setChequeQuery] = useState("");
   const modalOpen = modalMode !== null;
   const isEditMode = modalMode === "edit";
 
@@ -121,6 +123,42 @@ export default function DeegarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  const loadChequeOptions = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      const params = new URLSearchParams({
+        page: "1",
+        pageSize: "10",
+        recent: "1",
+      });
+      if (trimmed.length >= 2) {
+        params.set("cheque", trimmed);
+      }
+      const res = await fetch(`/api/cheques?${params.toString()}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok || !Array.isArray(json.items)) {
+        setChequeOptions([]);
+        return;
+      }
+      const items = (json.items as { CHEQUE?: string }[])
+        .map((item) => String(item.CHEQUE || "").trim())
+        .filter(Boolean);
+      setChequeOptions(Array.from(new Set(items)));
+    } catch {
+      setChequeOptions([]);
+    }
+  };
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      void loadChequeOptions(chequeQuery);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [chequeQuery]);
+
   const displayRange = useMemo(() => {
     if (!data) return "0-0";
     const start = (page - 1) * pageSize + 1;
@@ -142,10 +180,22 @@ export default function DeegarPage() {
     (e: ChangeEvent<HTMLInputElement>) =>
       setFilters((prev) => ({ ...prev, [field]: e.target.value }));
 
+  const onChequeFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFilters((prev) => ({ ...prev, cheque: value }));
+    setChequeQuery(value);
+  };
+
   const onCreateChange =
     (field: keyof typeof createForm) =>
     (e: ChangeEvent<HTMLInputElement>) =>
       setCreateForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const onChequeCreateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCreateForm((prev) => ({ ...prev, cheque: value }));
+    setChequeQuery(value);
+  };
 
   const openCreate = () => {
     setCreateForm({
@@ -371,8 +421,12 @@ export default function DeegarPage() {
                       className={styles.filterInput}
                       placeholder="เลขที่เช็ค"
                       maxLength={CHEQUE_MAX_LENGTH}
+                      list="chequeOptions"
                       value={filters.cheque}
-                      onChange={onFilterChange("cheque")}
+                      onChange={onChequeFilterChange}
+                      onFocus={(e) => {
+                        void loadChequeOptions(e.currentTarget.value);
+                      }}
                     />
                   </th>
                   <th />
@@ -505,8 +559,12 @@ export default function DeegarPage() {
                   <input
                     className={styles.input}
                     maxLength={CHEQUE_MAX_LENGTH}
+                    list="chequeOptions"
                     value={createForm.cheque}
-                    onChange={onCreateChange("cheque")}
+                    onChange={onChequeCreateChange}
+                    onFocus={(e) => {
+                      void loadChequeOptions(e.currentTarget.value);
+                    }}
                   />
                 </label>
               </div>
@@ -584,6 +642,12 @@ export default function DeegarPage() {
           </div>
         </div>
       )}
+
+      <datalist id="chequeOptions">
+        {chequeOptions.map((cheque) => (
+          <option key={cheque} value={cheque} />
+        ))}
+      </datalist>
 
       <AppFooter />
     </div>

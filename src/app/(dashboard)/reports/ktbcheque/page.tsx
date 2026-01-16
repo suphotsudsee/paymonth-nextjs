@@ -1,7 +1,7 @@
 'use client';
 
 import type { ChangeEvent } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styles from './page.module.css';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
@@ -44,6 +44,8 @@ export default function ktbchequePage() {
   const [filters, setFilters] = useState({
     cheque: '',
   });
+  const [chequeOptions, setChequeOptions] = useState<string[]>([]);
+  const [chequeQuery, setChequeQuery] = useState('');
 
   const fetchData = async (
     targetPage: number,
@@ -99,12 +101,47 @@ export default function ktbchequePage() {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }, [data, page]);
 
-  const onFilterChange =
-    (field: keyof typeof filters) =>
-    (e: ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      setFilters((prev) => ({ ...prev, [field]: value }));
-    };
+  const onChequeFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFilters((prev) => ({ ...prev, cheque: value }));
+    setChequeQuery(value);
+  };
+
+  const loadChequeOptions = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      const params = new URLSearchParams({
+        page: '1',
+        pageSize: '10',
+        recent: '1',
+      });
+      if (trimmed.length >= 2) {
+        params.set('cheque', trimmed);
+      }
+      const res = await fetch(`/api/cheques?${params.toString()}`, {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      const json = await res.json();
+      if (!res.ok || !Array.isArray(json.items)) {
+        setChequeOptions([]);
+        return;
+      }
+      const items = (json.items as { CHEQUE?: string }[])
+        .map((item) => String(item.CHEQUE || '').trim())
+        .filter(Boolean);
+      setChequeOptions(Array.from(new Set(items)));
+    } catch {
+      setChequeOptions([]);
+    }
+  };
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      void loadChequeOptions(chequeQuery);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [chequeQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,13 +194,22 @@ export default function ktbchequePage() {
                 <span>เลขที่เช็ค</span>
                 <input
                   value={filters.cheque}
-                  onChange={onFilterChange('cheque')}
+                  onChange={onChequeFilterChange}
+                  onFocus={(e) => {
+                    void loadChequeOptions(e.currentTarget.value);
+                  }}
                   className={styles.filterInput}
+                  list="chequeOptions"
                   placeholder=""
                 />
               </label>
             </div>
           </form>
+          <datalist id="chequeOptions">
+            {chequeOptions.map((cheque) => (
+              <option key={cheque} value={cheque} />
+            ))}
+          </datalist>
 
           {error && <div className={styles.resultText}>{error}</div>}
 

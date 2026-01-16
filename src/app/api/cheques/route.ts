@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, Number(searchParams.get("page") || 1));
     const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 10)));
     const offset = (page - 1) * pageSize;
+    const recent = searchParams.get("recent") === "1";
 
     const filters: string[] = [];
     const params: any[] = [];
@@ -40,12 +41,13 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
+    const orderBy = recent ? "DUPDATE DESC" : "CHEQUE";
     const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT CHEQUE, CHEQUENAME, ACCNUMBER, PAYDATE, DUPDATE
         FROM cheque
         ${whereClause}
-        ORDER BY CHEQUE
+        ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
       `,
       ...params,

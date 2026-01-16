@@ -58,6 +58,8 @@ export default function ChequePage() {
     accnumber: "",
     paydate: "",
   });
+  const [chequeOptions, setChequeOptions] = useState<string[]>([]);
+  const [chequeQuery, setChequeQuery] = useState("");
 
   const pageSize = 10;
 
@@ -128,10 +130,58 @@ export default function ChequePage() {
     (e: ChangeEvent<HTMLInputElement>) =>
       setFilters((prev) => ({ ...prev, [field]: e.target.value }));
 
+  const onChequeFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFilters((prev) => ({ ...prev, cheque: value }));
+    setChequeQuery(value);
+  };
+
   const onCreateChange =
     (field: keyof typeof createForm) =>
     (e: ChangeEvent<HTMLInputElement>) =>
       setCreateForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const onChequeCreateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCreateForm((prev) => ({ ...prev, cheque: value }));
+    setChequeQuery(value);
+  };
+
+  const loadChequeOptions = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      const params = new URLSearchParams({
+        page: "1",
+        pageSize: "10",
+        recent: "1",
+      });
+      if (trimmed.length >= 2) {
+        params.set("cheque", trimmed);
+      }
+      const res = await fetch(`/api/cheques?${params.toString()}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok || !Array.isArray(json.items)) {
+        setChequeOptions([]);
+        return;
+      }
+      const items = (json.items as { CHEQUE?: string }[])
+        .map((item) => String(item.CHEQUE || "").trim())
+        .filter(Boolean);
+      setChequeOptions(Array.from(new Set(items)));
+    } catch {
+      setChequeOptions([]);
+    }
+  };
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      void loadChequeOptions(chequeQuery);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [chequeQuery]);
 
   const openCreate = () => {
     setCreateForm({ cheque: "", chequename: "", accnumber: "", paydate: "" });
@@ -276,8 +326,12 @@ export default function ChequePage() {
                       className={styles.filterInput}
                       placeholder="ค้นหา เลขที่เช็ค"
                       maxLength={CHEQUE_MAX_LENGTH}
+                      list="chequeOptions"
                       value={filters.cheque}
-                      onChange={onFilterChange("cheque")}
+                      onChange={onChequeFilterChange}
+                      onFocus={(e) => {
+                        void loadChequeOptions(e.currentTarget.value);
+                      }}
                     />
                   </th>
                   <th>
@@ -399,8 +453,12 @@ export default function ChequePage() {
                   <input
                     className={styles.input}
                     maxLength={CHEQUE_MAX_LENGTH}
+                    list="chequeOptions"
                     value={createForm.cheque}
-                    onChange={onCreateChange("cheque")}
+                    onChange={onChequeCreateChange}
+                    onFocus={(e) => {
+                      void loadChequeOptions(e.currentTarget.value);
+                    }}
                   />
                 </label>
                 <label>
@@ -477,6 +535,12 @@ export default function ChequePage() {
           </div>
         </div>
       )}
+
+      <datalist id="chequeOptions">
+        {chequeOptions.map((cheque) => (
+          <option key={cheque} value={cheque} />
+        ))}
+      </datalist>
 
       <AppFooter />
     </div>

@@ -53,6 +53,7 @@ export default function ReportsByDatePage() {
     field: 'pnumber',
     query: '',
   });
+  const [chequeOptions, setChequeOptions] = useState<string[]>([]);
 
   const fetchData = async (
     targetPage: number,
@@ -116,6 +117,46 @@ export default function ReportsByDatePage() {
       const value = e.target.value;
       setFilters((prev) => ({ ...prev, [field]: value }));
     };
+
+  const loadChequeOptions = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      const params = new URLSearchParams({
+        page: '1',
+        pageSize: '10',
+        recent: '1',
+      });
+      if (trimmed.length >= 2) {
+        params.set('cheque', trimmed);
+      }
+      const res = await fetch(`/api/cheques?${params.toString()}`, {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      const json = await res.json();
+      if (!res.ok || !Array.isArray(json.items)) {
+        setChequeOptions([]);
+        return;
+      }
+      const items = (json.items as { CHEQUE?: string }[])
+        .map((item) => String(item.CHEQUE || '').trim())
+        .filter(Boolean);
+      setChequeOptions(Array.from(new Set(items)));
+    } catch {
+      setChequeOptions([]);
+    }
+  };
+
+  useEffect(() => {
+    if (filters.field !== 'cheque') {
+      setChequeOptions([]);
+      return;
+    }
+    const handle = setTimeout(() => {
+      void loadChequeOptions(filters.query);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [filters.field, filters.query]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,10 +241,21 @@ export default function ReportsByDatePage() {
                   onChange={onFilterChange('query')}
                   className={styles.filterInput}
                   placeholder="กรอกคำที่ต้องการค้น"
+                  list={filters.field === 'cheque' ? 'chequeOptions' : undefined}
+                  onFocus={(e) => {
+                    if (filters.field === 'cheque') {
+                      void loadChequeOptions(e.currentTarget.value);
+                    }
+                  }}
                 />
               </label>
             </div>
           </form>
+          <datalist id="chequeOptions">
+            {chequeOptions.map((cheque) => (
+              <option key={cheque} value={cheque} />
+            ))}
+          </datalist>
 
           {error && <div className={styles.error}>{error}</div>}
 
