@@ -68,6 +68,8 @@ export default function DeegarPage() {
   const [detail, setDetail] = useState<DeegarDetail | null>(null);
   const [chequeOptions, setChequeOptions] = useState<string[]>([]);
   const [chequeQuery, setChequeQuery] = useState("");
+  const [pnumberOptions, setPnumberOptions] = useState<string[]>([]);
+  const [pnumberQuery, setPnumberQuery] = useState("");
   const modalOpen = modalMode !== null;
   const isEditMode = modalMode === "edit";
 
@@ -152,12 +154,49 @@ export default function DeegarPage() {
     }
   };
 
+  const loadPnumberOptions = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      const params = new URLSearchParams({
+        page: "1",
+        pageSize: "10",
+        pnumberOnly: "1",
+        recent: "1",
+      });
+      if (trimmed.length >= 2) {
+        params.set("pnumber", trimmed);
+      }
+      const res = await fetch(`/api/deegars?${params.toString()}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok || !Array.isArray(json.items)) {
+        setPnumberOptions([]);
+        return;
+      }
+      const items = (json.items as { PNUMBER?: string }[])
+        .map((item) => String(item.PNUMBER || "").trim())
+        .filter(Boolean);
+      setPnumberOptions(Array.from(new Set(items)));
+    } catch {
+      setPnumberOptions([]);
+    }
+  };
+
   useEffect(() => {
     const handle = setTimeout(() => {
       void loadChequeOptions(chequeQuery);
     }, 250);
     return () => clearTimeout(handle);
   }, [chequeQuery]);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      void loadPnumberOptions(pnumberQuery);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [pnumberQuery]);
 
   const displayRange = useMemo(() => {
     if (!data) return "0-0";
@@ -180,6 +219,12 @@ export default function DeegarPage() {
     (e: ChangeEvent<HTMLInputElement>) =>
       setFilters((prev) => ({ ...prev, [field]: e.target.value }));
 
+  const onPnumberFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFilters((prev) => ({ ...prev, pnumber: value }));
+    setPnumberQuery(value);
+  };
+
   const onChequeFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setFilters((prev) => ({ ...prev, cheque: value }));
@@ -190,6 +235,12 @@ export default function DeegarPage() {
     (field: keyof typeof createForm) =>
     (e: ChangeEvent<HTMLInputElement>) =>
       setCreateForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const onPnumberCreateChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCreateForm((prev) => ({ ...prev, pnumber: value }));
+    setPnumberQuery(value);
+  };
 
   const onChequeCreateChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -365,7 +416,11 @@ export default function DeegarPage() {
                       placeholder="ค้นหา Pnumber"
                       maxLength={PNUMBER_MAX_LENGTH}
                       value={filters.pnumber}
-                      onChange={onFilterChange("pnumber")}
+                      list="pnumberOptions"
+                      onChange={onPnumberFilterChange}
+                      onFocus={(e) => {
+                        void loadPnumberOptions(e.currentTarget.value);
+                      }}
                     />
                   </th>
                   <th>
@@ -527,7 +582,11 @@ export default function DeegarPage() {
                     className={styles.input}
                     maxLength={PNUMBER_MAX_LENGTH}
                     value={createForm.pnumber}
-                    onChange={onCreateChange("pnumber")}
+                    list="pnumberOptions"
+                    onChange={onPnumberCreateChange}
+                    onFocus={(e) => {
+                      void loadPnumberOptions(e.currentTarget.value);
+                    }}
                   />
                 </label>
                 <label>
@@ -646,6 +705,11 @@ export default function DeegarPage() {
       <datalist id="chequeOptions">
         {chequeOptions.map((cheque) => (
           <option key={cheque} value={cheque} />
+        ))}
+      </datalist>
+      <datalist id="pnumberOptions">
+        {pnumberOptions.map((pnumber) => (
+          <option key={pnumber} value={pnumber} />
         ))}
       </datalist>
 

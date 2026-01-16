@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
     const pay = searchParams.get("pay")?.trim();
     const money = searchParams.get("money")?.trim();
     const pnumberOnly = searchParams.get("pnumberOnly") === "1";
+    const recent = searchParams.get("recent") === "1";
     const page = Math.max(1, Number(searchParams.get("page") || 1));
     const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 10)));
     const offset = (page - 1) * pageSize;
@@ -77,6 +78,7 @@ export async function GET(req: NextRequest) {
 
     // ❗ important: NEVER interpolate user input directly into the SQL template string.
     // Always pass dynamic values via "?" placeholders in the parameter list.
+    const orderBy = recent ? "deegar.DUPDATE DESC" : "deegar.PNUMBER, deegar.NODEEGAR";
     const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
@@ -90,7 +92,7 @@ export async function GET(req: NextRequest) {
           deegar.CHEQUE
         FROM deegar
         ${whereClause}
-        ORDER BY deegar.PNUMBER, deegar.NODEEGAR
+        ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
       `,
       ...params,

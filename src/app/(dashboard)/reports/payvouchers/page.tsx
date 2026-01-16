@@ -50,6 +50,7 @@ export default function PayVouchersPage() {
     query: '',
   });
   const [chequeOptions, setChequeOptions] = useState<string[]>([]);
+  const [pnumberOptions, setPnumberOptions] = useState<string[]>([]);
 
   const fetchData = async (
     targetPage: number,
@@ -148,6 +149,36 @@ export default function PayVouchersPage() {
     }
   };
 
+  const loadPnumberOptions = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      const params = new URLSearchParams({
+        page: '1',
+        pageSize: '10',
+        pnumberOnly: '1',
+        recent: '1',
+      });
+      if (trimmed.length >= 2) {
+        params.set('pnumber', trimmed);
+      }
+      const res = await fetch(`/api/deegars?${params.toString()}`, {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      const json = await res.json();
+      if (!res.ok || !Array.isArray(json.items)) {
+        setPnumberOptions([]);
+        return;
+      }
+      const items = (json.items as { PNUMBER?: string }[])
+        .map((item) => String(item.PNUMBER || '').trim())
+        .filter(Boolean);
+      setPnumberOptions(Array.from(new Set(items)));
+    } catch {
+      setPnumberOptions([]);
+    }
+  };
+
   useEffect(() => {
     if (filters.field !== 'cheque') {
       setChequeOptions([]);
@@ -155,6 +186,17 @@ export default function PayVouchersPage() {
     }
     const handle = setTimeout(() => {
       void loadChequeOptions(filters.query);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [filters.field, filters.query]);
+
+  useEffect(() => {
+    if (filters.field !== 'pnumber') {
+      setPnumberOptions([]);
+      return;
+    }
+    const handle = setTimeout(() => {
+      void loadPnumberOptions(filters.query);
     }, 250);
     return () => clearTimeout(handle);
   }, [filters.field, filters.query]);
@@ -240,10 +282,13 @@ export default function PayVouchersPage() {
                   onChange={onFilterChange('query')}
                   className={styles.filterInput}
                   placeholder="พิมพ์คำค้น"
-                  list={filters.field === 'cheque' ? 'chequeOptions' : undefined}
+                  list={filters.field === 'cheque' ? 'chequeOptions' : filters.field === 'pnumber' ? 'pnumberOptions' : undefined}
                   onFocus={(e) => {
                     if (filters.field === 'cheque') {
                       void loadChequeOptions(e.currentTarget.value);
+                    }
+                    if (filters.field === 'pnumber') {
+                      void loadPnumberOptions(e.currentTarget.value);
                     }
                   }}
                 />
@@ -253,6 +298,11 @@ export default function PayVouchersPage() {
           <datalist id="chequeOptions">
             {chequeOptions.map((cheque) => (
               <option key={cheque} value={cheque} />
+            ))}
+          </datalist>
+          <datalist id="pnumberOptions">
+            {pnumberOptions.map((pnumber) => (
+              <option key={pnumber} value={pnumber} />
             ))}
           </datalist>
 

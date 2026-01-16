@@ -59,6 +59,8 @@ export default function SummaryDeegarPage() {
     cheque: '',
     accname: '',
   });
+  const [pnumberOptions, setPnumberOptions] = useState<string[]>([]);
+  const [pnumberQuery, setPnumberQuery] = useState('');
   const [chequeOptions, setChequeOptions] = useState<string[]>([]);
   const [chequeQuery, setChequeQuery] = useState('');
 
@@ -133,10 +135,46 @@ export default function SummaryDeegarPage() {
       setFilters((prev) => ({ ...prev, [field]: value }));
     };
 
+  const onPnumberFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFilters((prev) => ({ ...prev, pnumber: value }));
+    setPnumberQuery(value);
+  };
+
   const onChequeFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setFilters((prev) => ({ ...prev, cheque: value }));
     setChequeQuery(value);
+  };
+
+  const loadPnumberOptions = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      const params = new URLSearchParams({
+        page: '1',
+        pageSize: '10',
+        pnumberOnly: '1',
+        recent: '1',
+      });
+      if (trimmed.length >= 2) {
+        params.set('pnumber', trimmed);
+      }
+      const res = await fetch(`/api/deegars?${params.toString()}`, {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      const json = await res.json();
+      if (!res.ok || !Array.isArray(json.items)) {
+        setPnumberOptions([]);
+        return;
+      }
+      const items = (json.items as { PNUMBER?: string }[])
+        .map((item) => String(item.PNUMBER || '').trim())
+        .filter(Boolean);
+      setPnumberOptions(Array.from(new Set(items)));
+    } catch {
+      setPnumberOptions([]);
+    }
   };
 
   const loadChequeOptions = async (query: string) => {
@@ -174,6 +212,13 @@ export default function SummaryDeegarPage() {
     }, 250);
     return () => clearTimeout(handle);
   }, [chequeQuery]);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      void loadPnumberOptions(pnumberQuery);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [pnumberQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,9 +276,13 @@ export default function SummaryDeegarPage() {
                 <span>เลขฎีกา (PNUMBER)</span>
                 <input
                   value={filters.pnumber}
-                  onChange={onFilterChange('pnumber')}
+                  onChange={onPnumberFilterChange}
+                  onFocus={(e) => {
+                    void loadPnumberOptions(e.currentTarget.value);
+                  }}
                   className={styles.filterInput}
                   placeholder="ค้นหาเลขฎีกา"
+                  list="pnumberOptions"
                 />
               </label>
               <label className={styles.filterField}>
@@ -261,6 +310,11 @@ export default function SummaryDeegarPage() {
 
             </div>
           </form>
+          <datalist id="pnumberOptions">
+            {pnumberOptions.map((pnumber) => (
+              <option key={pnumber} value={pnumber} />
+            ))}
+          </datalist>
           <datalist id="chequeOptions">
             {chequeOptions.map((cheque) => (
               <option key={cheque} value={cheque} />

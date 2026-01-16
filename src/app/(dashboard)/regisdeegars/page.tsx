@@ -55,6 +55,8 @@ export default function RegisdeegarsListPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detail, setDetail] = useState<RegisDetail | null>(null);
+  const [pnumberOptions, setPnumberOptions] = useState<string[]>([]);
+  const [pnumberQuery, setPnumberQuery] = useState("");
   const [form, setForm] = useState({
     pnumber: "",
     name: "",
@@ -144,10 +146,59 @@ export default function RegisdeegarsListPage() {
     (e: ChangeEvent<HTMLInputElement>) =>
       setFilters((prev) => ({ ...prev, [field]: e.target.value }));
 
+  const onPnumberFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFilters((prev) => ({ ...prev, pnumber: value }));
+    setPnumberQuery(value);
+  };
+
   const onFormChange =
     (field: keyof typeof form) =>
     (e: ChangeEvent<HTMLInputElement>) =>
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const onPnumberFormChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setForm((prev) => ({ ...prev, pnumber: value }));
+    setPnumberQuery(value);
+  };
+
+  const loadPnumberOptions = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      const params = new URLSearchParams({
+        page: "1",
+        pageSize: "10",
+        pnumberOnly: "1",
+        recent: "1",
+      });
+      if (trimmed.length >= 2) {
+        params.set("pnumber", trimmed);
+      }
+      const res = await fetch(`/api/deegars?${params.toString()}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok || !Array.isArray(json.items)) {
+        setPnumberOptions([]);
+        return;
+      }
+      const items = (json.items as { PNUMBER?: string }[])
+        .map((item) => String(item.PNUMBER || "").trim())
+        .filter(Boolean);
+      setPnumberOptions(Array.from(new Set(items)));
+    } catch {
+      setPnumberOptions([]);
+    }
+  };
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      void loadPnumberOptions(pnumberQuery);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [pnumberQuery]);
 
   const openCreate = () => {
     setForm({
@@ -332,7 +383,11 @@ export default function RegisdeegarsListPage() {
                       placeholder="ค้นหา Pnumber"
                       maxLength={PNUMBER_MAX_LENGTH}
                       value={filters.pnumber}
-                      onChange={onFilterChange("pnumber")}
+                      list="pnumberOptions"
+                      onChange={onPnumberFilterChange}
+                      onFocus={(e) => {
+                        void loadPnumberOptions(e.currentTarget.value);
+                      }}
                     />
                   </th>
                   <th>
@@ -459,7 +514,11 @@ export default function RegisdeegarsListPage() {
                     className={styles.input}
                     maxLength={PNUMBER_MAX_LENGTH}
                     value={form.pnumber}
-                    onChange={onFormChange("pnumber")}
+                    list="pnumberOptions"
+                    onChange={onPnumberFormChange}
+                    onFocus={(e) => {
+                      void loadPnumberOptions(e.currentTarget.value);
+                    }}
                   />
                 </label>
                 <label>
@@ -589,6 +648,12 @@ export default function RegisdeegarsListPage() {
           </div>
         </div>
       )}
+
+      <datalist id="pnumberOptions">
+        {pnumberOptions.map((pnumber) => (
+          <option key={pnumber} value={pnumber} />
+        ))}
+      </datalist>
 
       <AppFooter />
     </div>

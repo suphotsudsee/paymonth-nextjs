@@ -35,12 +35,56 @@ export default function ReportDeegarSearchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({ pnumber: "", nodeegar: "" });
+  const [pnumberOptions, setPnumberOptions] = useState<string[]>([]);
+  const [pnumberQuery, setPnumberQuery] = useState("");
 
   const onFilterChange =
     (field: keyof typeof filters) =>
     (e: ChangeEvent<HTMLInputElement>) =>
       setFilters((prev) => ({ ...prev, [field]: e.target.value }));
 
+  const onPnumberFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFilters((prev) => ({ ...prev, pnumber: value }));
+    setPnumberQuery(value);
+  };
+
+  const loadPnumberOptions = async (query: string) => {
+    try {
+      const trimmed = query.trim();
+      const params = new URLSearchParams({
+        page: "1",
+        pageSize: "10",
+        pnumberOnly: "1",
+        recent: "1",
+      });
+      if (trimmed.length >= 2) {
+        params.set("pnumber", trimmed);
+      }
+      const res = await fetch(`/api/deegars?${params.toString()}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok || !Array.isArray(json.items)) {
+        setPnumberOptions([]);
+        return;
+      }
+      const items = (json.items as { PNUMBER?: string }[])
+        .map((item) => String(item.PNUMBER || "").trim())
+        .filter(Boolean);
+      setPnumberOptions(Array.from(new Set(items)));
+    } catch {
+      setPnumberOptions([]);
+    }
+  };
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      void loadPnumberOptions(pnumberQuery);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [pnumberQuery]);
   const fetchData = async (currentFilters: typeof filters = filters) => {
     setLoading(true);
     setError(null);
@@ -137,7 +181,11 @@ export default function ReportDeegarSearchPage() {
                 id="pnumber"
                 className={styles.searchInput}
                 value={filters.pnumber}
-                onChange={onFilterChange("pnumber")}
+                list="pnumberOptions"
+                onChange={onPnumberFilterChange}
+                onFocus={(e) => {
+                  void loadPnumberOptions(e.currentTarget.value);
+                }}
                 placeholder="ระบุเลขที่ฎีกา"
               />
             </div>
@@ -165,6 +213,11 @@ export default function ReportDeegarSearchPage() {
               Total {data?.total ?? 0} result{(data?.total || 0) === 1 ? "" : "s"}. แสดง {displayRange}
             </span>
           </form>
+          <datalist id="pnumberOptions">
+            {pnumberOptions.map((pnumber) => (
+              <option key={pnumber} value={pnumber} />
+            ))}
+          </datalist>
 
           {error && <div className={styles.error}>{error}</div>}
 
