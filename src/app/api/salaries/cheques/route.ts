@@ -22,17 +22,17 @@ export async function GET(req: NextRequest) {
     const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
-          deegar.ACCNUMBER,
-          deegar.CHEQUE,
+          COALESCE(deegar.ACCNUMBER, cheque.ACCNUMBER) AS ACCNUMBER,
+          cheque.CHEQUE AS CHEQUE,
           cheque.PAYDATE,
-          salary.PNUMBER,
-          salary.NODEEGAR,
-          salary.MONEY
-        FROM salary
-          LEFT JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
-          LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
-        WHERE deegar.CHEQUE LIKE ?
-        ORDER BY salary.PNUMBER, salary.NODEEGAR
+          COALESCE(salary.PNUMBER, deegar.PNUMBER) AS PNUMBER,
+          COALESCE(salary.NODEEGAR, deegar.NODEEGAR) AS NODEEGAR,
+          COALESCE(salary.MONEY, deegar.MONEY, 0) AS MONEY
+        FROM cheque
+          LEFT JOIN deegar ON cheque.CHEQUE = deegar.CHEQUE
+          LEFT JOIN salary ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
+        WHERE cheque.CHEQUE LIKE ?
+        ORDER BY cheque.CHEQUE, salary.PNUMBER, salary.NODEEGAR
         LIMIT ?
       `,
       `%${cheque}%`,
@@ -49,10 +49,10 @@ export async function GET(req: NextRequest) {
     const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
-        FROM salary
-          LEFT JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
-          LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
-        WHERE deegar.CHEQUE LIKE ?
+        FROM cheque
+          LEFT JOIN deegar ON cheque.CHEQUE = deegar.CHEQUE
+          LEFT JOIN salary ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
+        WHERE cheque.CHEQUE LIKE ?
       `,
       `%${cheque}%`,
     )) as { total: bigint }[];
