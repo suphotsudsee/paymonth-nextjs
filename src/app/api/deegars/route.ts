@@ -181,6 +181,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ item: created });
   } catch (err: any) {
     console.error("create deegar error", err);
+    if (err?.code === "P2002") {
+      return NextResponse.json({ error: "เลขฎีกาซ้ำในระบบ" }, { status: 409 });
+    }
     return NextResponse.json(
       { error: "Failed to create deegar", detail: String(err?.message || err) },
       { status: 500 },
