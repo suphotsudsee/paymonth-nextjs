@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
           COALESCE(salary.NODEEGAR, deegar.NODEEGAR) AS NODEEGAR,
           COALESCE(salary.MONEY, deegar.MONEY, 0) AS MONEY
         FROM cheque
-          LEFT JOIN deegar ON cheque.CHEQUE = deegar.CHEQUE
+          LEFT JOIN deegar ON TRIM(deegar.CHEQUE) = cheque.CHEQUE
           LEFT JOIN salary ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
         WHERE cheque.CHEQUE LIKE ?
         ORDER BY cheque.CHEQUE, salary.PNUMBER, salary.NODEEGAR
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
       `
         SELECT COUNT(*) as total
         FROM cheque
-          LEFT JOIN deegar ON cheque.CHEQUE = deegar.CHEQUE
+          LEFT JOIN deegar ON TRIM(deegar.CHEQUE) = cheque.CHEQUE
           LEFT JOIN salary ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
         WHERE cheque.CHEQUE LIKE ?
       `,
