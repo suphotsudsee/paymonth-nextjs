@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
 
     const pnumber = searchParams.get('pnumber')?.trim();
     const cheque = searchParams.get('cheque')?.trim();
+    const normalizedCheque = cheque ? cheque.replace(/\s+/g, '') : '';
     const accname = searchParams.get('accname')?.trim();
 
     const filters: string[] = ["s.PNUMBER <> 'p000000000'", "d.PNUMBER <> 'p000000000'"];
@@ -36,8 +37,20 @@ export async function GET(req: NextRequest) {
       params.push(`%${pnumber}%`);
     }
     if (cheque) {
-      filters.push('(TRIM(cheque.CHEQUE) LIKE ? OR TRIM(d.CHEQUE) LIKE ?)');
-      params.push(`%${cheque}%`, `%${cheque}%`);
+      filters.push(
+        '(' +
+          'TRIM(cheque.CHEQUE) LIKE ?' +
+          ' OR TRIM(d.CHEQUE) LIKE ?' +
+          ' OR REPLACE(cheque.CHEQUE, " ", "") LIKE ?' +
+          ' OR REPLACE(d.CHEQUE, " ", "") LIKE ?' +
+          ')',
+      );
+      params.push(
+        `%${cheque}%`,
+        `%${cheque}%`,
+        `%${normalizedCheque}%`,
+        `%${normalizedCheque}%`,
+      );
     }
     if (accname) {
       filters.push('d.ACCNAME LIKE ?');
