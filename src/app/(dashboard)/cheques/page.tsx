@@ -59,16 +59,16 @@ export default function ChequePage() {
     paydate: "",
   });
   const [sortBy, setSortBy] = useState<"CHEQUE" | "CHEQUENAME" | "ACCNUMBER" | "PAYDATE">("CHEQUE");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [chequeOptions, setChequeOptions] = useState<string[]>([]);
   const [chequeQuery, setChequeQuery] = useState("");
 
   const pageSize = 10;
-  const sortDir = "asc";
-
   const fetchData = async (
     targetPage: number,
     currentFilters: typeof filters = filters,
     currentSortBy: typeof sortBy = sortBy,
+    currentSortDir: typeof sortDir = sortDir,
   ) => {
     setLoading(true);
     setError(null);
@@ -83,7 +83,7 @@ export default function ChequePage() {
       if (currentFilters.accnumber.trim()) params.set("accnumber", currentFilters.accnumber.trim());
       if (currentFilters.paydate.trim()) params.set("paydate", currentFilters.paydate.trim());
       if (currentSortBy) params.set("sortBy", currentSortBy);
-      params.set("sortDir", sortDir);
+      params.set("sortDir", currentSortDir);
 
       const res = await fetch(`/api/cheques?${params.toString()}`, {
         cache: "no-store",
@@ -108,7 +108,7 @@ export default function ChequePage() {
   useEffect(() => {
     const handle = setTimeout(() => {
       setPage(1);
-      void fetchData(1, filters, sortBy);
+      void fetchData(1, filters, sortBy, sortDir);
     }, 250);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,9 +116,9 @@ export default function ChequePage() {
 
   useEffect(() => {
     setPage(1);
-    void fetchData(1, filters, sortBy);
+    void fetchData(1, filters, sortBy, sortDir);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy]);
+  }, [sortBy, sortDir]);
 
   const displayRange = useMemo(() => {
     if (!data) return "0-0";
@@ -159,7 +159,14 @@ export default function ChequePage() {
   };
 
   const applySort = (field: "CHEQUE" | "CHEQUENAME" | "ACCNUMBER" | "PAYDATE") => {
-    setSortBy(field);
+    setSortBy((prev) => {
+      if (prev === field) {
+        setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
+        return prev;
+      }
+      setSortDir("asc");
+      return field;
+    });
   };
 
   const loadChequeOptions = async (query: string) => {
@@ -335,7 +342,7 @@ export default function ChequePage() {
                       onClick={() => applySort("CHEQUE")}
                     >
                       เลขที่เช็ค
-                      {sortBy === "CHEQUE" && <span className={styles.sortLabel}>ASC</span>}
+                      {sortBy === "CHEQUE" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
@@ -345,7 +352,7 @@ export default function ChequePage() {
                       onClick={() => applySort("CHEQUENAME")}
                     >
                       ชื่อเช็ค
-                      {sortBy === "CHEQUENAME" && <span className={styles.sortLabel}>ASC</span>}
+                      {sortBy === "CHEQUENAME" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
@@ -355,7 +362,7 @@ export default function ChequePage() {
                       onClick={() => applySort("ACCNUMBER")}
                     >
                       เลขบัญชี
-                      {sortBy === "ACCNUMBER" && <span className={styles.sortLabel}>ASC</span>}
+                      {sortBy === "ACCNUMBER" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
@@ -365,7 +372,7 @@ export default function ChequePage() {
                       onClick={() => applySort("PAYDATE")}
                     >
                       วันที่จ่าย
-                      {sortBy === "PAYDATE" && <span className={styles.sortLabel}>ASC</span>}
+                      {sortBy === "PAYDATE" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>อัปเดตล่าสุด</th>
