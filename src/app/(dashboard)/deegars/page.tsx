@@ -70,6 +70,8 @@ export default function DeegarPage() {
   const [chequeQuery, setChequeQuery] = useState("");
   const [pnumberOptions, setPnumberOptions] = useState<string[]>([]);
   const [pnumberQuery, setPnumberQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"PNUMBER" | "NODEEGAR" | "ACCNUMBER" | "ACCNAME" | "CHEQUE">("PNUMBER");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const modalOpen = modalMode !== null;
   const isEditMode = modalMode === "edit";
 
@@ -78,6 +80,8 @@ export default function DeegarPage() {
   const fetchData = async (
     targetPage: number,
     currentFilters: typeof filters = filters,
+    currentSortBy: typeof sortBy = sortBy,
+    currentSortDir: typeof sortDir = sortDir,
   ) => {
     setLoading(true);
     setError(null);
@@ -95,6 +99,8 @@ export default function DeegarPage() {
       if (currentFilters.tax.trim()) params.set("tax", currentFilters.tax.trim());
       if (currentFilters.pay.trim()) params.set("pay", currentFilters.pay.trim());
       if (currentFilters.money.trim()) params.set("money", currentFilters.money.trim());
+      if (currentSortBy) params.set("sortBy", currentSortBy);
+      params.set("sortDir", currentSortDir);
 
       const res = await fetch(`/api/deegars?${params.toString()}`, {
         cache: "no-store",
@@ -119,11 +125,17 @@ export default function DeegarPage() {
   useEffect(() => {
     const handle = setTimeout(() => {
       setPage(1);
-      void fetchData(1, filters);
+      void fetchData(1, filters, sortBy, sortDir);
     }, 250);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+
+  useEffect(() => {
+    setPage(1);
+    void fetchData(1, filters, sortBy, sortDir);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy, sortDir]);
 
   const loadChequeOptions = async (query: string) => {
     try {
@@ -246,6 +258,17 @@ export default function DeegarPage() {
     const value = e.target.value;
     setCreateForm((prev) => ({ ...prev, cheque: value }));
     setChequeQuery(value);
+  };
+
+  const applySort = (field: "PNUMBER" | "NODEEGAR" | "ACCNUMBER" | "ACCNAME" | "CHEQUE") => {
+    setSortBy((prev) => {
+      if (prev === field) {
+        setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
+        return prev;
+      }
+      setSortDir("asc");
+      return field;
+    });
   };
 
   const openCreate = () => {
@@ -399,14 +422,59 @@ export default function DeegarPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Pnumber</th>
-                  <th>Nodeegar</th>
-                  <th>เลขบัญชี</th>
-                  <th>ชื่อบัญชี</th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "PNUMBER" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("PNUMBER")}
+                    >
+                      Pnumber
+                      {sortBy === "PNUMBER" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "NODEEGAR" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("NODEEGAR")}
+                    >
+                      Nodeegar
+                      {sortBy === "NODEEGAR" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "ACCNUMBER" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("ACCNUMBER")}
+                    >
+                      เลขบัญชี
+                      {sortBy === "ACCNUMBER" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "ACCNAME" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("ACCNAME")}
+                    >
+                      ชื่อบัญชี
+                      {sortBy === "ACCNAME" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
                   <th>ภาษี</th>
                   <th>ค่าปรับ</th>
                   <th>Money</th>
-                  <th>เลขที่เช็ค</th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "CHEQUE" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("CHEQUE")}
+                    >
+                      เลขที่เช็ค
+                      {sortBy === "CHEQUE" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
                   <th>เครื่องมือ</th>
                 </tr>
                 <tr className={styles.filterRow}>
