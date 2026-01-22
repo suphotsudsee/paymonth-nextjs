@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
     const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 10)));
     const offset = (page - 1) * pageSize;
     const recent = searchParams.get("recent") === "1";
+    const sortByParam = searchParams.get("sortBy");
+    const sortDirParam = searchParams.get("sortDir")?.toLowerCase();
 
     const filters: string[] = [];
     const params: any[] = [];
@@ -41,7 +43,15 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-    const orderBy = recent ? "DUPDATE DESC" : "CHEQUE";
+    const sortFieldMap: Record<string, string> = {
+      CHEQUE: "cheque.CHEQUE",
+      CHEQUENAME: "cheque.CHEQUENAME",
+      ACCNUMBER: "cheque.ACCNUMBER",
+      PAYDATE: "cheque.PAYDATE",
+    };
+    const sortField = sortByParam ? sortFieldMap[sortByParam] : undefined;
+    const sortDir = sortDirParam === "desc" ? "DESC" : "ASC";
+    const orderBy = sortField ? `${sortField} ${sortDir}` : recent ? "cheque.DUPDATE DESC" : "cheque.CHEQUE ASC";
     const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT CHEQUE, CHEQUENAME, ACCNUMBER, PAYDATE, DUPDATE

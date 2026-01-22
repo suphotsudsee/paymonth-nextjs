@@ -58,14 +58,17 @@ export default function ChequePage() {
     accnumber: "",
     paydate: "",
   });
+  const [sortBy, setSortBy] = useState<"CHEQUE" | "CHEQUENAME" | "ACCNUMBER" | "PAYDATE">("CHEQUE");
   const [chequeOptions, setChequeOptions] = useState<string[]>([]);
   const [chequeQuery, setChequeQuery] = useState("");
 
   const pageSize = 10;
+  const sortDir = "asc";
 
   const fetchData = async (
     targetPage: number,
     currentFilters: typeof filters = filters,
+    currentSortBy: typeof sortBy = sortBy,
   ) => {
     setLoading(true);
     setError(null);
@@ -79,6 +82,8 @@ export default function ChequePage() {
       if (currentFilters.chequename.trim()) params.set("chequename", currentFilters.chequename.trim());
       if (currentFilters.accnumber.trim()) params.set("accnumber", currentFilters.accnumber.trim());
       if (currentFilters.paydate.trim()) params.set("paydate", currentFilters.paydate.trim());
+      if (currentSortBy) params.set("sortBy", currentSortBy);
+      params.set("sortDir", sortDir);
 
       const res = await fetch(`/api/cheques?${params.toString()}`, {
         cache: "no-store",
@@ -103,11 +108,17 @@ export default function ChequePage() {
   useEffect(() => {
     const handle = setTimeout(() => {
       setPage(1);
-      void fetchData(1, filters);
+      void fetchData(1, filters, sortBy);
     }, 250);
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+
+  useEffect(() => {
+    setPage(1);
+    void fetchData(1, filters, sortBy);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy]);
 
   const displayRange = useMemo(() => {
     if (!data) return "0-0";
@@ -145,6 +156,10 @@ export default function ChequePage() {
     const value = e.target.value;
     setCreateForm((prev) => ({ ...prev, cheque: value }));
     setChequeQuery(value);
+  };
+
+  const applySort = (field: "CHEQUE" | "CHEQUENAME" | "ACCNUMBER" | "PAYDATE") => {
+    setSortBy(field);
   };
 
   const loadChequeOptions = async (query: string) => {
@@ -313,10 +328,46 @@ export default function ChequePage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>เลขที่เช็ค</th>
-                  <th>ชื่อเช็ค</th>
-                  <th>เลขบัญชี</th>
-                  <th>วันที่จ่าย</th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "CHEQUE" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("CHEQUE")}
+                    >
+                      เลขที่เช็ค
+                      {sortBy === "CHEQUE" && <span className={styles.sortLabel}>ASC</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "CHEQUENAME" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("CHEQUENAME")}
+                    >
+                      ชื่อเช็ค
+                      {sortBy === "CHEQUENAME" && <span className={styles.sortLabel}>ASC</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "ACCNUMBER" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("ACCNUMBER")}
+                    >
+                      เลขบัญชี
+                      {sortBy === "ACCNUMBER" && <span className={styles.sortLabel}>ASC</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "PAYDATE" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("PAYDATE")}
+                    >
+                      วันที่จ่าย
+                      {sortBy === "PAYDATE" && <span className={styles.sortLabel}>ASC</span>}
+                    </button>
+                  </th>
                   <th>อัปเดตล่าสุด</th>
                   <th>เครื่องมือ</th>
                 </tr>
