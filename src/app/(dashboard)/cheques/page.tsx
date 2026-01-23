@@ -31,6 +31,7 @@ type ApiResult = {
 };
 
 const CHEQUE_MAX_LENGTH = 11;
+const CHEQUE_MIN_LENGTH = 5;
 const BANGKOK_TIMEZONE = "Asia/Bangkok";
 
 export default function ChequePage() {
@@ -522,7 +523,7 @@ export default function ChequePage() {
                   <input
                     className={styles.input}
                     maxLength={CHEQUE_MAX_LENGTH}
-                    minLength={CHEQUE_MAX_LENGTH}
+                    minLength={CHEQUE_MIN_LENGTH}
                     required
                     list="chequeOptions"
                     value={createForm.cheque}
