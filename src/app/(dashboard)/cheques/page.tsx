@@ -246,8 +246,8 @@ export default function ChequePage() {
   const submitForm = async () => {
     if (!modalMode) return;
     const trimmedCheque = createForm.cheque.trim();
-    if (trimmedCheque.length !== CHEQUE_MAX_LENGTH) {
-      setFormError(`Cheque must be ${CHEQUE_MAX_LENGTH} characters.`);
+    if (trimmedCheque.length < CHEQUE_MIN_LENGTH || trimmedCheque.length > CHEQUE_MAX_LENGTH) {
+      setFormError(`Cheque must be between ${CHEQUE_MIN_LENGTH} and ${CHEQUE_MAX_LENGTH} characters.`);
       return;
     }
     setFormSaving(true);
