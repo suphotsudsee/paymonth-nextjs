@@ -40,6 +40,7 @@ type ApiResult = {
 };
 
 const PNUMBER_MAX_LENGTH = 10;
+const BANGKOK_TIMEZONE = "Asia/Bangkok";
 
 export default function RegisdeegarsListPage() {
   const [data, setData] = useState<ApiResult | null>(null);
@@ -339,7 +340,12 @@ export default function RegisdeegarsListPage() {
     if (!value) return "-";
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit" });
+    return d.toLocaleDateString("en-GB", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: BANGKOK_TIMEZONE,
+    });
   };
 
   return (

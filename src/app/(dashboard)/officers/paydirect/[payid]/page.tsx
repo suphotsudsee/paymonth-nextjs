@@ -6,6 +6,8 @@ import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
 
+const BANGKOK_TIMEZONE = "Asia/Bangkok";
+
 type PaydirectDetail = {
   ID: bigint | number;
   A: string | null; // ปี (พ.ศ.)
@@ -147,6 +149,7 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: BANGKOK_TIMEZONE,
   });
 
   const monthLabel = detail.NAMEMONTH_TH ?? "-";

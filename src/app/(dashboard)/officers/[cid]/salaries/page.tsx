@@ -7,6 +7,8 @@ import styles from "../../../deegars/page.module.css";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
 
+const BANGKOK_TIMEZONE = "Asia/Bangkok";
+
 type SalaryRow = {
   ID: number;
   CID: string;
@@ -158,9 +160,16 @@ export default function OfficerSalariesPage() {
 
   const getDefaultMonthYear = () => {
     const now = new Date();
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: BANGKOK_TIMEZONE,
+      year: "numeric",
+      month: "2-digit",
+    }).formatToParts(now);
+    const month = parts.find((part) => part.type === "month")?.value ?? String(now.getMonth() + 1).padStart(2, "0");
+    const year = parts.find((part) => part.type === "year")?.value ?? String(now.getFullYear());
     return {
-      month: String(now.getMonth() + 1).padStart(2, "0"),
-      yearThai: String(now.getFullYear() + 543),
+      month,
+      yearThai: String(Number(year) + 543),
     };
   };
 
@@ -360,6 +369,7 @@ export default function OfficerSalariesPage() {
     return d.toLocaleString("th-TH", {
       dateStyle: "medium",
       timeStyle: "short",
+      timeZone: BANGKOK_TIMEZONE,
     });
   };
 

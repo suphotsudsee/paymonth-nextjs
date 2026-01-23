@@ -31,6 +31,7 @@ type ApiResult = {
 };
 
 const CHEQUE_MAX_LENGTH = 11;
+const BANGKOK_TIMEZONE = "Asia/Bangkok";
 
 export default function ChequePage() {
   const [data, setData] = useState<ApiResult | null>(null);
@@ -313,7 +314,12 @@ export default function ChequePage() {
     if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleDateString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit" });
+    return date.toLocaleDateString("en-GB", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: BANGKOK_TIMEZONE,
+    });
   };
 
   return (
