@@ -327,11 +327,16 @@ export default function DeegarPage() {
 
   const submitCreate = async () => {
     if (!modalMode) return;
+    const trimmedPnumber = createForm.pnumber.trim();
+    if (trimmedPnumber.length !== PNUMBER_MAX_LENGTH) {
+      setFormError(`Pnumber must be ${PNUMBER_MAX_LENGTH} characters.`);
+      return;
+    }
     setFormSaving(true);
     setFormError(null);
     try {
       const payload = {
-        pnumber: createForm.pnumber.trim(),
+        pnumber: trimmedPnumber,
         nodeegar: createForm.nodeegar.trim() || "1",
         accnumber: createForm.accnumber.trim(),
         accname: createForm.accname.trim(),
@@ -680,6 +685,8 @@ export default function DeegarPage() {
                   <input
                     className={styles.input}
                     maxLength={PNUMBER_MAX_LENGTH}
+                    minLength={PNUMBER_MAX_LENGTH}
+                    required
                     value={createForm.pnumber}
                     list="pnumberOptions"
                     onChange={onPnumberCreateChange}
