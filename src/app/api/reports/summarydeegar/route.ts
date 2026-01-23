@@ -28,6 +28,8 @@ export async function GET(req: NextRequest) {
     const cheque = searchParams.get('cheque')?.trim();
     const normalizedCheque = cheque ? cheque.replace(/\s+/g, '') : '';
     const accname = searchParams.get('accname')?.trim();
+    const sortByParam = searchParams.get('sortBy');
+    const sortDirParam = searchParams.get('sortDir')?.toLowerCase();
 
     const filters: string[] = ["s.PNUMBER <> 'p000000000'", "d.PNUMBER <> 'p000000000'"];
     const params: any[] = [];
@@ -58,6 +60,17 @@ export async function GET(req: NextRequest) {
     }
 
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+    const sortFieldMap: Record<string, string> = {
+      PNUMBER: 'PNUMBER',
+      NODEEGAR: 'NODEEGAR',
+      DUPDATE: 'DUPDATE',
+      CHEQUE: 'CHEQUE',
+      PAYDATE: 'PAYDATE',
+      ACCNAME: 'ACCNAME',
+    };
+    const sortField = sortByParam ? sortFieldMap[sortByParam] : undefined;
+    const sortDir = sortDirParam === 'desc' ? 'DESC' : 'ASC';
+    const orderBy = sortField ? `${sortField} ${sortDir}` : 'PNUMBER DESC, NODEEGAR DESC';
 
     // Paginate inside the DB at the grouped level to avoid fetching all rows.
     const rows = (await prisma.$queryRawUnsafe(
@@ -87,7 +100,7 @@ export async function GET(req: NextRequest) {
             LEFT JOIN cheque ON TRIM(d.CHEQUE) = cheque.CHEQUE
           ${whereClause}
           GROUP BY d.PNUMBER, d.NODEEGAR
-          ORDER BY d.PNUMBER DESC, d.NODEEGAR DESC
+          ORDER BY ${orderBy}
           LIMIT ? OFFSET ?
         ) AS agg
       `,

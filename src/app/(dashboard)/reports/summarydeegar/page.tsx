@@ -54,6 +54,10 @@ export default function SummaryDeegarPage() {
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'PNUMBER' | 'NODEEGAR' | 'DUPDATE' | 'CHEQUE' | 'PAYDATE' | 'ACCNAME'>(
+    'PNUMBER',
+  );
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [filters, setFilters] = useState({
     pnumber: '',
     cheque: '',
@@ -68,6 +72,8 @@ export default function SummaryDeegarPage() {
     targetPage: number,
     targetSize: number = pageSize,
     currentFilters: typeof filters = filters,
+    currentSortBy: typeof sortBy = sortBy,
+    currentSortDir: typeof sortDir = sortDir,
   ) => {
     setLoading(true);
     setError(null);
@@ -79,6 +85,8 @@ export default function SummaryDeegarPage() {
       if (currentFilters.pnumber.trim()) params.set('pnumber', currentFilters.pnumber.trim());
       if (currentFilters.cheque.trim()) params.set('cheque', currentFilters.cheque.trim());
       if (currentFilters.accname.trim()) params.set('accname', currentFilters.accname.trim());
+      if (currentSortBy) params.set('sortBy', currentSortBy);
+      params.set('sortDir', currentSortDir);
       const res = await fetch(`/api/reports/summarydeegar?${params.toString()}`, {
         cache: 'no-store',
         credentials: 'include',
@@ -98,9 +106,9 @@ export default function SummaryDeegarPage() {
   };
 
   useEffect(() => {
-    void fetchData(1, pageSize);
+    void fetchData(1, pageSize, filters, sortBy, sortDir);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [sortBy, sortDir]);
 
   const displayRange = useMemo(() => {
     if (!data || data.total === 0) return '0-0';
@@ -222,14 +230,25 @@ export default function SummaryDeegarPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    void fetchData(1, pageSize);
+    void fetchData(1, pageSize, filters, sortBy, sortDir);
   };
 
   const handleReset = () => {
     const cleared = { pnumber: '', cheque: '', accname: '' };
     setFilters(cleared);
     setPage(1);
-    void fetchData(1, pageSize, cleared);
+    void fetchData(1, pageSize, cleared, sortBy, sortDir);
+  };
+
+  const applySort = (field: typeof sortBy) => {
+    setSortBy((prev) => {
+      if (prev === field) {
+        setSortDir((prevDir) => (prevDir === 'asc' ? 'desc' : 'asc'));
+        return prev;
+      }
+      setSortDir('asc');
+      return field;
+    });
   };
 
   return (
@@ -327,12 +346,66 @@ export default function SummaryDeegarPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>PNUMBER</th>
-                  <th>NODEEGAR</th>
-                  <th>DUPDATE</th>
-                  <th>CHEQUE</th>
-                  <th>PAYDATE</th>
-                  <th>ACCNAME</th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === 'PNUMBER' ? styles.sortActive : ''}`}
+                      onClick={() => applySort('PNUMBER')}
+                    >
+                      PNUMBER
+                      {sortBy === 'PNUMBER' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === 'NODEEGAR' ? styles.sortActive : ''}`}
+                      onClick={() => applySort('NODEEGAR')}
+                    >
+                      NODEEGAR
+                      {sortBy === 'NODEEGAR' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === 'DUPDATE' ? styles.sortActive : ''}`}
+                      onClick={() => applySort('DUPDATE')}
+                    >
+                      DUPDATE
+                      {sortBy === 'DUPDATE' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === 'CHEQUE' ? styles.sortActive : ''}`}
+                      onClick={() => applySort('CHEQUE')}
+                    >
+                      CHEQUE
+                      {sortBy === 'CHEQUE' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === 'PAYDATE' ? styles.sortActive : ''}`}
+                      onClick={() => applySort('PAYDATE')}
+                    >
+                      PAYDATE
+                      {sortBy === 'PAYDATE' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === 'ACCNAME' ? styles.sortActive : ''}`}
+                      onClick={() => applySort('ACCNAME')}
+                    >
+                      ACCNAME
+                      {sortBy === 'ACCNAME' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
                   <th>รับมา</th>
                   <th>จ่ายไป</th>
                   <th>คงเหลือ</th>

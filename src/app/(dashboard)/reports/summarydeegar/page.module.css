@@ -175,6 +175,37 @@
   border: 1px solid #d1d9e6;
 }
 
+.sortBtn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sortBtn:hover {
+  text-decoration: underline;
+}
+
+.sortActive {
+  text-decoration: underline;
+}
+
+.sortLabel {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #0a5cb5;
+  color: #ffffff;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+}
+
 .table td {
   padding: 8px 10px;
   border: 1px solid #e3e8f1;
