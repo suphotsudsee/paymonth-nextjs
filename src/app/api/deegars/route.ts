@@ -90,6 +90,9 @@ export async function GET(req: NextRequest) {
       NODEEGAR: "deegar.NODEEGAR",
       ACCNUMBER: "deegar.ACCNUMBER",
       ACCNAME: "deegar.ACCNAME",
+      TAX: "deegar.TAX",
+      PAY: "deegar.FEE",
+      MONEY: "deegar.MONEY",
       PAYDATE: "cheque.PAYDATE",
       CHEQUE: "deegar.CHEQUE",
     };

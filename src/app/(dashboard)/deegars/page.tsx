@@ -73,7 +73,7 @@ export default function DeegarPage() {
   const [pnumberOptions, setPnumberOptions] = useState<string[]>([]);
   const [pnumberQuery, setPnumberQuery] = useState("");
   const [sortBy, setSortBy] = useState<
-    "PNUMBER" | "NODEEGAR" | "ACCNUMBER" | "ACCNAME" | "PAYDATE" | "CHEQUE"
+    "PNUMBER" | "NODEEGAR" | "ACCNUMBER" | "ACCNAME" | "TAX" | "PAY" | "MONEY" | "PAYDATE" | "CHEQUE"
   >("PNUMBER");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const modalOpen = modalMode !== null;
@@ -265,7 +265,9 @@ export default function DeegarPage() {
     setChequeQuery(value);
   };
 
-  const applySort = (field: "PNUMBER" | "NODEEGAR" | "ACCNUMBER" | "ACCNAME" | "PAYDATE" | "CHEQUE") => {
+  const applySort = (
+    field: "PNUMBER" | "NODEEGAR" | "ACCNUMBER" | "ACCNAME" | "TAX" | "PAY" | "MONEY" | "PAYDATE" | "CHEQUE",
+  ) => {
     setSortBy((prev) => {
       if (prev === field) {
         setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
@@ -479,9 +481,36 @@ export default function DeegarPage() {
                       {sortBy === "ACCNAME" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
-                  <th>ภาษี</th>
-                  <th>ค่าปรับ</th>
-                  <th>Money</th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "TAX" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("TAX")}
+                    >
+                      ภาษี
+                      {sortBy === "TAX" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "PAY" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("PAY")}
+                    >
+                      ค่าปรับ
+                      {sortBy === "PAY" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      className={`${styles.sortBtn} ${sortBy === "MONEY" ? styles.sortActive : ""}`}
+                      onClick={() => applySort("MONEY")}
+                    >
+                      Money
+                      {sortBy === "MONEY" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                    </button>
+                  </th>
                   <th>
                     <button
                       type="button"
