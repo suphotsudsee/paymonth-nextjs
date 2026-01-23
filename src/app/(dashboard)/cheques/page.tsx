@@ -243,11 +243,16 @@ export default function ChequePage() {
 
   const submitForm = async () => {
     if (!modalMode) return;
+    const trimmedCheque = createForm.cheque.trim();
+    if (trimmedCheque.length !== CHEQUE_MAX_LENGTH) {
+      setFormError(`Cheque must be ${CHEQUE_MAX_LENGTH} characters.`);
+      return;
+    }
     setFormSaving(true);
     setFormError(null);
     try {
       const payload = {
-        cheque: createForm.cheque.trim(),
+        cheque: trimmedCheque,
         chequename: createForm.chequename.trim(),
         accnumber: createForm.accnumber.trim(),
         paydate: createForm.paydate.trim() || null,
@@ -511,6 +516,8 @@ export default function ChequePage() {
                   <input
                     className={styles.input}
                     maxLength={CHEQUE_MAX_LENGTH}
+                    minLength={CHEQUE_MAX_LENGTH}
+                    required
                     list="chequeOptions"
                     value={createForm.cheque}
                     onChange={onChequeCreateChange}
