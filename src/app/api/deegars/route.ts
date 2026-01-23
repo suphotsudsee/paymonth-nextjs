@@ -5,7 +5,7 @@ import { verifySession } from "@/lib/auth";
 const PNUMBER_MAX_LENGTH = 10;
 
 // GET /api/deegars
-// Supports optional filters: pnumber, nodeegar, accnumber, accname, cheque
+// Supports optional filters: pnumber, nodeegar, accnumber, accname, cheque, paydate
 // Pagination: page, pageSize
 export async function GET(req: NextRequest) {
   try {
@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
     const accnumber = searchParams.get("accnumber")?.trim() || undefined;
     const accname = searchParams.get("accname")?.trim() || undefined;
     const cheque = searchParams.get("cheque")?.trim() || undefined;
+    const paydate = searchParams.get("paydate")?.trim() || undefined;
     const tax = searchParams.get("tax")?.trim();
     const pay = searchParams.get("pay")?.trim();
     const money = searchParams.get("money")?.trim();
@@ -60,6 +61,10 @@ export async function GET(req: NextRequest) {
       filters.push("deegar.CHEQUE LIKE ?");
       params.push(`%${cheque}%`);
     }
+    if (paydate) {
+      filters.push("cheque.PAYDATE = ?");
+      params.push(paydate);
+    }
     if (tax && !Number.isNaN(Number(tax))) {
       filters.push("deegar.TAX = ?");
       params.push(Number(tax));
@@ -85,6 +90,7 @@ export async function GET(req: NextRequest) {
       NODEEGAR: "deegar.NODEEGAR",
       ACCNUMBER: "deegar.ACCNUMBER",
       ACCNAME: "deegar.ACCNAME",
+      PAYDATE: "cheque.PAYDATE",
       CHEQUE: "deegar.CHEQUE",
     };
     const sortField = sortByParam ? sortFieldMap[sortByParam] : undefined;
@@ -104,8 +110,10 @@ export async function GET(req: NextRequest) {
           deegar.TAX,
           deegar.FEE AS PAY,
           deegar.MONEY,
-          deegar.CHEQUE
+          deegar.CHEQUE,
+          cheque.PAYDATE
         FROM deegar
+        LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
         ${whereClause}
         ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
@@ -122,6 +130,7 @@ export async function GET(req: NextRequest) {
       PAY: number | null;
       MONEY: number | null;
       CHEQUE: string | null;
+      PAYDATE: Date | null;
     }[];
 
     const countRows = (await prisma.$queryRawUnsafe(

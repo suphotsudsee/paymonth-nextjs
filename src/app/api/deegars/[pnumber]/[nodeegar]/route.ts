@@ -23,8 +23,18 @@ export async function GET(
 
     const rows = (await prisma.$queryRawUnsafe(
       `
-        SELECT ID, PNUMBER, NODEEGAR, ACCNUMBER, ACCNAME, TAX, FEE AS PAY, MONEY, CHEQUE
+        SELECT deegar.ID,
+          deegar.PNUMBER,
+          deegar.NODEEGAR,
+          deegar.ACCNUMBER,
+          deegar.ACCNAME,
+          deegar.TAX,
+          deegar.FEE AS PAY,
+          deegar.MONEY,
+          deegar.CHEQUE,
+          cheque.PAYDATE
         FROM deegar
+        LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
         WHERE PNUMBER = ? AND NODEEGAR = ?
         LIMIT 1
       `,
@@ -40,6 +50,7 @@ export async function GET(
       PAY: any;
       MONEY: any;
       CHEQUE: string | null;
+      PAYDATE: Date | null;
     }[];
 
     if (!rows.length) {
@@ -59,6 +70,7 @@ export async function GET(
       PAY: toNumber(item.PAY),
       MONEY: toNumber(item.MONEY),
       CHEQUE: item.CHEQUE,
+      PAYDATE: item.PAYDATE ? item.PAYDATE.toISOString().slice(0, 10) : null,
     };
 
     return NextResponse.json({ item: serialized });
