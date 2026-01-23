@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -113,14 +113,14 @@ export default function DeegarPage() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error || "เนเธซเธฅเธ”เธเนเธญเธกเธนเธฅเนเธกเนเธชเธณเน€เธฃเนเธ");
+        setError(json.error || "โหลดข้อมูลไม่สำเร็จ");
         setData(null);
       } else {
         setData(json);
         setPage(targetPage);
       }
     } catch (err) {
-      setError("เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เน€เธเธทเนเธญเธกเธ•เนเธญเน€เธเธดเธฃเนเธเน€เธงเธญเธฃเนเนเธ”เน");
+      setError("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้");
       setData(null);
     } finally {
       setLoading(false);
@@ -304,7 +304,7 @@ export default function DeegarPage() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setFormError(json.error || "เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เนเธซเธฅเธ”เธเนเธญเธกเธนเธฅเธ—เธฐเน€เธเธตเธขเธเธเธตเธเธฒเนเธ”เน");
+        setFormError(json.error || "ไม่สามารถโหลดข้อมูลทะเบียนฎีกาได้");
       } else {
         const item = json.item as DeegarDetail;
         setCreateForm({
@@ -319,7 +319,7 @@ export default function DeegarPage() {
         });
       }
     } catch (err) {
-      setFormError("เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”เนเธเธเธฒเธฃเนเธซเธฅเธ”เธเนเธญเธกเธนเธฅ");
+      setFormError("เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
       setModalLoading(false);
     }
@@ -355,7 +355,7 @@ export default function DeegarPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setFormError(json.error || "เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เธเธฑเธเธ—เธถเธเธ—เธฐเน€เธเธตเธขเธเธเธตเธเธฒเนเธ”เน");
+        setFormError(json.error || "ไม่สามารถบันทึกทะเบียนฎีกาได้");
       } else {
         setModalMode(null);
         setCreateForm({
@@ -371,7 +371,7 @@ export default function DeegarPage() {
         await fetchData(1, filters);
       }
     } catch (err) {
-      setFormError("เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”เนเธเธเธฒเธฃเธเธฑเธเธ—เธถเธ");
+      setFormError("เกิดข้อผิดพลาดในการบันทึก");
     } finally {
       setFormSaving(false);
     }
@@ -389,12 +389,12 @@ export default function DeegarPage() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setDetailError(json.error || "เนเธกเนเธชเธฒเธกเธฒเธฃเธ–เนเธซเธฅเธ”เธเนเธญเธกเธนเธฅเธ—เธฐเน€เธเธตเธขเธเธเธตเธเธฒเนเธ”เน");
+        setDetailError(json.error || "ไม่สามารถโหลดข้อมูลทะเบียนฎีกาได้");
       } else {
         setDetail(json.item);
       }
     } catch (err) {
-      setDetailError("เน€เธเธดเธ”เธเนเธญเธเธดเธ”เธเธฅเธฒเธ”เนเธเธเธฒเธฃเนเธซเธฅเธ”เธเนเธญเธกเธนเธฅ");
+      setDetailError("เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
       setDetailLoading(false);
     }
@@ -417,13 +417,13 @@ export default function DeegarPage() {
       <main className={styles.main}>
         <section className={styles.tableCard}>
           <div className={styles.tableHeadRow}>
-            <span>เธ—เธฐเน€เธเธตเธขเธเธเธตเธเธฒ</span>
+            <span>ทะเบียนฏีกา</span>
             <div className={styles.tableHeadActions}>
               <span className={styles.resultText}>
-                เนเธชเธ”เธ {displayRange} เธเธฒเธเธ—เธฑเนเธเธซเธกเธ” {data?.total ?? 0} เธฃเธฒเธขเธเธฒเธฃ
+                แสดง {displayRange} จากทั้งหมด {data?.total ?? 0} รายการ
               </span>
               <button type="button" className={styles.createBtn} onClick={openCreate}>
-                + เน€เธเธดเนเธกเธ—เธฐเน€เธเธตเธขเธเธเธตเธเธฒ
+                + เพิ่มทะเบียนฎีกา
               </button>
             </div>
           </div>
@@ -460,7 +460,7 @@ export default function DeegarPage() {
                       className={`${styles.sortBtn} ${sortBy === "ACCNUMBER" ? styles.sortActive : ""}`}
                       onClick={() => applySort("ACCNUMBER")}
                     >
-                      เน€เธฅเธเธเธฑเธเธเธต
+                      เลขบัญชี
                       {sortBy === "ACCNUMBER" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
@@ -470,12 +470,12 @@ export default function DeegarPage() {
                       className={`${styles.sortBtn} ${sortBy === "ACCNAME" ? styles.sortActive : ""}`}
                       onClick={() => applySort("ACCNAME")}
                     >
-                      เธเธทเนเธญเธเธฑเธเธเธต
+                      ชื่อบัญชี
                       {sortBy === "ACCNAME" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
-                  <th>เธ เธฒเธฉเธต</th>
-                  <th>เธเนเธฒเธเธฃเธฑเธ</th>
+                  <th>ภาษี</th>
+                  <th>ค่าปรับ</th>
                   <th>Money</th>
                   <th>
                     <button
@@ -493,17 +493,17 @@ export default function DeegarPage() {
                       className={`${styles.sortBtn} ${sortBy === "CHEQUE" ? styles.sortActive : ""}`}
                       onClick={() => applySort("CHEQUE")}
                     >
-                      เน€เธฅเธเธ—เธตเนเน€เธเนเธ
+                      เลขที่เช็ค
                       {sortBy === "CHEQUE" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
-                  <th>เน€เธเธฃเธทเนเธญเธเธกเธทเธญ</th>
+                  <th>เครื่องมือ</th>
                 </tr>
                 <tr className={styles.filterRow}>
                   <th>
                     <input
                       className={styles.filterInput}
-                      placeholder="เธเนเธเธซเธฒ Pnumber"
+                      placeholder="ค้นหา Pnumber"
                       maxLength={PNUMBER_MAX_LENGTH}
                       value={filters.pnumber}
                       list="pnumberOptions"
@@ -516,7 +516,7 @@ export default function DeegarPage() {
                   <th>
                     <input
                       className={styles.filterInput}
-                      placeholder="เธเนเธเธซเธฒ Nodeegar"
+                      placeholder="ค้นหา Nodeegar"
                       value={filters.nodeegar}
                       onChange={onFilterChange("nodeegar")}
                     />
@@ -524,7 +524,7 @@ export default function DeegarPage() {
                   <th>
                     <input
                       className={styles.filterInput}
-                      placeholder="เน€เธฅเธเธเธฑเธเธเธต"
+                      placeholder="เลขบัญชี"
                       value={filters.accnumber}
                       onChange={onFilterChange("accnumber")}
                     />
@@ -532,7 +532,7 @@ export default function DeegarPage() {
                   <th>
                     <input
                       className={styles.filterInput}
-                      placeholder="เธเธทเนเธญเธเธฑเธเธเธต"
+                      placeholder="ชื่อบัญชี"
                       value={filters.accname}
                       onChange={onFilterChange("accname")}
                     />
@@ -540,7 +540,7 @@ export default function DeegarPage() {
                   <th>
                     <input
                       className={styles.filterInput}
-                      placeholder="เธ เธฒเธฉเธต"
+                      placeholder="ภาษี"
                       value={filters.tax}
                       onChange={onFilterChange("tax")}
                     />
@@ -548,7 +548,7 @@ export default function DeegarPage() {
                   <th>
                     <input
                       className={styles.filterInput}
-                      placeholder="เธเนเธฒเธเธฃเธฑเธ"
+                      placeholder="ค่าปรับ"
                       value={filters.pay}
                       onChange={onFilterChange("pay")}
                     />
@@ -556,7 +556,7 @@ export default function DeegarPage() {
                   <th>
                     <input
                       className={styles.filterInput}
-                      placeholder="เธขเธญเธ”เน€เธเธดเธ"
+                      placeholder="ยอดเงิน"
                       value={filters.money}
                       onChange={onFilterChange("money")}
                     />
@@ -572,7 +572,7 @@ export default function DeegarPage() {
                   <th>
                     <input
                       className={styles.filterInput}
-                      placeholder="เน€เธฅเธเธ—เธตเนเน€เธเนเธ"
+                      placeholder="เลขที่เช็ค"
                       maxLength={CHEQUE_MAX_LENGTH}
                       list="chequeOptions"
                       value={filters.cheque}
@@ -600,19 +600,19 @@ export default function DeegarPage() {
                     <td className={styles.actionsCell}>
                       <button
                         className={styles.iconBtn}
-                        title="เธ”เธนเธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”"
+                        title="ดูรายละเอียด"
                         type="button"
                         onClick={() => openDetail(row)}
                       >
-                        ๐”
+                        🔍
                       </button>
                       <button
                         className={styles.iconBtn}
-                        title="เนเธเนเนเธ"
+                        title="แก้ไข"
                         type="button"
                         onClick={() => openEdit(row)}
                       >
-                        โ๏ธ
+                        ✏️
                       </button>
                     </td>
                   </tr>
@@ -620,7 +620,7 @@ export default function DeegarPage() {
                 {!data?.items?.length && (
                   <tr>
                     <td colSpan={10} className={styles.emptyState}>
-                      {loading ? "เธเธณเธฅเธฑเธเนเธซเธฅเธ”..." : "เนเธกเนเธเธเธเนเธญเธกเธนเธฅ"}
+                      {loading ? "กำลังโหลด..." : "ไม่พบข้อมูล"}
                     </td>
                   </tr>
                 )}
@@ -635,7 +635,7 @@ export default function DeegarPage() {
                 onClick={() => fetchData(Math.max(page - 1, 1))}
                 disabled={page === 1 || loading}
               >
-                &lt; เธเนเธญเธเธซเธเนเธฒ
+                &lt; ก่อนหน้า
               </button>
               {pageWindow.map((p) => (
                 <button
@@ -652,7 +652,7 @@ export default function DeegarPage() {
                 onClick={() => fetchData(Math.min(page + 1, data.totalPages))}
                 disabled={page === data.totalPages || loading}
               >
-                เธ–เธฑเธ”เนเธ &gt;
+                ถัดไป &gt;
               </button>
             </div>
           )}
@@ -667,12 +667,12 @@ export default function DeegarPage() {
                 {isEditMode ? `Update Deegar ${createForm.pnumber}` : "Create Deegar"}
               </h2>
               <button className={styles.modalClose} onClick={() => setModalMode(null)} aria-label="Close">
-                โ•
+                ✕
               </button>
             </div>
             <div className={styles.modalBody}>
               <p className={styles.modalHint}>
-                Fields with * are required. {modalLoading ? "เธเธณเธฅเธฑเธเนเธซเธฅเธ”..." : ""}
+                Fields with * are required. {modalLoading ? "กำลังโหลด..." : ""}
               </p>
               <div className={styles.formGrid}>
                 <label>
@@ -701,11 +701,11 @@ export default function DeegarPage() {
                   <input className={styles.input} value={createForm.accname} onChange={onCreateChange("accname")} />
                 </label>
                 <label>
-                  เธ เธฒเธฉเธต
+                  ภาษี
                   <input className={styles.input} value={createForm.tax} onChange={onCreateChange("tax")} />
                 </label>
                 <label>
-                  เธเนเธฒเธเธฃเธฑเธ
+                  ค่าปรับ
                   <input className={styles.input} value={createForm.pay} onChange={onCreateChange("pay")} />
                 </label>
                 <label>
@@ -713,7 +713,7 @@ export default function DeegarPage() {
                   <input className={styles.input} value={createForm.money} onChange={onCreateChange("money")} />
                 </label>
                 <label>
-                  เน€เธฅเธเธ—เธตเนเน€เธเนเธ
+                  เลขที่เช็ค
                   <input
                     className={styles.input}
                     maxLength={CHEQUE_MAX_LENGTH}
@@ -748,11 +748,11 @@ export default function DeegarPage() {
                 View Deegar {detail?.PNUMBER && detail?.NODEEGAR ? `${detail.PNUMBER}/${detail.NODEEGAR}` : ""}
               </h2>
               <button className={styles.modalClose} onClick={() => setDetailOpen(false)} aria-label="Close">
-                โ•
+                ✕
               </button>
             </div>
             <div className={styles.modalBody}>
-              {detailLoading && <p className={styles.modalHint}>เธเธณเธฅเธฑเธเนเธซเธฅเธ”...</p>}
+              {detailLoading && <p className={styles.modalHint}>กำลังโหลด...</p>}
               {detailError && <div className={styles.error}>{detailError}</div>}
               {detail && (
                 <table className={styles.detailTable}>
@@ -778,11 +778,11 @@ export default function DeegarPage() {
                       <td>{detail.ACCNAME}</td>
                     </tr>
                     <tr>
-                      <th>เธ เธฒเธฉเธต</th>
+                      <th>ภาษี</th>
                       <td>{detail.TAX ?? 0}</td>
                     </tr>
                     <tr>
-                      <th>เธเนเธฒเธเธฃเธฑเธ</th>
+                      <th>ค่าปรับ</th>
                       <td>{detail.PAY ?? 0}</td>
                     </tr>
                     <tr>
@@ -794,7 +794,7 @@ export default function DeegarPage() {
                       <td>{formatDate(detail.PAYDATE)}</td>
                     </tr>
                     <tr>
-                      <th>เน€เธฅเธเธ—เธตเนเน€เธเนเธ</th>
+                      <th>เลขที่เช็ค</th>
                       <td>{detail.CHEQUE ?? "-"}</td>
                     </tr>
                   </tbody>
