@@ -52,7 +52,7 @@ jobs:
             echo "PM2 process exists -> restart"
             pm2 restart paymonth-nextjs
           else
-            echo "PM2 process not found -> start new"
+            echo "PM2 process not found -> start new."
             pm2 start "npm start" --name paymonth-nextjs
           fi
           pm2 save
