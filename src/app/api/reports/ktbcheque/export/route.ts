@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as XLSX from 'xlsx';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
 
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
       'PAYDATE',
     ];
 
-    const csvRows = rows.map((row) => [
+    const sheetRows = rows.map((row) => [
       row.IDBANK ?? '',
       row.ACCNAME ?? '',
       row.NAME ?? '',
@@ -78,22 +79,21 @@ export async function GET(req: NextRequest) {
       toDate(row.PAYDATE),
     ]);
 
-    const csv =
-      header.join(',') +
-      '\n' +
-      csvRows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const csvWithBom = `\ufeff${csv}`;
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet([header, ...sheetRows]);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
+    const workbookBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
 
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(
       now.getHours(),
     )}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-    const filename = `${cheque}_${stamp}.csv`;
-    return new NextResponse(csvWithBom, {
+    const filename = `${cheque}_${stamp}.xlsx`;
+    return new NextResponse(workbookBuffer, {
       status: 200,
       headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
