@@ -22,9 +22,13 @@ jobs:
       - name: Git pull latest code
         working-directory: /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
-          git -c http.https://github.com/.extraheader="AUTHORIZATION: bearer ${GITHUB_TOKEN}" pull origin main
+          if [ -z "$DEPLOY_TOKEN" ]; then
+            echo "Missing DEPLOY_TOKEN secret"
+            exit 1
+          fi
+          git pull https://x-access-token:${DEPLOY_TOKEN}@github.com/${{ github.repository }}.git main
 
       - name: Install dependencies
         working-directory: /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
