@@ -82,6 +82,7 @@ export async function GET(req: NextRequest) {
       header.join(',') +
       '\n' +
       csvRows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csvWithBom = `\ufeff${csv}`;
 
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -89,7 +90,7 @@ export async function GET(req: NextRequest) {
       now.getHours(),
     )}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
     const filename = `${cheque}_${stamp}.csv`;
-    return new NextResponse(csv, {
+    return new NextResponse(csvWithBom, {
       status: 200,
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
