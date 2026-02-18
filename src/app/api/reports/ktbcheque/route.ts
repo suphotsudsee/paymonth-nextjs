@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
           INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
           INNER JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
           LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
-        WHERE deegar.CHEQUE = ? AND cpay.IDPAY <> '20020' AND cpay.IDPAY <> '20019'
+        WHERE deegar.CHEQUE = ?
         ORDER BY salary.NODEEGAR, salary.NUM, officer.NAME
         LIMIT ? OFFSET ?
       `,

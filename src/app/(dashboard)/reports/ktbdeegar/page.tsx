@@ -85,7 +85,7 @@ export default function ktbdeegarPage() {
         nodeegar: currentFilters.nodeegar.trim(),
       });
 
-      const res = await fetch(`/api/reports/ktbcheque?${params.toString()}`, {
+      const res = await fetch(`/api/reports/ktbdeegar?${params.toString()}`, {
         cache: 'no-store',
         credentials: 'include',
       });
@@ -253,7 +253,7 @@ export default function ktbdeegarPage() {
           className={styles.exportLink}
           href={
             filters.pnumber.trim() && filters.nodeegar.trim()
-              ? `/api/reports/ktbcheque/export?pnumber=${encodeURIComponent(filters.pnumber.trim())}&nodeegar=${encodeURIComponent(filters.nodeegar.trim())}`
+              ? `/api/reports/ktbdeegar/export?pnumber=${encodeURIComponent(filters.pnumber.trim())}&nodeegar=${encodeURIComponent(filters.nodeegar.trim())}`
               : '#'
           }
           onClick={(e) => {
