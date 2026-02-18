@@ -75,8 +75,8 @@ export async function GET(req: NextRequest) {
     const toNumber = (v: any) => (typeof v === 'bigint' ? Number(v) : Number(v ?? 0));
 
     const items = rows.map((row) => ({
-      IDBANK: row.IDBANK ?? '',
-      ACCNAME: row.ACCNAME ?? '',
+      IDBANK: '006',
+      ACCNAME: row.IDBANK?.trim() || '-',
       NAME: row.NAME ?? '',
       MONEY: toNumber(row.MONEY),
       CID: row.CID ?? '',

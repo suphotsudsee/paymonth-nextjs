@@ -67,8 +67,8 @@ export async function GET(req: NextRequest) {
     ];
 
     const sheetRows = rows.map((row) => [
+      '006',
       row.IDBANK ?? '',
-      row.ACCNAME ?? '',
       row.NAME ?? '',
       toNumber(row.MONEY).toFixed(2),
       row.CID ?? '',

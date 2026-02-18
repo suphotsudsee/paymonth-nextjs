@@ -46,36 +46,32 @@ export async function GET(req: NextRequest) {
           bank.IDBANK,
           bank.NAMEBANK,
           deegar.ACCNAME,
-          COALESCE(officer.NAME, regisdeegar.NAME) AS NAME,
+          officer.NAME,
           officer.MOBILE,
           officer.EMAIL,
           salary.CID,
-          COALESCE(salary.MONEY, deegar.MONEY) AS MONEY,
-          deegar.PNUMBER,
-          deegar.NODEEGAR,
-          TRIM(deegar.CHEQUE) AS CHEQUE,
+          salary.MONEY,
+          salary.PNUMBER,
+          salary.NODEEGAR,
+          salary.NUM,
+          cpay.PAYTYPE,
+          cpay.IDPAY,
+          deegar.CHEQUE,
           cheque.PAYDATE,
-          deegar.ID,
+          salary.ID,
           COUNT(*) OVER() AS totalRows,
-          SUM(COALESCE(salary.MONEY, deegar.MONEY)) OVER() AS totalMoney
-        FROM deegar
-          LEFT JOIN salary ON salary.ID = (
-            SELECT s2.ID
-            FROM salary s2
-            WHERE TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER)
-              AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)
-            ORDER BY s2.DUPDATE DESC, s2.ID DESC
-            LIMIT 1
-          )
+          SUM(salary.MONEY) OVER() AS totalMoney
+        FROM salary
           LEFT JOIN officer ON salary.CID = officer.CID
-          LEFT JOIN bank ON bank.CID = salary.CID
-          LEFT JOIN regisdeegar ON TRIM(regisdeegar.PNUMBER) = TRIM(deegar.PNUMBER)
-          LEFT JOIN cheque ON cheque.CHEQUE = TRIM(deegar.CHEQUE)
-        WHERE REPLACE(TRIM(deegar.CHEQUE), ' ', '') = ?
-        ORDER BY deegar.PNUMBER, deegar.NODEEGAR
+          LEFT JOIN bank ON officer.CID = bank.CID
+          INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
+          INNER JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
+          LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
+        WHERE deegar.CHEQUE = ? AND cpay.IDPAY <> '20020' AND cpay.IDPAY <> '20019'
+        ORDER BY salary.NODEEGAR, salary.NUM, officer.NAME
         LIMIT ? OFFSET ?
       `,
-      normalizedCheque,
+      cheque,
       pageSize,
       offset,
     )) as Row[];
@@ -83,9 +79,9 @@ export async function GET(req: NextRequest) {
     const toNumber = (v: any) => (typeof v === 'bigint' ? Number(v) : Number(v ?? 0));
 
     const items = rows.map((row) => ({
-      IDBANK: row.IDBANK?.trim() || '-',
+      IDBANK: '006',
       NAMEBANK: row.NAMEBANK ?? '',
-      ACCNAME: row.ACCNAME?.trim() || '-',
+      ACCNAME: row.IDBANK?.trim() || '-',
       NAME: row.NAME?.trim() || '-',
       MONEY: toNumber(row.MONEY),
       CID: row.CID?.trim() || '-',

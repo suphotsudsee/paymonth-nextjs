@@ -10,33 +10,24 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const cheque = searchParams.get('cheque')?.trim();
-    const normalizedCheque = cheque ? cheque.replace(/\s+/g, '') : '';
-
-    if (!normalizedCheque) {
+    if (!cheque) {
       return NextResponse.json({ error: 'Missing cheque' }, { status: 400 });
     }
 
     const rows = (await prisma.$queryRawUnsafe(
       `
-        SELECT deegar.ID, bank.IDBANK, bank.NAMEBANK, COALESCE(officer.NAME, regisdeegar.NAME) AS NAME, officer.MOBILE, officer.EMAIL, salary.CID, COALESCE(salary.MONEY, deegar.MONEY) AS MONEY,
-          deegar.PNUMBER, deegar.NODEEGAR, TRIM(deegar.CHEQUE) AS CHEQUE, deegar.ACCNAME, cheque.PAYDATE
-        FROM deegar
-          LEFT JOIN salary ON salary.ID = (
-            SELECT s2.ID
-            FROM salary s2
-            WHERE TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER)
-              AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)
-            ORDER BY s2.DUPDATE DESC, s2.ID DESC
-            LIMIT 1
-          )
+        SELECT salary.ID, bank.IDBANK, bank.NAMEBANK, officer.NAME, officer.MOBILE, officer.EMAIL, salary.CID, salary.MONEY,
+          salary.PNUMBER, salary.NODEEGAR, salary.NUM, cpay.PAYTYPE, cpay.IDPAY, deegar.CHEQUE, deegar.ACCNAME, cheque.PAYDATE
+        FROM salary
           LEFT JOIN officer ON salary.CID = officer.CID
-          LEFT JOIN bank ON bank.CID = salary.CID
-          LEFT JOIN regisdeegar ON TRIM(regisdeegar.PNUMBER) = TRIM(deegar.PNUMBER)
-          LEFT JOIN cheque ON cheque.CHEQUE = TRIM(deegar.CHEQUE)
-        WHERE REPLACE(TRIM(deegar.CHEQUE), ' ', '') = ?
-        ORDER BY deegar.PNUMBER, deegar.NODEEGAR
+          LEFT JOIN bank ON officer.CID = bank.CID
+          INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
+          INNER JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
+          LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
+        WHERE deegar.CHEQUE = ? AND cpay.IDPAY <> '20020' AND cpay.IDPAY <> '20019'
+        ORDER BY salary.NODEEGAR, salary.NUM, officer.NAME
       `,
-      normalizedCheque,
+      cheque,
     )) as {
       IDBANK: string | null;
       NAMEBANK: string | null;
@@ -53,15 +44,8 @@ export async function GET(req: NextRequest) {
     }[];
 
     const toNumber = (v: any) => (typeof v === 'bigint' ? Number(v) : Number(v ?? 0));
-    const toDate = (d: Date | null) => {
-      if (!d) return '';
-      const pad = (n: number) => String(n).padStart(2, '0');
-      const dd = new Date(d);
-      if (Number.isNaN(dd.getTime())) return '';
-      return `${dd.getFullYear()}-${pad(dd.getMonth() + 1)}-${pad(dd.getDate())}`;
-    };
-
-    const header = [
+    const headerRow1 = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const headerRow2 = [
       'Receiving Bank Code',
       'Receiving A/C No.',
       'Receiver Name',
@@ -71,32 +55,32 @@ export async function GET(req: NextRequest) {
       'Reference No./ DDA Ref 2',
       'EMAIL',
       'MOBILE',
-      'PAYDATE',
+      'NAMEBANK',
     ];
 
     const sheetRows = rows.map((row) => [
+      '006',
       row.IDBANK ?? '',
-      row.ACCNAME ?? '',
       row.NAME ?? '',
-      toNumber(row.MONEY).toFixed(2),
-      row.CID ?? '',
-      row.CHEQUE ?? '',
-      `${row.PNUMBER ?? ''}/${row.NODEEGAR ?? ''}`,
+      toNumber(row.MONEY),
+      row.ACCNAME ?? '',
+      '',
+      row.PNUMBER ?? '',
       row.EMAIL ?? '',
       row.MOBILE ?? '',
-      toDate(row.PAYDATE),
+      row.NAMEBANK ?? '',
     ]);
 
     const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.aoa_to_sheet([header, ...sheetRows]);
+    const worksheet = XLSX.utils.aoa_to_sheet([headerRow1, headerRow2, ...sheetRows]);
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
     const workbookBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
 
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
-    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(
-      now.getHours(),
-    )}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}:${pad(
+      now.getMinutes(),
+    )}:${pad(now.getSeconds())}`;
     const filename = `${cheque}_${stamp}.xlsx`;
     return new NextResponse(workbookBuffer, {
       status: 200,
