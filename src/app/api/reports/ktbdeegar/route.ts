@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
           SUM(salary.MONEY) OVER() AS totalMoney
         FROM salary
           LEFT JOIN officer ON salary.CID = officer.CID
-          LEFT JOIN bank ON bank.id = salary.BANKID
+          LEFT JOIN bank ON bank.CID = salary.CID
           INNER JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
           LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
         WHERE salary.PNUMBER = ? AND salary.NODEEGAR = ?

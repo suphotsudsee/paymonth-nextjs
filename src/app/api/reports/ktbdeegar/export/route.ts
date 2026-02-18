@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
           salary.PNUMBER, salary.NODEEGAR, salary.NUM, deegar.CHEQUE, deegar.ACCNAME, cheque.PAYDATE
         FROM salary
           LEFT JOIN officer ON salary.CID = officer.CID
-          LEFT JOIN bank ON bank.id = salary.BANKID
+          LEFT JOIN bank ON bank.CID = salary.CID
           INNER JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
           LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
         WHERE salary.PNUMBER = ? AND salary.NODEEGAR = ?

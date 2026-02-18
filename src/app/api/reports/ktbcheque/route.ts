@@ -59,15 +59,17 @@ export async function GET(req: NextRequest) {
           COUNT(*) OVER() AS totalRows,
           SUM(COALESCE(salary.MONEY, deegar.MONEY)) OVER() AS totalMoney
         FROM deegar
-          LEFT JOIN (
-            SELECT MAX(s.ID) AS ID, s.PNUMBER, s.NODEEGAR
-            FROM salary s
-            GROUP BY s.PNUMBER, s.NODEEGAR
-          ) latestSalary ON latestSalary.PNUMBER = deegar.PNUMBER AND latestSalary.NODEEGAR = deegar.NODEEGAR
-          LEFT JOIN salary ON salary.ID = latestSalary.ID
+          LEFT JOIN salary ON salary.ID = (
+            SELECT s2.ID
+            FROM salary s2
+            WHERE TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER)
+              AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)
+            ORDER BY s2.DUPDATE DESC, s2.ID DESC
+            LIMIT 1
+          )
           LEFT JOIN officer ON salary.CID = officer.CID
-          LEFT JOIN bank ON bank.id = salary.BANKID
-          LEFT JOIN regisdeegar ON regisdeegar.PNUMBER = deegar.PNUMBER
+          LEFT JOIN bank ON bank.CID = salary.CID
+          LEFT JOIN regisdeegar ON TRIM(regisdeegar.PNUMBER) = TRIM(deegar.PNUMBER)
           LEFT JOIN cheque ON cheque.CHEQUE = TRIM(deegar.CHEQUE)
         WHERE REPLACE(TRIM(deegar.CHEQUE), ' ', '') = ?
         ORDER BY deegar.PNUMBER, deegar.NODEEGAR
@@ -81,17 +83,17 @@ export async function GET(req: NextRequest) {
     const toNumber = (v: any) => (typeof v === 'bigint' ? Number(v) : Number(v ?? 0));
 
     const items = rows.map((row) => ({
-      IDBANK: row.IDBANK ?? '',
+      IDBANK: row.IDBANK?.trim() || '-',
       NAMEBANK: row.NAMEBANK ?? '',
-      ACCNAME: row.ACCNAME ?? '',
-      NAME: row.NAME ?? '',
+      ACCNAME: row.ACCNAME?.trim() || '-',
+      NAME: row.NAME?.trim() || '-',
       MONEY: toNumber(row.MONEY),
-      CID: row.CID ?? '',
+      CID: row.CID?.trim() || '-',
       CHEQUE: row.CHEQUE ?? '',
       PNUMBER: row.PNUMBER ?? '',
       NODEEGAR: row.NODEEGAR ?? '',
-      EMAIL: row.EMAIL ?? '',
-      MOBILE: row.MOBILE ?? '',
+      EMAIL: row.EMAIL?.trim() || '-',
+      MOBILE: row.MOBILE?.trim() || '-',
       PAYDATE: row.PAYDATE instanceof Date ? row.PAYDATE.toISOString() : row.PAYDATE,
       totalRows: toNumber((row as any).totalRows),
       totalMoney: toNumber((row as any).totalMoney),

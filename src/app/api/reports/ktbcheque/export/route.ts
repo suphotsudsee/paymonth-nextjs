@@ -21,15 +21,17 @@ export async function GET(req: NextRequest) {
         SELECT deegar.ID, bank.IDBANK, bank.NAMEBANK, COALESCE(officer.NAME, regisdeegar.NAME) AS NAME, officer.MOBILE, officer.EMAIL, salary.CID, COALESCE(salary.MONEY, deegar.MONEY) AS MONEY,
           deegar.PNUMBER, deegar.NODEEGAR, TRIM(deegar.CHEQUE) AS CHEQUE, deegar.ACCNAME, cheque.PAYDATE
         FROM deegar
-          LEFT JOIN (
-            SELECT MAX(s.ID) AS ID, s.PNUMBER, s.NODEEGAR
-            FROM salary s
-            GROUP BY s.PNUMBER, s.NODEEGAR
-          ) latestSalary ON latestSalary.PNUMBER = deegar.PNUMBER AND latestSalary.NODEEGAR = deegar.NODEEGAR
-          LEFT JOIN salary ON salary.ID = latestSalary.ID
+          LEFT JOIN salary ON salary.ID = (
+            SELECT s2.ID
+            FROM salary s2
+            WHERE TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER)
+              AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)
+            ORDER BY s2.DUPDATE DESC, s2.ID DESC
+            LIMIT 1
+          )
           LEFT JOIN officer ON salary.CID = officer.CID
-          LEFT JOIN bank ON bank.id = salary.BANKID
-          LEFT JOIN regisdeegar ON regisdeegar.PNUMBER = deegar.PNUMBER
+          LEFT JOIN bank ON bank.CID = salary.CID
+          LEFT JOIN regisdeegar ON TRIM(regisdeegar.PNUMBER) = TRIM(deegar.PNUMBER)
           LEFT JOIN cheque ON cheque.CHEQUE = TRIM(deegar.CHEQUE)
         WHERE REPLACE(TRIM(deegar.CHEQUE), ' ', '') = ?
         ORDER BY deegar.PNUMBER, deegar.NODEEGAR

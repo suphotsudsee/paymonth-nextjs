@@ -21,11 +21,11 @@ export async function GET(req: NextRequest) {
     const params: any[] = [];
 
     if (pnumber) {
-      filters.push('salary.PNUMBER LIKE ?');
+      filters.push('deegar.PNUMBER LIKE ?');
       params.push(`%${pnumber}%`);
     }
     if (nodeegar) {
-      filters.push('salary.NODEEGAR LIKE ?');
+      filters.push('deegar.NODEEGAR LIKE ?');
       params.push(`%${nodeegar}%`);
     }
     if (accnumber) {
@@ -46,30 +46,35 @@ export async function GET(req: NextRequest) {
     const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
-          salary.ID,
+          COALESCE(salary.ID, deegar.ID) AS ID,
           bank.IDBANK,
-          officer.NAME,
-          salary.CID,
-          salary.MONEY,
-          salary.PNUMBER,
-          salary.NODEEGAR,
+          COALESCE(officer.NAME, regisdeegar.NAME) AS NAME,
+          COALESCE(salary.CID, '') AS CID,
+          COALESCE(salary.MONEY, deegar.MONEY) AS MONEY,
+          deegar.PNUMBER,
+          deegar.NODEEGAR,
           salary.NUM,
-          cpay.PAYTYPE,
-          cpay.IDPAY,
           deegar.CHEQUE,
           cheque.PAYDATE,
           deegar.ACCNUMBER,
           deegar.ACCNAME,
           deegar.TAX,
           deegar.FEE AS PAY
-        FROM salary
+        FROM deegar
+          LEFT JOIN salary ON salary.ID = (
+            SELECT s2.ID
+            FROM salary s2
+            WHERE TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER)
+              AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)
+            ORDER BY s2.DUPDATE DESC, s2.ID DESC
+            LIMIT 1
+          )
           LEFT JOIN officer ON salary.CID = officer.CID
-          LEFT JOIN bank ON bank.id = salary.BANKID
-          INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
-          LEFT JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
+          LEFT JOIN bank ON bank.CID = salary.CID
+          LEFT JOIN regisdeegar ON TRIM(regisdeegar.PNUMBER) = TRIM(deegar.PNUMBER)
           LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
         ${whereClause}
-        ORDER BY salary.NODEEGAR, salary.NUM, officer.NAME
+        ORDER BY deegar.PNUMBER, deegar.NODEEGAR
         LIMIT ? OFFSET ?
       `, 
       ...params,
@@ -106,11 +111,18 @@ export async function GET(req: NextRequest) {
     const countRows = (await prisma.$queryRawUnsafe(
       `
         SELECT COUNT(*) as total
-        FROM salary
+        FROM deegar
+          LEFT JOIN salary ON salary.ID = (
+            SELECT s2.ID
+            FROM salary s2
+            WHERE TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER)
+              AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)
+            ORDER BY s2.DUPDATE DESC, s2.ID DESC
+            LIMIT 1
+          )
           LEFT JOIN officer ON salary.CID = officer.CID
-          LEFT JOIN bank ON bank.id = salary.BANKID
-          INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
-          LEFT JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
+          LEFT JOIN bank ON bank.CID = salary.CID
+          LEFT JOIN regisdeegar ON TRIM(regisdeegar.PNUMBER) = TRIM(deegar.PNUMBER)
           LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
         ${whereClause}
       `,
