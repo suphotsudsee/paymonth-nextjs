@@ -25,11 +25,12 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const cheque = searchParams.get('cheque')?.trim();
+    const normalizedCheque = cheque ? cheque.replace(/\s+/g, '') : '';
     const page = Math.max(1, Number(searchParams.get('page') || 1));
     const pageSize = Math.min(5000, Math.max(1, Number(searchParams.get('pageSize') || 50)));
     const offset = (page - 1) * pageSize;
 
-    if (!cheque) {
+    if (!normalizedCheque) {
       return NextResponse.json({
         items: [],
         total: 0,
@@ -45,32 +46,34 @@ export async function GET(req: NextRequest) {
           bank.IDBANK,
           bank.NAMEBANK,
           deegar.ACCNAME,
-          officer.NAME,
+          COALESCE(officer.NAME, regisdeegar.NAME) AS NAME,
           officer.MOBILE,
           officer.EMAIL,
           salary.CID,
-          salary.MONEY,
-          salary.PNUMBER,
-          salary.NODEEGAR,
-          salary.NUM,
-          cpay.PAYTYPE,
-          cpay.IDPAY,
-          deegar.CHEQUE,
+          COALESCE(salary.MONEY, deegar.MONEY) AS MONEY,
+          deegar.PNUMBER,
+          deegar.NODEEGAR,
+          TRIM(deegar.CHEQUE) AS CHEQUE,
           cheque.PAYDATE,
-          salary.ID,
+          deegar.ID,
           COUNT(*) OVER() AS totalRows,
-          SUM(salary.MONEY) OVER() AS totalMoney
-        FROM salary
+          SUM(COALESCE(salary.MONEY, deegar.MONEY)) OVER() AS totalMoney
+        FROM deegar
+          LEFT JOIN (
+            SELECT MAX(s.ID) AS ID, s.PNUMBER, s.NODEEGAR
+            FROM salary s
+            GROUP BY s.PNUMBER, s.NODEEGAR
+          ) latestSalary ON latestSalary.PNUMBER = deegar.PNUMBER AND latestSalary.NODEEGAR = deegar.NODEEGAR
+          LEFT JOIN salary ON salary.ID = latestSalary.ID
           LEFT JOIN officer ON salary.CID = officer.CID
           LEFT JOIN bank ON bank.id = salary.BANKID
-          INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
-          INNER JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
-          LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
-        WHERE deegar.CHEQUE = ?
-        ORDER BY salary.NODEEGAR, salary.NUM, officer.NAME
+          LEFT JOIN regisdeegar ON regisdeegar.PNUMBER = deegar.PNUMBER
+          LEFT JOIN cheque ON cheque.CHEQUE = TRIM(deegar.CHEQUE)
+        WHERE REPLACE(TRIM(deegar.CHEQUE), ' ', '') = ?
+        ORDER BY deegar.PNUMBER, deegar.NODEEGAR
         LIMIT ? OFFSET ?
       `,
-      cheque,
+      normalizedCheque,
       pageSize,
       offset,
     )) as Row[];
