@@ -5,6 +5,7 @@ import { verifySession } from "@/lib/auth";
 type SalaryRow = {
   ID: bigint;
   CID: string;
+  BANKID: bigint | null;
   IDPAY: string;
   PAYNAME: string | null;
   PAYTYPE: string | null;
@@ -85,6 +86,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cid:
         SELECT
           salary.ID,
           salary.CID,
+          salary.BANKID,
           salary.IDPAY,
           cpay.PAYNAME,
           cpay.PAYTYPE,
@@ -146,6 +148,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cid:
     const items = rows.map((row) => ({
       ...row,
       ID: Number(row.ID),
+      BANKID: row.BANKID === null ? null : row.BANKID.toString(),
       MONEY: Number(row.MONEY ?? 0),
       DUPDATE:
         row.DUPDATE === null

@@ -12,6 +12,7 @@ const BANGKOK_TIMEZONE = "Asia/Bangkok";
 type SalaryRow = {
   ID: number;
   CID: string;
+  BANKID: string | null;
   IDPAY: string;
   PAYNAME: string | null;
   PAYTYPE: string | null;
@@ -95,6 +96,7 @@ export default function OfficerSalariesPage() {
   });
   const [paySaving, setPaySaving] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [editingSalaryId, setEditingSalaryId] = useState<number | null>(null);
   const [cpayOptions, setCpayOptions] = useState<CpayOption[]>([]);
   const [monthOptions, setMonthOptions] = useState<MonthOption[]>([]);
   const [payOptionsLoading, setPayOptionsLoading] = useState(false);
@@ -196,7 +198,7 @@ export default function OfficerSalariesPage() {
     }
   };
 
-  const loadPayBanks = async (targetCid: string) => {
+  const loadPayBanks = async (targetCid: string, preferredBankId?: string) => {
     if (!targetCid) return;
     setPayBanksLoading(true);
     setPayBanks([]);
@@ -214,10 +216,14 @@ export default function OfficerSalariesPage() {
           NAMEBANK: b.NAMEBANK ?? null,
         }));
         setPayBanks(list);
-        setPayForm((f) => ({
-          ...f,
-          bankId: list[0]?.id ?? "",
-        }));
+        setPayForm((f) => {
+          const preferred = preferredBankId?.trim() || f.bankId?.trim();
+          const hasPreferred = preferred ? list.some((item: BankRow) => item.id === preferred) : false;
+          return {
+            ...f,
+            bankId: hasPreferred ? preferred : list[0]?.id ?? "",
+          };
+        });
       } else if (json.error) {
         setPayError(json.error);
       }
@@ -281,12 +287,36 @@ export default function OfficerSalariesPage() {
       money: "0.00",
     });
     setPayError(null);
+    setEditingSalaryId(null);
     setPayBanks([]);
     setPayModal(true);
     void loadPayOptions();
     void loadPayBanks(cid);
     setDeegarOptions([]);
     void loadDeegar("");
+  };
+
+  const openPayEditModal = (row: SalaryRow) => {
+    setPayForm({
+      cid: row.CID || cid,
+      name: data?.officer?.name ?? "",
+      bankId: row.BANKID ?? "",
+      monththai: row.MONTHTHAI || "",
+      yearthai: row.YEARTHAI || "",
+      pnumber: row.PNUMBER || "",
+      nodeegar: row.NODEEGAR || "1",
+      num: row.NUM || "1",
+      idpay: row.IDPAY || "",
+      money: String(Number(row.MONEY ?? 0)),
+    });
+    setPayError(null);
+    setEditingSalaryId(row.ID);
+    setPayBanks([]);
+    setPayModal(true);
+    void loadPayOptions();
+    void loadPayBanks(row.CID || cid, row.BANKID ?? "");
+    setDeegarOptions([]);
+    void loadDeegar(row.PNUMBER || "");
   };
 
   const handlePaySave = async () => {
@@ -317,8 +347,9 @@ export default function OfficerSalariesPage() {
     setPaySaving(true);
     setPayError(null);
     try {
-      const res = await fetch("/api/salaries", {
-        method: "POST",
+      const isEdit = editingSalaryId !== null;
+      const res = await fetch(isEdit ? `/api/salaries/${editingSalaryId}` : "/api/salaries", {
+        method: isEdit ? "PUT" : "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -328,6 +359,7 @@ export default function OfficerSalariesPage() {
         setPayError(json.error || "Could not save salary.");
       } else {
         setPayModal(false);
+        setEditingSalaryId(null);
         setPage(1);
         void fetchData(1, filters);
       }
@@ -554,7 +586,7 @@ export default function OfficerSalariesPage() {
                           type="button"
                           className={styles.iconBtn}
                           title="แก้ไข"
-                          onClick={() => alert(`แก้ไขรหัส ${row.IDPAY}`)}
+                          onClick={() => openPayEditModal(row)}
                         >
                           ✏️
                         </button>
@@ -611,7 +643,14 @@ export default function OfficerSalariesPage() {
           <div className={styles.modal}>
             <div className={styles.modalHeader}>
               <h2>เพิ่มรายการรับ-จ่าย {payForm.name ? `: ${payForm.name}` : ""}</h2>
-              <button className={styles.modalClose} onClick={() => setPayModal(false)} aria-label="Close">
+              <button
+                className={styles.modalClose}
+                onClick={() => {
+                  setPayModal(false);
+                  setEditingSalaryId(null);
+                }}
+                aria-label="Close"
+              >
                 ✕
               </button>
             </div>
@@ -746,7 +785,14 @@ export default function OfficerSalariesPage() {
                 <button className={styles.primaryBtn} onClick={handlePaySave} disabled={paySaving}>
                   {paySaving ? "Saving..." : "Save"}
                 </button>
-                <button className={styles.secondaryBtn} type="button" onClick={() => setPayModal(false)}>
+                <button
+                  className={styles.secondaryBtn}
+                  type="button"
+                  onClick={() => {
+                    setPayModal(false);
+                    setEditingSalaryId(null);
+                  }}
+                >
                   Cancel
                 </button>
               </div>
