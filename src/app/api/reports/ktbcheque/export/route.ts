@@ -10,24 +10,31 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const cheque = searchParams.get('cheque')?.trim();
-    if (!cheque) {
+    const normalizedCheque = cheque ? cheque.replace(/\s+/g, '') : '';
+    if (!normalizedCheque) {
       return NextResponse.json({ error: 'Missing cheque' }, { status: 400 });
     }
 
     const rows = (await prisma.$queryRawUnsafe(
       `
-        SELECT salary.ID, bank.IDBANK, bank.NAMEBANK, officer.NAME, officer.MOBILE, officer.EMAIL, salary.CID, salary.MONEY,
-          salary.PNUMBER, salary.NODEEGAR, salary.NUM, cpay.PAYTYPE, cpay.IDPAY, deegar.CHEQUE, deegar.ACCNAME, cheque.PAYDATE
-        FROM salary
+        SELECT deegar.ID, bank.IDBANK, bank.NAMEBANK, officer.NAME, officer.MOBILE, officer.EMAIL, salary.CID, COALESCE(salary.MONEY, deegar.MONEY) AS MONEY,
+          deegar.PNUMBER, deegar.NODEEGAR, salary.NUM, deegar.CHEQUE, deegar.ACCNAME, cheque.PAYDATE
+        FROM deegar
+          LEFT JOIN salary ON salary.ID = (
+            SELECT s2.ID
+            FROM salary s2
+            WHERE TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER)
+              AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)
+            ORDER BY s2.DUPDATE DESC, s2.ID DESC
+            LIMIT 1
+          )
           LEFT JOIN officer ON salary.CID = officer.CID
           LEFT JOIN bank ON officer.CID = bank.CID
-          INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
-          INNER JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
           LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
-        WHERE deegar.CHEQUE = ? AND cpay.IDPAY <> '20020' AND cpay.IDPAY <> '20019'
-        ORDER BY salary.NODEEGAR, salary.NUM, officer.NAME
+        WHERE REPLACE(TRIM(deegar.CHEQUE), ' ', '') = ?
+        ORDER BY deegar.NODEEGAR, deegar.PNUMBER
       `,
-      cheque,
+      normalizedCheque,
     )) as {
       IDBANK: string | null;
       NAMEBANK: string | null;

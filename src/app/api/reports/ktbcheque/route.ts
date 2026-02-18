@@ -50,28 +50,32 @@ export async function GET(req: NextRequest) {
           officer.MOBILE,
           officer.EMAIL,
           salary.CID,
-          salary.MONEY,
-          salary.PNUMBER,
-          salary.NODEEGAR,
+          COALESCE(salary.MONEY, deegar.MONEY) AS MONEY,
+          deegar.PNUMBER,
+          deegar.NODEEGAR,
           salary.NUM,
-          cpay.PAYTYPE,
-          cpay.IDPAY,
           deegar.CHEQUE,
           cheque.PAYDATE,
-          salary.ID,
+          deegar.ID,
           COUNT(*) OVER() AS totalRows,
-          SUM(salary.MONEY) OVER() AS totalMoney
-        FROM salary
+          SUM(COALESCE(salary.MONEY, deegar.MONEY)) OVER() AS totalMoney
+        FROM deegar
+          LEFT JOIN salary ON salary.ID = (
+            SELECT s2.ID
+            FROM salary s2
+            WHERE TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER)
+              AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)
+            ORDER BY s2.DUPDATE DESC, s2.ID DESC
+            LIMIT 1
+          )
           LEFT JOIN officer ON salary.CID = officer.CID
           LEFT JOIN bank ON officer.CID = bank.CID
-          INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
-          INNER JOIN deegar ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
           LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
-        WHERE deegar.CHEQUE = ? AND cpay.IDPAY <> '20020' AND cpay.IDPAY <> '20019'
-        ORDER BY salary.NODEEGAR, salary.NUM, officer.NAME
+        WHERE REPLACE(TRIM(deegar.CHEQUE), ' ', '') = ?
+        ORDER BY deegar.NODEEGAR, deegar.PNUMBER
         LIMIT ? OFFSET ?
       `,
-      cheque,
+      normalizedCheque,
       pageSize,
       offset,
     )) as Row[];
