@@ -112,3 +112,43 @@ export async function PUT(
   }
 }
 
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await verifySession(req.cookies.get("session")?.value);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = await params;
+    const salaryId = Number(id);
+    if (!Number.isFinite(salaryId) || salaryId <= 0) {
+      return NextResponse.json({ error: "Invalid salary id" }, { status: 400 });
+    }
+
+    const current = await prisma.salary.findUnique({
+      where: { ID: BigInt(salaryId) },
+    });
+    if (!current) {
+      return NextResponse.json({ error: "Salary record not found" }, { status: 404 });
+    }
+
+    const status = String(session.status || "").toLowerCase();
+    const isLimitedUser = status === "user";
+    if (isLimitedUser && current.CID !== session.cid) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    await prisma.salary.delete({
+      where: { ID: BigInt(salaryId) },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    console.error("delete salary error", err);
+    return NextResponse.json(
+      { error: "Failed to delete salary", detail: String(err?.message || err) },
+      { status: 500 },
+    );
+  }
+}

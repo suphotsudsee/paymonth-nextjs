@@ -95,6 +95,7 @@ export default function OfficerSalariesPage() {
     money: "0.00",
   });
   const [paySaving, setPaySaving] = useState(false);
+  const [payDeleting, setPayDeleting] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [editingSalaryId, setEditingSalaryId] = useState<number | null>(null);
   const [cpayOptions, setCpayOptions] = useState<CpayOption[]>([]);
@@ -405,6 +406,34 @@ export default function OfficerSalariesPage() {
     });
   };
 
+  const handlePayDelete = async () => {
+    if (!editingSalaryId) return;
+    const confirmed = window.confirm("ยืนยันลบรายการนี้ใช่หรือไม่?");
+    if (!confirmed) return;
+
+    setPayDeleting(true);
+    setPayError(null);
+    try {
+      const res = await fetch(`/api/salaries/${editingSalaryId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPayError(json.error || "Could not delete salary.");
+      } else {
+        setPayModal(false);
+        setEditingSalaryId(null);
+        setPage(1);
+        void fetchData(1, filters);
+      }
+    } catch (err) {
+      setPayError("Unexpected error while deleting salary.");
+    } finally {
+      setPayDeleting(false);
+    }
+  };
+
   const monthChoices: MonthOption[] =
     monthOptions.length > 0
       ? monthOptions
@@ -642,7 +671,7 @@ export default function OfficerSalariesPage() {
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modal}>
             <div className={styles.modalHeader}>
-              <h2>เพิ่มรายการรับ-จ่าย {payForm.name ? `: ${payForm.name}` : ""}</h2>
+              <h2>{editingSalaryId ? "แก้ไขรายการรับ-จ่าย" : "เพิ่มรายการรับ-จ่าย"} {payForm.name ? `: ${payForm.name}` : ""}</h2>
               <button
                 className={styles.modalClose}
                 onClick={() => {
@@ -783,8 +812,18 @@ export default function OfficerSalariesPage() {
               {payError && <div className={styles.error}>{payError}</div>}
               <div className={styles.saveRow}>
                 <button className={styles.primaryBtn} onClick={handlePaySave} disabled={paySaving}>
-                  {paySaving ? "Saving..." : "Save"}
+                  {paySaving ? "Saving..." : editingSalaryId ? "Update" : "Save"}
                 </button>
+                {editingSalaryId && (
+                  <button
+                    className={styles.secondaryBtn}
+                    type="button"
+                    onClick={handlePayDelete}
+                    disabled={payDeleting || paySaving}
+                  >
+                    {payDeleting ? "Deleting..." : "Delete"}
+                  </button>
+                )}
                 <button
                   className={styles.secondaryBtn}
                   type="button"
