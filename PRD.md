@@ -25,7 +25,7 @@
 | ไฟล์ | `xlsx` สำหรับ export Excel, `iconv-lite` สำหรับถอด TIS-620/UTF-16 ตอนนำเข้า |
 | Runtime | `next start -p 9102`, PM2 (`ecosystem.config.js`, fork 1 instance, restart ที่ 1GB) |
 | CI/CD | `.github/workflows/deploy.yml` |
-| เทสต์ | **ยังไม่มีเทสต์ของแอป** (มีเฉพาะเทสต์ของ pstack ใน `scripts/test_cross_review.py`) |
+| เทสต์ | `npm test` (`node --test`, ไฟล์ใน `tests/`) — ตอนนี้มีเฉพาะเทสต์ regression ของ auth; เทสต์ของ pstack อยู่ที่ `scripts/test_cross_review.py` |
 
 ตัวแปรแวดล้อมที่โค้ดใช้: `DATABASE_URL`, `AUTH_SECRET`, `NEXTAUTH_URL`, `NEXTAUTH_DEBUG`,
 `AUTH_THAIID_ID/SECRET/AUTH_URL/TOKEN_URL/USERINFO_URL/CALLBACK/SCOPE/API_KEY` (มีชื่อสำรอง `THAID_*`)
@@ -116,8 +116,8 @@
 
 ลำดับตามความรุนแรง
 
-1. **[วิกฤต] `POST /api/auth/thaiid-login` login เป็นใครก็ได้** — รับ `pid` จาก body โดยไม่ตรวจกับ DOPA แล้วออก session ให้ user ที่ `cid` ตรง
-   ใครรู้เลขบัตรของ admin ก็ได้สิทธิ์ admin ไม่พบโค้ดในแอปที่เรียก route นี้ (flow จริงอยู่ที่ `/callback`)
+1. ~~**[วิกฤต] `POST /api/auth/thaiid-login` login เป็นใครก็ได้**~~ — **แก้แล้ว (TASK_BOARD #1)**: ลบ route ออกทั้งในแอปและ `thaiid-login-package`
+   เงื่อนไขที่บังคับด้วยเทสต์ (`tests/auth-routes.test.mjs`): ออก session (`signSession`) ได้เฉพาะ `api/auth/login` และ `callback` เท่านั้น
 2. **[สูง] สลิปรายเดือนดูของคนอื่นได้ (IDOR)** — `/api/officers/[cid]/payperson/[yearthai]/[monththai]` ตรวจแค่ว่ามี session ไม่ตรวจว่า `cid` เป็นของผู้ใช้
    (middleware กันแค่ "หน้าเว็บ" ไม่กัน API) — ต้องตรวจ API ตัวอื่นที่ใช้แค่ `verifySession` ด้วย
 3. **[สูง] API ส่วนใหญ่ไม่ตรวจบทบาท** — ราว 30 route ตรวจแค่ "login แล้ว" เช่น นำเข้า paydirect, เช็ค, ทะเบียนฎีกา (PUT), หน่วยงาน, รายงาน, export KTB
@@ -135,5 +135,5 @@
 - ความหมายของคอลัมน์ paydirect ที่ยังเป็นตัวอักษร (D..CA) และรูปแบบไฟล์ต้นทาง (มาจากระบบใด)
 - `IDPAY = '20004'` ที่ถูกตัดออกจากสลิปคืออะไร และทำไม
 - EDITOR ใช้งานจริงหรือไม่ (มีใน `paydirectAccess.ts` แต่ middleware/route อื่นไม่รู้จัก)
-- `/api/auth/thaiid-login` และ `/api/thaiid/exchange` ยังใช้อยู่หรือเลิกแล้ว (ถ้าเลิก ควรลบ)
+- `/api/thaiid/exchange` ยังใช้อยู่หรือเลิกแล้ว (ไม่ออก session แต่คืน token/profile ของ DOPA ให้ client; ถ้าเลิก ควรลบ)
 - กฎการปัดเศษ/ภาษีในรายงานภาษี และ bank code `006` ใช้กับทุกบัญชีหรือเฉพาะกรุงไทย

@@ -12,7 +12,6 @@ ThaiID Login Bundle
 - `src/app/callback/route.ts`
 - `src/app/(auth)/login/page.tsx`
 - `src/app/api/auth/[...nextauth]/route.ts`
-- `src/app/api/auth/thaiid-login/route.ts`
 - `src/app/api/auth/login/route.ts`
 - `src/app/api/auth/logout/route.ts`
 - `src/app/api/auth/me/route.ts`
@@ -44,7 +43,7 @@ Environment variables ที่ต้องตั้ง
 
 โครงสร้างฐานข้อมูลที่ต้องมี
 -----------------------------
-ตาราง `user` อย่างน้อยต้องมีคอลัมน์ `id`, `cid`, `username`, `password` (sha1), `fname`, `lname`, `status`, `accessLevel` เพราะ callback และ thaiid-login ใช้ query จากตารางนี้
+ตาราง `user` อย่างน้อยต้องมีคอลัมน์ `id`, `cid`, `username`, `password` (sha1), `fname`, `lname`, `status`, `accessLevel` เพราะ callback ใช้ query จากตารางนี้
 
 วิธีนำไปใช้ในโปรเจ็กใหม่ (สรุป)
 ----------------------------------
