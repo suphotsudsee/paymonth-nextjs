@@ -1,0 +1,5 @@
+# pstack: ไฟล์ binary / ไม่ใช่ UTF-8 ที่ยอมให้ผ่านด่าน Codex ได้โดยไม่แสดงเนื้อหา (scripts/cross_review.py)
+# รูปแบบเดียวกับ sha256sum:  <sha256 ของเนื้อหาไฟล์ใหม่>  <path จาก root คั่นด้วย />
+# ใส่คอมเมนต์เหตุผล + ที่มาของ checksum (เช่น release.json) ไว้บรรทัดบนของแต่ละรายการ
+# ไฟล์เปลี่ยนเมื่อไร checksum ต้องอัปเดตตาม ไม่อย่างนั้นด่านจะไม่ผ่าน
+# หา checksum: PowerShell -> (Get-FileHash <ไฟล์> -Algorithm SHA256).Hash.ToLower()

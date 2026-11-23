@@ -1,0 +1,139 @@
+# PRD — ระบบเงินเดือน/จ่ายตรง (paymonth-nextjs)
+
+> เขียนย้อนหลังจากโค้ดที่มีอยู่ (reverse-engineered, 2026-11-23) เพื่อใช้เป็นจุดตั้งต้นของ pstack
+> ทุกข้อในเอกสารนี้อ้างอิงพฤติกรรมของโค้ดจริง ณ commit baseline ส่วนที่ระบุว่า "ต้องยืนยัน" คือสิ่งที่โค้ดไม่ได้บอกชัด
+> ให้เจ้าของระบบตรวจแก้ก่อนใช้เป็นข้อกำหนด
+
+## 1. ภาพรวม
+
+เว็บแอปบริหารการจ่ายเงินเดือน/ค่าตอบแทนเจ้าหน้าที่ของหน่วยงาน (โดเมน `phoubon.in.th`) ครอบคลุม
+- ทะเบียนเจ้าหน้าที่ บัญชีธนาคาร และรายการรับ-จ่ายรายเดือน (salary)
+- ทะเบียนคุมงบ: ฎีกา (deegar), เช็ค (cheque), ทะเบียนคุมเบิกจ่ายฎีกา (regisdeegar)
+- นำเข้าไฟล์ข้อมูลจ่ายตรงเงินเดือน (paydirect) และแสดงสลิปให้เจ้าหน้าที่ดูของตัวเอง
+- รายงาน/ไฟล์ส่งธนาคารกรุงไทย (KTB), สรุปภาษี, ทะเบียนคุมใบสำคัญจ่าย, กราฟรายรับรายจ่าย
+- จัดการผู้ใช้ และบันทึกการเข้าใช้งาน (useronline)
+
+ปีและเดือนใช้ **ปฏิทินไทย (พ.ศ.)** เก็บเป็นข้อความ: `YEARTHAI` 4 หลัก (เช่น `2568`), `MONTHTHAI` 2 หลัก (`01`–`12`)
+
+## 2. Tech stack และการ deploy
+
+| ส่วน | รายละเอียด |
+|------|-----------|
+| Framework | Next.js 16.0.7 (App Router), React 19.2.1, TypeScript 5 |
+| DB | MySQL ผ่าน Prisma 6.19 (`prisma/schema.prisma`) — query ส่วนใหญ่ใช้ `$queryRawUnsafe` แบบ parameter `?` |
+| Auth | JWT (`jose`, HS256) ใน cookie `session` อายุ 8 ชม. + NextAuth v5 beta (provider ThaiID/DOPA) |
+| ไฟล์ | `xlsx` สำหรับ export Excel, `iconv-lite` สำหรับถอด TIS-620/UTF-16 ตอนนำเข้า |
+| Runtime | `next start -p 9102`, PM2 (`ecosystem.config.js`, fork 1 instance, restart ที่ 1GB) |
+| CI/CD | `.github/workflows/deploy.yml` |
+| เทสต์ | **ยังไม่มีเทสต์ของแอป** (มีเฉพาะเทสต์ของ pstack ใน `scripts/test_cross_review.py`) |
+
+ตัวแปรแวดล้อมที่โค้ดใช้: `DATABASE_URL`, `AUTH_SECRET`, `NEXTAUTH_URL`, `NEXTAUTH_DEBUG`,
+`AUTH_THAIID_ID/SECRET/AUTH_URL/TOKEN_URL/USERINFO_URL/CALLBACK/SCOPE/API_KEY` (มีชื่อสำรอง `THAID_*`)
+
+## 3. ผู้ใช้และสิทธิ์
+
+ตาราง `user` (`status` เป็นข้อความ, `accessLevel` เป็นตัวเลข) แปลงเป็นบทบาทดังนี้ (`src/lib/session.ts`, `src/lib/permissions.ts`):
+
+| บทบาท | เงื่อนไข | สิทธิ์ตามที่โค้ดตั้งใจ |
+|-------|---------|-----------------------|
+| ADMIN | status มีคำว่า `admin` หรือ `manager` หรือ `accessLevel >= 1` | ทุกอย่าง |
+| EDITOR | status มีคำว่า `editor` | ข้อมูลจ่ายตรง/เจ้าหน้าที่เฉพาะหน่วยงานตัวเอง (`officer.CODE` = หน่วยของผู้ใช้) |
+| USER | status = `user` | เฉพาะหน้าของตัวเอง (`/officers/<cid>`, สลิป paydirect/payperson ของตัวเอง) |
+
+การเข้าสู่ระบบ
+1. **Username/password** — `POST /api/auth/login`: ต้องผ่าน captcha (`GET /api/auth/captcha` ตั้ง cookie `captcha_sig` = HMAC ของรหัส 6 ตัว),
+   เทียบรหัสผ่านแบบ SHA-1 กับ `user.password`, สำเร็จแล้วตั้ง cookie `session`
+2. **ThaiID (DOPA)** — redirect ไป DOPA แล้วกลับที่ `/callback` (`src/app/callback/route.ts`) แลก code เป็น token ฝั่ง server
+   อ่าน `pid` (เลขบัตร) แล้วหา `user.cid`; ไม่พบ = ปฏิเสธ
+3. ทุกครั้งที่ login (สำเร็จ/ไม่สำเร็จ) บันทึกลงตาราง `useronline` (username, password, logined Y/N, ipv4, logindate)
+
+`src/middleware.ts` ป้องกันเฉพาะ path: `/`, `/deegars`, `/cheques`, `/regisdeegars`, `/salaries`, `/paydirect`, `/regisdeegar`, `/officers`
+และบังคับให้ USER อยู่ในหน้าของตัวเอง ส่วน API แต่ละตัวตรวจ session เอง
+
+## 4. Schema ฐานข้อมูล (MySQL)
+
+| ตาราง | คีย์ | ความหมาย / ฟิลด์สำคัญ |
+|-------|-----|----------------------|
+| `officer` | PK `CID` (เลขบัตร 13 หลัก) | เจ้าหน้าที่: `NAME`, `LPOS` (ตำแหน่ง), `CODE` → `station.CODE` (หน่วยงาน, default `000`), `MOBILE`, `EMAIL` |
+| `bank` | PK `id`, index `CID` | บัญชีธนาคารของเจ้าหน้าที่ (`IDBANK`, `NAMEBANK`) — 1 คนมีได้หลายบัญชี |
+| `cpay` | PK `IDPAY` (5 ตัว) | รหัสรายการรับ-จ่าย: `PAYNAME`, `PAYTYPE` (`'1'` = รายรับ, อื่นๆ = รายจ่าย) |
+| `salary` | unique `ID`; unique (`CID`,`IDPAY`,`PNUMBER`,`NODEEGAR`,`NUM`,`MONTHTHAI`,`YEARTHAI`) | รายการเงินรายคน/รายเดือน: `MONEY` decimal(10,2), `BANKID` → `bank.id`, `PNUMBER` default `P000000000`, `NODEEGAR` default `1`, `NUM` default `1` |
+| `deegar` | PK `ID`; unique (`PNUMBER`,`NODEEGAR`) | ฎีกา: `ACCNUMBER`, `ACCNAME`, `TAX`, `FEE`, `MONEY`, `CHEQUE` → `cheque.CHEQUE` |
+| `cheque` | PK `ID`; unique `CHEQUE` (11 ตัว) | เช็ค: `CHEQUENAME`, `ACCNUMBER`, `PAYDATE` |
+| `regisdeegar` | PK `ID`; unique `PNUMBER` | ทะเบียนคุมเบิกจ่ายฎีกา: `REGISDATE`, `MONEY`, `TAX`, `MONEYDRAW`, `SENDDATE`, `GFMISNUMBER`, `BANKDATE`, `MONEYBANK`, `GFMISREGIS`, `GFMISDATE`, `CODEBUDGET`, `CODEACTIVE` |
+| `paydirect` | PK `ID`; unique (`A`,`B`,`C`) | ข้อมูลจ่ายตรงที่นำเข้าจากไฟล์ คอลัมน์ตามตำแหน่งใน Excel (A..CA) ทุกค่าเป็นข้อความ; `A` = ปี, `B` = เดือน, `C` = CID; ชื่อเฉพาะ: `SALARY`, `TOTALINCOME`, `TAX`, `TOTALOUTCOME`, `BALANCE` ฯลฯ |
+| `station` | PK `CODE` (3 ตัว) | หน่วยงาน/สถานที่ปฏิบัติงาน: `DEPART`, `NAMESTATION` |
+| `cmonth` | PK `ID` (`01`–`12`) | ชื่อเดือนไทย/อังกฤษ |
+| `user` | PK `id`; unique `cid` | ผู้ใช้ระบบ: `username`, `password` (SHA-1 hex), `status`, `accessLevel` |
+| `rawofficer` | ไม่มี (Prisma `@@ignore`) | ข้อมูลเก่าจากระบบเดิม ไม่ได้ใช้ผ่าน Prisma Client |
+| `useronline` | ไม่อยู่ใน schema.prisma | บันทึกการ login (เขียน/อ่านด้วย raw SQL) |
+
+ความสัมพันธ์ (ไม่มี foreign key จริงใน schema — เชื่อมด้วย JOIN ใน SQL):
+`salary.CID → officer.CID`, `salary.IDPAY → cpay.IDPAY`, `salary.BANKID → bank.id`,
+`salary.(PNUMBER,NODEEGAR) → deegar`, `deegar.CHEQUE → cheque.CHEQUE`, `deegar.PNUMBER → regisdeegar.PNUMBER`,
+`officer.CODE → station.CODE`, `salary.MONTHTHAI → cmonth.ID`
+
+## 5. ฟีเจอร์ (หน้า → API)
+
+| เมนู | หน้า | API | หมายเหตุ |
+|------|-----|-----|---------|
+| รายชื่อจนท. | `/officers`, `/officers/[cid]` (+ `banks`, `personal`, `salaries`, `paydirect`, `payperson`) | `/api/officers`, `/api/officers/[cid]/*`, `/api/banks` | CRUD เจ้าหน้าที่ บัญชี และรายการเงินรายเดือน |
+| สลิปจ่ายตรง | `/officers/paydirect`, `/officers/paydirect/[payid]`, `/paydirect` | `/api/officers/[cid]/paydirect`, `/api/paydirect/report` | กรองตามบทบาทด้วย `buildPaydirectAccessClause` |
+| สลิปรายเดือน | `/officers/payperson/[cid]/[yearthai]/[monththai]` | `/api/officers/[cid]/payperson/[yearthai]/[monththai]` | รายรับ = `PAYTYPE='1'`, ไม่รวม `IDPAY='20004'`, ยอดสุทธิ = รับ − จ่าย |
+| ทะเบียนฎีกา | `/deegars` | `/api/deegars`, `/api/deegars/[pnumber]/[nodeegar]`, `/api/salaries/deegars` | |
+| ทะเบียนเช็ค | `/cheques` | `/api/cheques`, `/api/cheques/[cheque]`, `/api/salaries/cheques` | |
+| ทะเบียนคุมเบิกจ่ายฎีกา | `/regisdeegars` | `/api/regisdeegars`, `/api/regisdeegars/[pnumber]`, `/api/regisdeegar` | |
+| รหัสหน่วยงาน / รหัสรับ-จ่าย | `/stations`, `/cpays` | `/api/stations`, `/api/stations/departs`, `/api/cpays`, `/api/cmonths` | |
+| รายงาน | `/reports/*` (ทั้งหมด, ค้นหาฎีกา/เช็ค, สรุปฎีกา, ตามวันที่, ภาษีตามฝ่าย/ตำแหน่ง/กลุ่ม, ใบสำคัญจ่าย) | `/api/reports/*` | |
+| ส่งกรุงไทย | `/reports/ktbdeegar`, `/reports/ktbcheque` | `/api/reports/ktb*/export` | Excel: bank code `006`, เลขบัญชี, ชื่อ, ยอด 2 ตำแหน่ง, CID, เลขเช็ค, `PNUMBER/NODEEGAR`, email, mobile, วันจ่าย |
+| กราฟ | `/charts/inout` | `/api/charts/inout` | |
+| นำเข้าจ่ายตรง | `/tools/import-paydirect` | `POST /api/paydirect/import` | ดูข้อ 6 |
+| จัดการผู้ใช้ / useronline | `/tools/users`, `/tools/useronline` | `/api/users`, `/api/useronline` | |
+
+## 6. กฎทางธุรกิจและเงื่อนไขสำคัญ
+
+- **รายการเงิน (salary)**: ต้องมี `cid`, `idpay`, `bankId`, `monththai`, `yearthai`, `money` เป็นตัวเลข;
+  `bankId` ต้องเป็นบัญชีของ `cid` เดียวกัน; `PNUMBER` ไม่เกิน 10 ตัว; เดือนเติม 0 ข้างหน้าเป็น 2 หลัก;
+  USER สร้าง/แก้ได้เฉพาะของตัวเอง; ซ้ำตาม unique key 7 ฟิลด์ไม่ได้
+- **ฎีกา**: ต้องมี `pnumber`, `accnumber`, `accname`; `NODEEGAR` default `1`; (`PNUMBER`,`NODEEGAR`) ซ้ำ → 409 "เลขฎีกาซ้ำในระบบ";
+  การค้นหา page size สูงสุด 50; คอลัมน์ sort ต้องอยู่ใน whitelist
+- **นำเข้า paydirect**: ไฟล์ข้อความคั่นด้วย `$` ทีละบรรทัด ตามลำดับคอลัมน์ A..CA;
+  ตรวจ encoding: BOM UTF-8 / UTF-16LE / UTF-16BE, ถ้าถอด UTF-8 แล้วมี `�` ถือเป็น TIS-620;
+  ใช้ `INSERT IGNORE` → แถวที่ (A,B,C) ซ้ำจะถูกข้าม (ไม่อัปเดต) และรายงานเลขบรรทัดที่ข้าม; บรรทัดว่างข้าม
+- **Session**: JWT HS256 อายุ 8 ชม., cookie `httpOnly`, `sameSite=lax`, `secure` เมื่อ production
+- **Captcha**: 6 ตัวจากชุดที่ตัดตัวสับสน (ไม่มี I, O, 0, 1) เทียบแบบไม่สนตัวพิมพ์
+
+## 7. Edge cases ที่โค้ดรองรับแล้ว
+
+- repo/DB: BigInt จาก MySQL แปลงเป็น number/string ก่อนส่ง JSON
+- เลขบัตรจาก ThaiID อ่านได้หลายชื่อฟิลด์ (`pid`, `citizen_id`, `cid`, `sub`)
+- token endpoint ของ ThaiID ตอบ 404 → ลองใหม่โดยเติม `/` ท้าย URL
+- IP จาก `x-forwarded-for` / `x-real-ip` แปลง `::1`, `::ffff:` เป็น IPv4
+- ไฟล์นำเข้าเป็น TIS-620 / UTF-16 / มี BOM
+- USER ไม่มี `cid` ใน session → ถูกส่งไป `/officers/paydirect`
+
+## 8. ปัญหาที่พบจากการอ่านโค้ด (ยังไม่แก้ — ต้องเปิดงานใน docs/TASK_BOARD.md)
+
+ลำดับตามความรุนแรง
+
+1. **[วิกฤต] `POST /api/auth/thaiid-login` login เป็นใครก็ได้** — รับ `pid` จาก body โดยไม่ตรวจกับ DOPA แล้วออก session ให้ user ที่ `cid` ตรง
+   ใครรู้เลขบัตรของ admin ก็ได้สิทธิ์ admin ไม่พบโค้ดในแอปที่เรียก route นี้ (flow จริงอยู่ที่ `/callback`)
+2. **[สูง] สลิปรายเดือนดูของคนอื่นได้ (IDOR)** — `/api/officers/[cid]/payperson/[yearthai]/[monththai]` ตรวจแค่ว่ามี session ไม่ตรวจว่า `cid` เป็นของผู้ใช้
+   (middleware กันแค่ "หน้าเว็บ" ไม่กัน API) — ต้องตรวจ API ตัวอื่นที่ใช้แค่ `verifySession` ด้วย
+3. **[สูง] API ส่วนใหญ่ไม่ตรวจบทบาท** — ราว 30 route ตรวจแค่ "login แล้ว" เช่น นำเข้า paydirect, เช็ค, ทะเบียนฎีกา (PUT), หน่วยงาน, รายงาน, export KTB
+   USER จึงเรียกได้โดยตรง; middleware ไม่ครอบ `/reports`, `/tools`, `/stations`, `/cpays`, `/charts`
+4. **[สูง] บันทึกรหัสผ่านเป็นข้อความธรรมดาลง `useronline`** ทุกครั้งที่ login รวมถึงครั้งที่พิมพ์ผิด
+5. **[สูง] `AUTH_SECRET` มีค่า fallback ฝังในโค้ด** (`src/lib/auth.ts`) ถ้าลืมตั้ง env ทุกคนที่เห็นโค้ดปลอม session ได้
+6. **[กลาง] รหัสผ่านเก็บเป็น SHA-1 ไม่มี salt** และ captcha ไม่มีหมดอายุ/ใช้ซ้ำได้ (signature ผูกกับรหัสอย่างเดียว ไม่มีเวลา/nonce)
+7. **[กลาง] export KTB JOIN `bank ON bank.CID = salary.CID`** — คนที่มีหลายบัญชีจะได้หลายแถว (ยอดโอนซ้ำ) ควร JOIN ด้วย `salary.BANKID`
+8. **[กลาง] error 500 ส่ง `detail` (ข้อความ error ภายใน) กลับไปให้ client**; `/api/thaiid/exchange` คืน `tokenUrl`/`callbackUrl` เมื่อผิดพลาด
+9. **[ต่ำ] `paydirect` เก็บตัวเลขเป็น VarChar** — การรวมยอดต้องแปลงเอง; การนำเข้าซ้ำไม่อัปเดตข้อมูลที่แก้แล้ว
+10. **[ต่ำ] `README.md` ล้าสมัย** (พูดถึง carbooking-nextjs, port 9100 ขณะที่ใช้ 9102)
+
+## 9. ข้อที่ต้องยืนยันกับเจ้าของระบบ
+
+- ความหมายของคอลัมน์ paydirect ที่ยังเป็นตัวอักษร (D..CA) และรูปแบบไฟล์ต้นทาง (มาจากระบบใด)
+- `IDPAY = '20004'` ที่ถูกตัดออกจากสลิปคืออะไร และทำไม
+- EDITOR ใช้งานจริงหรือไม่ (มีใน `paydirectAccess.ts` แต่ middleware/route อื่นไม่รู้จัก)
+- `/api/auth/thaiid-login` และ `/api/thaiid/exchange` ยังใช้อยู่หรือเลิกแล้ว (ถ้าเลิก ควรลบ)
+- กฎการปัดเศษ/ภาษีในรายงานภาษี และ bank code `006` ใช้กับทุกบัญชีหรือเฉพาะกรุงไทย
