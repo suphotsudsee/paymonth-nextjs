@@ -1,8 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { auth as nextAuth } from '@/auth';
-
-const secret = process.env.AUTH_SECRET || '8f3a1e9c4b7d20568f3a1e9c4b7d20568f3a1e9c4b7d20568f3a1e9c4b7d2056';
-const encodedSecret = new TextEncoder().encode(secret);
+import { getAuthSecretKey } from '@/lib/authSecret';
 
 type SessionPayload = {
   id: number;
@@ -18,16 +16,19 @@ export async function signSession(payload: SessionPayload) {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('8h')
-    .sign(encodedSecret);
+    .sign(getAuthSecretKey());
 }
 
 export async function verifySession(
   token?: string,
   options?: { skipNextAuth?: boolean },
 ): Promise<SessionPayload | null> {
+  // ตรวจกุญแจก่อนทุกเส้นทาง (cookie session และ NextAuth) และนอก try: ตั้งค่าผิดต้องเป็น error ชัดเจน
+  // ไม่ใช่กลายเป็น "token ไม่ถูกต้อง" เงียบๆ หรือหลุดไปใช้ NextAuth ด้วยกุญแจที่ไม่ปลอดภัย
+  const key = getAuthSecretKey();
   if (token) {
     try {
-      const { payload } = await jwtVerify(token, encodedSecret);
+      const { payload } = await jwtVerify(token, key);
       return payload as unknown as SessionPayload;
     } catch {
       // fall through to NextAuth verification
@@ -98,7 +99,7 @@ export function generateCaptchaCode(): string {
 export async function signCaptcha(code: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
-    encodedSecret,
+    getAuthSecretKey(),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']

@@ -8,7 +8,7 @@
 | 2b | [สูง] route ฝั่งงานคลัง (นำเข้า paydirect, เช็ค, ฎีกา, หน่วยงาน, รายงาน, export KTB, users) ยังไม่ตรวจบทบาท — USER เรียกได้ (PRD 8.3); `/api/users` GET คืนคอลัมน์ password ด้วย | เสร็จ | ดู "หลักฐาน: งาน #2b" ด้านล่าง |
 | 2c | [กลาง] จำกัด EDITOR ตามหน่วยงาน และให้ middleware ใช้เกณฑ์เดียวกับ `canAccessCid` (status ว่าง = สิทธิ์จำกัด) | รอ | |
 | 3 | [สูง] เลิกบันทึกรหัสผ่านลง `useronline` (PRD 8.4) | เสร็จ (โค้ด) — **รอคนรัน SQL ล้างแถวเก่าบน DB จริง** | ดู "หลักฐาน: งาน #3" ด้านล่าง |
-| 4 | [สูง] บังคับตั้ง `AUTH_SECRET` (ไม่มี fallback) (PRD 8.5) | รอ | |
+| 4 | [สูง] บังคับตั้ง `AUTH_SECRET` (ไม่มี fallback) (PRD 8.5) | เสร็จ (โค้ด) — **ต้องตั้ง AUTH_SECRET ใหม่ใน .env ของ server ก่อน push** | ดู "หลักฐาน: งาน #4" ด้านล่าง |
 | 5 | [กลาง] export KTB ใช้ `salary.BANKID` แทน JOIN ตาม CID (PRD 8.7) | รอ | |
 | 6 | ตั้งระบบเทสต์ของแอป (ยังไม่มีเลย) ก่อนเริ่มงาน 1–5 | รอ | |
 
@@ -216,3 +216,85 @@ server log: "Login audit insert failed ... Authentication failed against databas
 ค้น "Probe-Secret" ใน server log -> ไม่พบ
 ```
 ยังพิสูจน์ไม่ได้ในเครื่องนี้: แถวที่บันทึกจริงมี password = NULL (ต้องมี DB) — SQL ใน INSERT เป็นค่าคงที่และเทสต์บังคับไว้
+
+## หลักฐาน: งาน #4 — AUTH_SECRET ไม่มี fallback และห้ามใช้ค่าที่หลุด
+
+### สิ่งที่พบ
+- `src/lib/auth.ts` มี `process.env.AUTH_SECRET || '<ค่า 64 ตัวอักษร>'` และ **`.env` ในเครื่องใช้ค่าเดียวกับ fallback นั้น**
+  ค่านี้อยู่ใน git history แล้ว ใครเห็น repo ก็เซ็น JWT เป็น admin ได้ — ถ้า server ใช้ค่าเดียวกัน แปลว่าระบบจริงปลอม session ได้
+- ค่าเดียวกันอยู่ใน `thaiid-login-package/src/lib/auth.ts` (ชุดไฟล์ที่ก๊อปไปโปรเจกต์อื่น)
+
+### สิ่งที่เปลี่ยน
+- `src/lib/authSecret.ts` (ใหม่, ไม่ import อะไร ใช้ได้ใน middleware/edge): `getAuthSecretKey()` อ่าน `AUTH_SECRET` ตอนใช้งาน
+  แล้ว throw `AuthSecretError` ถ้า **ไม่ตั้ง / เป็นค่า fallback เก่าที่หลุด / สั้นกว่า 32 ไบต์** (HS256 = HMAC-SHA256, RFC 7518 ข้อ 3.2)
+  ข้อความ error บอกวิธีสร้างค่าใหม่ และไม่พิมพ์ค่า secret
+- `src/lib/auth.ts`: ลบ fallback; `signSession`, `verifySession`, `signCaptcha` ใช้ `getAuthSecretKey()`;
+  ใน `verifySession` อ่านกุญแจ **นอก** try/catch เพื่อให้ตั้งค่าผิดเป็น error ชัดเจน ไม่กลายเป็น "token ไม่ถูกต้อง" เงียบๆ
+- แก้เหมือนกันใน `thaiid-login-package/` + README ของ package บอกว่า AUTH_SECRET บังคับและต้องสร้างใหม่ทุกโปรเจกต์
+- `.env` ในเครื่อง (ไม่อยู่ใน git): เปลี่ยน `AUTH_SECRET` เป็นค่าสุ่มใหม่ 32 ไบต์ (hex 64 ตัว) บรรทัดอื่นไม่แตะ
+
+### เทสต์ — `npm test` (output จริง)
+```
+✔ checker rejects handler exports it cannot inspect
+✔ non-public routes only declare handlers as export async function
+✔ checker flags an unguarded handler next to a guarded one
+✔ every handler of every non-public API route checks role or ownership before DB access
+✔ PUBLIC list has no stale entries
+✔ verifySession is always awaited
+✔ user management and login log are admin-only
+✔ password column is never selected back to the browser
+✔ thaiid-login bypass route does not exist
+✔ only approved routes issue a session cookie
+✔ missing or blank secret is rejected
+✔ the old hardcoded fallback is rejected even if set explicitly
+✔ secrets shorter than 32 bytes are rejected
+✔ a random 32-byte hex secret is accepted and encoded as UTF-8 bytes
+✔ error message never echoes the secret value
+✔ auth.ts has no fallback and validates the key before any auth path
+✔ NextAuth config is lazy and validates AUTH_SECRET first
+✔ package copy of authSecret.ts matches the app
+✔ every useronline INSERT hard-codes NULL for password
+✔ login audit no longer carries the password at all
+✔ no other code writes to useronline
+✔ login log API and page do not expose a password field
+✔ limited user: only own CID
+✔ missing, blank, unknown or 'user' status with accessLevel 0 is limited (fail closed)
+✔ limited user without a CID in session gets nothing
+✔ staff roles keep access to any CID (unchanged behaviour)
+✔ no session or empty target CID is denied
+✔ per-officer routes check CID ownership
+ℹ pass 28
+ℹ fail 0
+```
+`tests/auth-secret.test.mjs` ตัวที่ตรวจ `auth.ts` จับได้จริง: รันกับ `auth.ts` เดิม -> `✖ auth.ts has no fallback ...`
+`npx tsc --noEmit` -> 0; `npm run build` -> 0 (อ่าน secret ตอน runtime จึง build ได้แม้ยังไม่ตั้ง)
+
+### เรียกจริงบน dev server
+token "forged" = JWT admin ที่เซ็นด้วยค่า fallback เก่า (สิ่งที่ผู้โจมตีทำได้จาก git history)
+
+| คำขอ | AUTH_SECRET = ค่าสุ่มใหม่ | AUTH_SECRET = ค่าเก่าที่หลุด (ทดสอบชั่วคราว) |
+|------|--------------------------|------------------------------------------|
+| GET /api/auth/captcha | 200 | 500 + log `AuthSecretError: AUTH_SECRET is a publicly known value ...` |
+| GET /api/auth/me ด้วย token forged | **401** | 500 (ไม่รับ session ใดๆ) |
+| GET /deegars ด้วย token forged | **307 -> /login** | 500 (middleware ปฏิเสธ) |
+| GET /api/auth/me ด้วย token ที่เซ็นด้วยค่าใน .env | 200 | — |
+| GET /deegars ด้วย token ที่เซ็นด้วยค่าใน .env | 200 | — |
+
+### Codex รอบ 1 (EXIT=1) — แก้แล้ว
+- ตรวจ secret เฉพาะเมื่อมี cookie `session`: คำขอที่มีแค่ cookie ของ NextAuth ข้ามการตรวจ และ NextAuth ยังเข้ารหัส/ถอด cookie
+  ด้วยค่าที่หลุดได้ -> (1) `verifySession` อ่านกุญแจก่อน `if (token)` และก่อน `nextAuth()`;
+  (2) `src/auth.ts` ใช้ config แบบ lazy `NextAuth(() => { getAuthSecretKey(); return { secret: process.env.AUTH_SECRET, ... } })`
+  ตรวจทุกครั้งที่ NextAuth ถูกใช้ (ทำเหมือนกันใน package) + เทสต์ 2 ตัว
+- เรียกจริง เฉพาะเส้นทาง NextAuth:
+
+| คำขอ | ค่าสุ่มใหม่ | ค่าเก่าที่หลุด |
+|------|-----------|--------------|
+| GET /api/auth/session (handler ของ NextAuth) | 200 `null` | **500** + log `AuthSecretError` (จาก config แบบ lazy) |
+| GET /api/auth/me มีแค่ cookie `authjs.session-token` | 401 | **500** + log `AuthSecretError` (จาก verifySession) |
+| GET /api/auth/me ไม่มี cookie | 401 | 500 |
+
+### สิ่งที่คนต้องทำก่อน push (main deploy อัตโนมัติผ่าน `.github/workflows/deploy.yml`)
+1. บน server: ตั้ง `AUTH_SECRET` ใหม่ใน `.env` ของ `/home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th`
+   (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) — ถ้ายังเป็นค่าเก่า/ไม่ได้ตั้ง หลัง deploy ทุกหน้าที่ต้อง login จะเป็น 500
+2. ผู้ใช้ทุกคนต้อง login ใหม่ (session เดิมเซ็นด้วยกุญแจเก่า)
+3. NextAuth ใช้ `AUTH_SECRET` ตัวเดียวกันเข้ารหัส cookie ของ ThaiID — เปลี่ยนแล้ว flow ThaiID ที่ค้างอยู่ต้องเริ่มใหม่

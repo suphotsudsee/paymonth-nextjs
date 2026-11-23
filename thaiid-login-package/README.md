@@ -7,6 +7,7 @@ ThaiID Login Bundle
 -----------------------------
 - `src/auth.ts`
 - `src/lib/auth.ts`
+- `src/lib/authSecret.ts`
 - `src/lib/prisma.ts`
 - `src/middleware.ts`
 - `src/app/callback/route.ts`
@@ -28,7 +29,7 @@ Dependencies ที่ต้องมีในโปรเจ็กใหม่
 
 Environment variables ที่ต้องตั้ง
 ----------------------------------
-- `AUTH_SECRET` (ใช้ sign JWT session ใน `src/lib/auth.ts`)
+- `AUTH_SECRET` (ใช้ sign JWT session ใน `src/lib/auth.ts` — **บังคับ**: ไม่มีค่า default, ยาวอย่างน้อย 32 ไบต์, สร้างใหม่ทุกโปรเจกต์ด้วย `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
 - `AUTH_THAIID_ID`
 - `AUTH_THAIID_SECRET`
 - `AUTH_THAIID_SCOPE` (เช่น `pid`)

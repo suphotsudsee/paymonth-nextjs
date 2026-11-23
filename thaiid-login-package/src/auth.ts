@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import { getAuthSecretKey } from "@/lib/authSecret";
 
 import type { OAuthConfig } from "next-auth/providers";
 
@@ -67,49 +68,55 @@ export const {
   auth,
   signIn,
   signOut,
-} = NextAuth({
-  debug: !isProd,
-  logger: {
-    error: (...args) => console.error("[next-auth][error]", ...args),
-    warn: (...args) => console.warn("[next-auth][warn]", ...args),
-    debug: (...args) => verboseAuthLog && console.debug("[next-auth][debug]", ...args),
-  },
-  events: {
-    async signIn({ user, account, profile, isNewUser }) {
-      if (!verboseAuthLog) return;
-      // Avoid logging sensitive PII in production; only log in verbose/dev mode.
-      console.log("[thaiid][signin] isNewUser:", isNewUser);
+} = NextAuth(() => {
+  // config แบบ lazy: ตรวจ AUTH_SECRET ทุกครั้งที่ NextAuth ถูกใช้ (handler /api/auth/* และ auth())
+  // ค่าว่าง / ค่าที่หลุด / สั้นเกิน -> throw แทนการเข้ารหัส cookie ด้วยกุญแจที่ไม่ปลอดภัย
+  getAuthSecretKey();
+  return {
+    secret: process.env.AUTH_SECRET,
+    debug: !isProd,
+    logger: {
+      error: (...args) => console.error("[next-auth][error]", ...args),
+      warn: (...args) => console.warn("[next-auth][warn]", ...args),
+      debug: (...args) => verboseAuthLog && console.debug("[next-auth][debug]", ...args),
     },
-  },
-  // Use provider object directly; NextAuth will inject env defaults.
-  providers: [ThaiIdProvider],
-  session: {
-    strategy: "jwt",
-  },
-  callbacks: {
-    async jwt({ token, profile }) {
-      const data = profile as Record<string, unknown> | null | undefined;
-      const citizenId =
-        typeof (data as { citizenId?: unknown })?.citizenId === "string"
-          ? (data as { citizenId?: string }).citizenId
-          : typeof (data as { citizen_id?: unknown })?.citizen_id === "string"
-            ? (data as { citizen_id?: string }).citizen_id
-            : typeof (data as { cid?: unknown })?.cid === "string"
-              ? (data as { cid?: string }).cid
-              : undefined;
+    events: {
+      async signIn({ user, account, profile, isNewUser }) {
+        if (!verboseAuthLog) return;
+        // Avoid logging sensitive PII in production; only log in verbose/dev mode.
+        console.log("[thaiid][signin] isNewUser:", isNewUser);
+      },
+    },
+    // Use provider object directly; NextAuth will inject env defaults.
+    providers: [ThaiIdProvider],
+    session: {
+      strategy: "jwt",
+    },
+    callbacks: {
+      async jwt({ token, profile }) {
+        const data = profile as Record<string, unknown> | null | undefined;
+        const citizenId =
+          typeof (data as { citizenId?: unknown })?.citizenId === "string"
+            ? (data as { citizenId?: string }).citizenId
+            : typeof (data as { citizen_id?: unknown })?.citizen_id === "string"
+              ? (data as { citizen_id?: string }).citizen_id
+              : typeof (data as { cid?: unknown })?.cid === "string"
+                ? (data as { cid?: string }).cid
+                : undefined;
 
-      if (citizenId) {
-        token.citizenId = citizenId;
-      }
-      return token;
+        if (citizenId) {
+          token.citizenId = citizenId;
+        }
+        return token;
+      },
+      async session({ session, token }) {
+        if (token && session.user) {
+          (session.user as { citizenId?: unknown }).citizenId = (token as {
+            citizenId?: unknown;
+          }).citizenId;
+        }
+        return session;
+      },
     },
-    async session({ session, token }) {
-      if (token && session.user) {
-        (session.user as { citizenId?: unknown }).citizenId = (token as {
-          citizenId?: unknown;
-        }).citizenId;
-      }
-      return session;
-    },
-  },
+  };
 });
