@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { isStaff } from "@/lib/permissions";
 
 const PNUMBER_MAX_LENGTH = 10;
 
@@ -11,6 +12,8 @@ export async function PUT(
   try {
     const session = await verifySession(req.cookies.get("session")?.value);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // แก้ไขเงินเดือนเป็นงานของเจ้าหน้าที่การเงิน: ผู้ใช้สิทธิ์จำกัดแก้ได้แม้แต่ของตัวเองไม่ได้ (UI ของ USER ไม่ได้เรียก route นี้)
+    if (!isStaff(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { id } = await params;
     const salaryId = Number(id);
@@ -41,15 +44,6 @@ export async function PUT(
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const status = String(session.status || "").toLowerCase();
-    const isLimitedUser = status === "user";
-    if (isLimitedUser && session.cid !== cid) {
-      return NextResponse.json(
-        { error: "Forbidden: cannot update salary for other users" },
-        { status: 403 },
-      );
-    }
-
     if (pnumber.length > PNUMBER_MAX_LENGTH) {
       return NextResponse.json(
         { error: `PNUMBER must be at most ${PNUMBER_MAX_LENGTH} characters` },
@@ -62,10 +56,6 @@ export async function PUT(
     });
     if (!current) {
       return NextResponse.json({ error: "Salary record not found" }, { status: 404 });
-    }
-
-    if (isLimitedUser && current.CID !== session.cid) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const bank = await prisma.bank.findUnique({ where: { id: bankId } });
@@ -119,6 +109,8 @@ export async function DELETE(
   try {
     const session = await verifySession(req.cookies.get("session")?.value);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // ลบเงินเดือนเป็นงานของเจ้าหน้าที่การเงินเท่านั้น
+    if (!isStaff(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { id } = await params;
     const salaryId = Number(id);
@@ -131,12 +123,6 @@ export async function DELETE(
     });
     if (!current) {
       return NextResponse.json({ error: "Salary record not found" }, { status: 404 });
-    }
-
-    const status = String(session.status || "").toLowerCase();
-    const isLimitedUser = status === "user";
-    if (isLimitedUser && current.CID !== session.cid) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await prisma.salary.delete({

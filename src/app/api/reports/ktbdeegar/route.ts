@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
+import { isStaff } from '@/lib/permissions';
 
 type Row = {
   IDBANK: string | null;
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await verifySession(req.cookies.get('session')?.value);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isStaff(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const pnumber = searchParams.get('pnumber')?.trim();

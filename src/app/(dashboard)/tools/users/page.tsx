@@ -275,7 +275,6 @@ export default function ManageUsersPage() {
                 <tr>
                   <th>ID</th>
                   <th>Username</th>
-                  <th>Password</th>
                   <th>CID</th>
                   <th>Fname</th>
                   <th>Lname</th>
@@ -298,7 +297,6 @@ export default function ManageUsersPage() {
                       placeholder="ค้นหา Username"
                     />
                   </th>
-                  <th />
                   <th>
                     <input
                       className={styles.filterInput}
@@ -329,12 +327,12 @@ export default function ManageUsersPage() {
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={7}>กำลังโหลด...</td>
+                    <td colSpan={6}>กำลังโหลด...</td>
                   </tr>
                 )}
                 {!loading && data?.items?.length === 0 && (
                   <tr>
-                    <td className={styles.emptyState} colSpan={7}>
+                    <td className={styles.emptyState} colSpan={6}>
                       ไม่พบข้อมูลผู้ใช้
                     </td>
                   </tr>
@@ -344,7 +342,6 @@ export default function ManageUsersPage() {
                     <tr key={row.id} className={idx % 2 === 1 ? styles.evenRow : undefined}>
                       <td>{row.id}</td>
                       <td>{row.username}</td>
-                      <td>{row.password}</td>
                       <td>{row.cid}</td>
                       <td>{row.fname}</td>
                       <td>{row.lname}</td>
@@ -439,10 +436,6 @@ export default function ManageUsersPage() {
                   <div className={styles.detailRow}>
                     <span>Username</span>
                     <strong>{selectedUser?.username ?? "-"}</strong>
-                  </div>
-                  <div className={styles.detailRow}>
-                    <span>Password</span>
-                    <strong>{selectedUser?.password ?? "-"}</strong>
                   </div>
                   <div className={styles.detailRow}>
                     <span>CID</span>

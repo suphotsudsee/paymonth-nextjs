@@ -2,11 +2,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { hasAdminAccess } from "@/lib/permissions";
 
 type UserRow = {
   id: number;
   username: string;
-  password: string;
   cid: string;
   fname: string;
   lname: string;
@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!hasAdminAccess(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page") || 1));
@@ -67,7 +68,7 @@ export async function GET(req: NextRequest) {
 
     const itemsPromise = prisma.$queryRawUnsafe(
       `
-        SELECT u.id, u.username, u.password, u.cid, u.fname, u.lname, u.status, u.accessLevel, u.mobile, u.email
+        SELECT u.id, u.username, u.cid, u.fname, u.lname, u.status, u.accessLevel, u.mobile, u.email
         FROM user u
         ${whereClause}
         ORDER BY u.id ASC
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!hasAdminAccess(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     const username = String(body?.username || "").trim();
@@ -147,6 +149,7 @@ export async function POST(req: NextRequest) {
         email,
         accessLevel: Number.isFinite(accessLevel) ? accessLevel : 0,
       },
+      omit: { password: true }, // ไม่ส่ง hash รหัสผ่านกลับไปที่ browser
     });
 
     return NextResponse.json({ user: created }, { status: 201 });

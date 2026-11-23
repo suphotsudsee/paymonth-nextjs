@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { isStaff } from "@/lib/permissions";
 
 const PNUMBER_MAX_LENGTH = 10;
 
@@ -10,6 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await verifySession(req.cookies.get("session")?.value);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isStaff(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const pnumber = searchParams.get("pnumber")?.trim() || undefined;
@@ -110,6 +112,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await verifySession(req.cookies.get("session")?.value);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isStaff(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json();
     const pnumber = String(body?.pnumber || "").trim();

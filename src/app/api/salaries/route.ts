@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { isStaff } from "@/lib/permissions";
 
 const PNUMBER_MAX_LENGTH = 10;
 
@@ -11,6 +12,8 @@ export async function POST(req: NextRequest) {
   try {
     const session = await verifySession(req.cookies.get("session")?.value);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // แก้ไขเงินเดือนเป็นงานของเจ้าหน้าที่การเงิน: ผู้ใช้สิทธิ์จำกัดแก้ได้แม้แต่ของตัวเองไม่ได้ (UI ของ USER ไม่ได้เรียก route นี้)
+    if (!isStaff(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json();
     const cid = String(body?.cid || "").trim();
@@ -33,15 +36,6 @@ export async function POST(req: NextRequest) {
 
     if (!cid || !idpay || !monththai || !yearthai || Number.isNaN(moneyValue) || !bankId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    const status = String(session.status || "").toLowerCase();
-    const isLimitedUser = status === "user";
-    if (isLimitedUser && session.cid !== cid) {
-      return NextResponse.json(
-        { error: "Forbidden: cannot create salary for other users" },
-        { status: 403 },
-      );
     }
 
     if (pnumber.length > PNUMBER_MAX_LENGTH) {

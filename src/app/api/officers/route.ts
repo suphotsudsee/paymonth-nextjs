@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
+import { isStaff } from '@/lib/permissions';
 
 const hashPassword = (raw: string) => crypto.createHash('sha1').update(raw).digest('hex');
 
@@ -84,6 +85,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await verifySession(req.cookies.get('session')?.value);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isStaff(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get('page') || 1));
@@ -174,6 +176,7 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!isStaff(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const status = String(session.status || "").toLowerCase();
     const accessLevel = Number(session.accessLevel || 0);
     const isLimitedUser = status === "user" && accessLevel <= 0;

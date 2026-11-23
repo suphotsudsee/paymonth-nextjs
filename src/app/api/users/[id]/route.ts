@@ -2,11 +2,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { hasAdminAccess } from "@/lib/permissions";
 
 type UserRow = {
   id: number;
   username: string;
-  password: string;
   cid: string;
   fname: string;
   lname: string;
@@ -31,6 +31,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!hasAdminAccess(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const id = await parseId(params);
     if (!id) {
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const rows = (await prisma.$queryRawUnsafe(
       `
-        SELECT id, username, password, cid, fname, lname, status, accessLevel, mobile, email
+        SELECT id, username, cid, fname, lname, status, accessLevel, mobile, email
         FROM user
         WHERE id = ?
         LIMIT 1
@@ -67,6 +68,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!hasAdminAccess(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const id = await parseId(params);
     if (!id) {
@@ -136,7 +138,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       id,
     );
 
-    const updated = await prisma.user.findUnique({ where: { id } });
+    const updated = await prisma.user.findUnique({ where: { id }, omit: { password: true } });
     return NextResponse.json({ user: updated });
   } catch (err: unknown) {
     console.error("user update error", err);
@@ -151,6 +153,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!hasAdminAccess(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const id = await parseId(params);
     if (!id) {

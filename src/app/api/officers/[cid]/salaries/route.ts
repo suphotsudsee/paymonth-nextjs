@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { canAccessCid } from "@/lib/permissions";
 
 type SalaryRow = {
   ID: bigint;
@@ -34,8 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cid:
       return NextResponse.json({ error: "CID is required" }, { status: 400 });
     }
 
-    const role = String(session.status || "").toLowerCase();
-    if (role === "user" && session.cid !== cid) {
+    if (!canAccessCid(session, cid)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { isStaff } from "@/lib/permissions";
 
 export async function GET(req: NextRequest) {
   try {
@@ -8,6 +9,7 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!isStaff(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const months = await prisma.$queryRaw<{ ID: string; NAMEMONTH_TH: string }[]>`
       SELECT ID, NAMEMONTH_TH

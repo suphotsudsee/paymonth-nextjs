@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { hasAdminAccess } from "@/lib/permissions";
 
 type UserOnlineRow = {
   id?: number;
   username: string | null;
-  password: string | null;
   logined: string | null;
   ipv4: string | null;
   logindate: string | Date | null;
@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!hasAdminAccess(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, Number(searchParams.get("page") || 1));
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest) {
 
     const itemsPromise = prisma.$queryRawUnsafe(
       `
-        SELECT id, username, password, logined, ipv4, logindate
+        SELECT id, username, logined, ipv4, logindate
         FROM useronline
         ${whereClause}
         ORDER BY logindate DESC

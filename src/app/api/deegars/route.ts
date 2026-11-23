@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { isStaff } from "@/lib/permissions";
 
 const PNUMBER_MAX_LENGTH = 10;
 
@@ -13,6 +14,7 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!isStaff(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     const status = String(session.status || "").toLowerCase();
     const accessLevel = Number(session.accessLevel || 0);
     const isLimitedUser = status === "user" && accessLevel <= 0;
@@ -171,6 +173,7 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!isStaff(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json();
     const pnumber = String(body?.pnumber || "").trim();

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import iconv from "iconv-lite";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { isStaff } from "@/lib/permissions";
 
 const columns = [
   "A",
@@ -118,6 +119,7 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    if (!isStaff(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const formData = await req.formData();
     const file = formData.get("file");

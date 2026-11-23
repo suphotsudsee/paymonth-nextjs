@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
+import { isStaff } from '@/lib/permissions';
 
 const PNUMBER_MAX_LENGTH = 10;
 
 export async function GET(req: NextRequest) {
-  const session = verifySession(req.cookies.get('session')?.value);
+  const session = await verifySession(req.cookies.get('session')?.value);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!isStaff(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const items = await prisma.regisdeegar.findMany({
     orderBy: { REGISDATE: 'desc' },
@@ -17,8 +19,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = verifySession(req.cookies.get('session')?.value);
+  const session = await verifySession(req.cookies.get('session')?.value);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!isStaff(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
   const {
