@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { canAccessCid } from "@/lib/permissions";
 
 type SlipRow = {
   IDPAY: string;
@@ -34,6 +35,9 @@ export async function GET(
     const { cid, monththai, yearthai } = await params;
     if (!cid || !monththai || !yearthai) {
       return NextResponse.json({ error: "cid, monththai, and yearthai are required" }, { status: 400 });
+    }
+    if (!canAccessCid(session, cid)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const officerRows = (await prisma.$queryRawUnsafe(

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { canAccessCid } from "@/lib/permissions";
 
 type BankRow = {
   id: bigint | number;
@@ -31,6 +32,9 @@ export async function GET(req: NextRequest) {
     const cid = searchParams.get("cid");
     if (!cid) {
       return NextResponse.json({ error: "cid is required" }, { status: 400 });
+    }
+    if (!canAccessCid(session, cid)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const banks: BankRow[] = await prisma.bank.findMany({

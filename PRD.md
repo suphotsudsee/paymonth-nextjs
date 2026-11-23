@@ -118,8 +118,10 @@
 
 1. ~~**[วิกฤต] `POST /api/auth/thaiid-login` login เป็นใครก็ได้**~~ — **แก้แล้ว (TASK_BOARD #1)**: ลบ route ออกทั้งในแอปและ `thaiid-login-package`
    เงื่อนไขที่บังคับด้วยเทสต์ (`tests/auth-routes.test.mjs`): ออก session (`signSession`) ได้เฉพาะ `api/auth/login` และ `callback` เท่านั้น
-2. **[สูง] สลิปรายเดือนดูของคนอื่นได้ (IDOR)** — `/api/officers/[cid]/payperson/[yearthai]/[monththai]` ตรวจแค่ว่ามี session ไม่ตรวจว่า `cid` เป็นของผู้ใช้
-   (middleware กันแค่ "หน้าเว็บ" ไม่กัน API) — ต้องตรวจ API ตัวอื่นที่ใช้แค่ `verifySession` ด้วย
+2. ~~**[สูง] สลิปรายเดือนดูของคนอื่นได้ (IDOR)**~~ — **แก้แล้ว (TASK_BOARD #2)**: route ที่รับ CID แล้วคืนข้อมูลรายคน
+   (`officers/[cid]` GET/PUT, `officers/[cid]/personal`, `officers/[cid]/payperson/...`, `salaryuser/report`, `banks` GET)
+   เรียก `canAccessCid` → ได้ 403 ถ้า CID ไม่ใช่ของตัวเอง เว้นแต่ status มี admin/manager/editor หรือ `accessLevel >= 1`; `salaryuser/report` เดิมไม่ `await` session จึงไม่ตรวจ login เลย แก้แล้ว
+   ยังไม่ได้แก้: EDITOR ยังเห็นทุก CID (ยังไม่จำกัดตามหน่วยงาน); middleware ยังถือ status ว่าง เป็นเจ้าหน้าที่ (ไม่ตรงกับ API)
 3. **[สูง] API ส่วนใหญ่ไม่ตรวจบทบาท** — ราว 30 route ตรวจแค่ "login แล้ว" เช่น นำเข้า paydirect, เช็ค, ทะเบียนฎีกา (PUT), หน่วยงาน, รายงาน, export KTB
    USER จึงเรียกได้โดยตรง; middleware ไม่ครอบ `/reports`, `/tools`, `/stations`, `/cpays`, `/charts`
 4. **[สูง] บันทึกรหัสผ่านเป็นข้อความธรรมดาลง `useronline`** ทุกครั้งที่ login รวมถึงครั้งที่พิมพ์ผิด

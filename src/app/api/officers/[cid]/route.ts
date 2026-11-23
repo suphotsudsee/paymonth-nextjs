@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { canAccessCid } from "@/lib/permissions";
 
 export async function GET(
   req: NextRequest,
@@ -15,6 +16,9 @@ export async function GET(
     const { cid } = await params;
     if (!cid) {
       return NextResponse.json({ error: "CID is required" }, { status: 400 });
+    }
+    if (!canAccessCid(session, cid)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const rows = (await prisma.$queryRawUnsafe(
@@ -70,6 +74,9 @@ export async function PUT(
     const { cid } = await params;
     if (!cid) {
       return NextResponse.json({ error: "CID is required" }, { status: 400 });
+    }
+    if (!canAccessCid(session, cid)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await req.json();

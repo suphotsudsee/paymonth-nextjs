@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
+import { canAccessCid } from '@/lib/permissions';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const cid = searchParams.get('cid')?.trim();
 
-  const session = verifySession(req.cookies.get('session')?.value);
+  // ต้อง await: verifySession คืน Promise ซึ่ง truthy เสมอ (เดิมไม่ await = ไม่ตรวจ session เลย)
+  const session = await verifySession(req.cookies.get('session')?.value);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   if (!cid) {
     return NextResponse.json({ error: 'cid is required' }, { status: 400 });
+  }
+  if (!canAccessCid(session, cid)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const rows = (await prisma.$queryRawUnsafe(
