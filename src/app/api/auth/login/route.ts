@@ -5,7 +5,6 @@ import { signSession, verifyCaptcha } from '@/lib/auth';
 
 type LoginAttempt = {
   username: string | null;
-  password: string | null;
   logined: 'Y' | 'N';
   ipv4: string | null;
 };
@@ -26,12 +25,12 @@ function extractClientIp(req: NextRequest): string | null {
   return ip;
 }
 
+// บันทึกการ login โดยไม่เก็บรหัสผ่าน (เดิมเก็บรหัสที่พิมพ์เป็นข้อความธรรมดา รวมครั้งที่พิมพ์ผิด — PRD ข้อ 8.4)
 async function logLoginAttempt(attempt: LoginAttempt) {
   try {
     await prisma.$executeRawUnsafe(
-      'INSERT INTO useronline (username, password, logined, ipv4, logindate) VALUES (?, ?, ?, ?, NOW())',
+      'INSERT INTO useronline (username, password, logined, ipv4, logindate) VALUES (?, NULL, ?, ?, NOW())',
       attempt.username,
-      attempt.password,
       attempt.logined,
       attempt.ipv4,
     );
@@ -46,14 +45,12 @@ export async function POST(req: NextRequest) {
     const clientIp = extractClientIp(req);
     const ipv4 = clientIp;
     const usernameRaw = clampString(username, 50);
-    const passwordRaw = clampString(password, 50);
     const usernameTrim = String(username || '').trim();
     const passwordTrim = String(password || '').trim();
 
     if (!usernameTrim || !passwordTrim) {
       await logLoginAttempt({
         username: usernameRaw,
-        password: passwordRaw,
         logined: 'N',
         ipv4,
       });
@@ -64,7 +61,6 @@ export async function POST(req: NextRequest) {
     if (!(await verifyCaptcha(String(captcha || '').toUpperCase(), captchaSig))) {
       await logLoginAttempt({
         username: usernameRaw,
-        password: passwordRaw,
         logined: 'N',
         ipv4,
       });
@@ -84,7 +80,6 @@ export async function POST(req: NextRequest) {
     if (!user) {
       await logLoginAttempt({
         username: usernameRaw ?? usernameTrim,
-        password: passwordRaw ?? passwordTrim,
         logined: 'N',
         ipv4,
       });
@@ -115,7 +110,6 @@ export async function POST(req: NextRequest) {
 
     await logLoginAttempt({
       username: usernameRaw ?? usernameTrim,
-      password: passwordRaw ?? passwordTrim,
       logined: 'Y',
       ipv4,
     });

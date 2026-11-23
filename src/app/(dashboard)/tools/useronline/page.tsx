@@ -9,7 +9,6 @@ import { AppHeader } from "@/components/layout/AppHeader";
 type UserOnlineRow = {
   id: number | null;
   username: string | null;
-  password: string | null;
   logined: string | null;
   ipv4: string | null;
   logindate: string | null;
@@ -34,17 +33,6 @@ const formatDateTime = (value: string | null) => {
     timeStyle: "medium",
     timeZone: "Asia/Bangkok",
   });
-};
-
-const maskPassword = (value: string | null) => {
-  if (!value) return "-";
-  const trimmed = value.trim();
-  if (!trimmed) return "-";
-  const visible = trimmed.slice(0, 4);
-  const maskLength = Math.max(0, Math.min(8, trimmed.length - visible.length));
-  const mask = "*".repeat(maskLength);
-  const suffix = trimmed.length > visible.length + maskLength ? "..." : "";
-  return `${visible}${mask}${suffix}`;
 };
 
 export default function UserOnlineReportPage() {
@@ -158,7 +146,6 @@ export default function UserOnlineReportPage() {
                 <tr>
                   <th>#</th>
                   <th>ผู้ใช้</th>
-                  <th>รหัสผ่านที่ใช้</th>
                   <th>ผล</th>
                   <th>IP</th>
                   <th>วันที่/เวลา</th>
@@ -173,7 +160,6 @@ export default function UserOnlineReportPage() {
                       onChange={setFilterField("username")}
                     />
                   </th>
-                  <th />
                   <th>
                     <select className={styles.select} value={filters.logined} onChange={setFilterField("logined")}>
                       <option value="">ทั้งหมด</option>
@@ -212,12 +198,12 @@ export default function UserOnlineReportPage() {
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={6}>กำลังโหลด...</td>
+                    <td colSpan={5}>กำลังโหลด...</td>
                   </tr>
                 )}
                 {!loading && data?.items?.length === 0 && (
                   <tr>
-                    <td className={styles.emptyState} colSpan={6}>
+                    <td className={styles.emptyState} colSpan={5}>
                       ไม่พบข้อมูลการใช้งาน
                     </td>
                   </tr>
@@ -227,9 +213,6 @@ export default function UserOnlineReportPage() {
                     <tr key={row.id ?? `${row.username}-${row.logindate}-${idx}`} className={idx % 2 === 1 ? styles.evenRow : undefined}>
                       <td>{(page - 1) * pageSize + idx + 1}</td>
                       <td>{row.username || "-"}</td>
-                      <td title={row.password || "-"}>
-                        <code>{maskPassword(row.password)}</code>
-                      </td>
                       <td style={{ textAlign: "center" }}>
                         {row.logined === "Y" ? "สำเร็จ" : row.logined === "N" ? "ไม่สำเร็จ" : "-"}
                       </td>

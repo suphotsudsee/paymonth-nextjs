@@ -7,7 +7,7 @@
 | 2 | [สูง] ตรวจสิทธิ์เจ้าของข้อมูลใน API payperson และ route รายคนที่ใช้แค่ `verifySession` (PRD 8.2) | เสร็จ | ดู "หลักฐาน: งาน #2" ด้านล่าง |
 | 2b | [สูง] route ฝั่งงานคลัง (นำเข้า paydirect, เช็ค, ฎีกา, หน่วยงาน, รายงาน, export KTB, users) ยังไม่ตรวจบทบาท — USER เรียกได้ (PRD 8.3); `/api/users` GET คืนคอลัมน์ password ด้วย | เสร็จ | ดู "หลักฐาน: งาน #2b" ด้านล่าง |
 | 2c | [กลาง] จำกัด EDITOR ตามหน่วยงาน และให้ middleware ใช้เกณฑ์เดียวกับ `canAccessCid` (status ว่าง = สิทธิ์จำกัด) | รอ | |
-| 3 | [สูง] เลิกบันทึกรหัสผ่านลง `useronline` (PRD 8.4) | รอ | |
+| 3 | [สูง] เลิกบันทึกรหัสผ่านลง `useronline` (PRD 8.4) | เสร็จ (โค้ด) — **รอคนรัน SQL ล้างแถวเก่าบน DB จริง** | ดู "หลักฐาน: งาน #3" ด้านล่าง |
 | 4 | [สูง] บังคับตั้ง `AUTH_SECRET` (ไม่มี fallback) (PRD 8.5) | รอ | |
 | 5 | [กลาง] export KTB ใช้ `salary.BANKID` แทน JOIN ตาม CID (PRD 8.7) | รอ | |
 | 6 | ตั้งระบบเทสต์ของแอป (ยังไม่มีเลย) ก่อนเริ่มงาน 1–5 | รอ | |
@@ -168,3 +168,51 @@ DB ในเครื่องนี้ login ไม่ได้ (`Authenticatio
 ขอบเขตที่ตั้งไว้: เทสต์นี้กันการลืมใส่ guard ในรูปแบบที่โปรเจกต์ใช้จริง (`export async function` + `verifySession`)
 ไม่ได้พิสูจน์การตรวจสิทธิ์แบบสมบูรณ์ — การพิสูจน์จริงคือเรียก route ด้วย session แต่ละบทบาท (ตารางด้านบน)
 ถ้า Codex ขอเพิ่มเรื่อง static checker อีก จะหยุดและบันทึกเหตุผลแทนการแก้วนต่อ
+
+## หลักฐาน: งาน #3 — เลิกเก็บรหัสผ่านในบันทึกการ login
+
+### สิ่งที่เปลี่ยน
+- `api/auth/login`: เดิมบันทึกรหัสผ่านที่ผู้ใช้พิมพ์ (ข้อความธรรมดา, ทุกครั้งรวมครั้งที่ผิด) ลง `useronline.password`
+  -> INSERT ใส่ `NULL` ตายตัวใน SQL และตัด `password` ออกจาก `LoginAttempt` (ไม่มีทางส่งรหัสเข้าไปได้)
+- `callback` (ThaiID): เดิมส่ง `null` อยู่แล้ว เปลี่ยนเป็น `NULL` ใน SQL ให้เหมือนกัน
+- หน้า `/tools/useronline`: เอาคอลัมน์ "รหัสผ่านที่ใช้" ออก (เดิมแสดง 4 ตัวแรก + รหัสเต็มใน tooltip);
+  API `useronline` เลิก SELECT password ตั้งแต่งาน #2b
+- `prisma/sql/2026-11-23_clear_useronline_passwords.sql`: ล้างรหัสในแถวเก่า — **ยังไม่ได้รัน** (DB ในเครื่องเข้าไม่ได้
+  และเป็นการแก้ข้อมูลจริงที่ย้อนไม่ได้ ต้องให้เจ้าของระบบรันเอง; backup เก่าก็มีรหัสอยู่ด้วย)
+
+### เทสต์ — `npm test` (output จริง)
+```
+✔ checker rejects handler exports it cannot inspect
+✔ non-public routes only declare handlers as export async function
+✔ checker flags an unguarded handler next to a guarded one
+✔ every handler of every non-public API route checks role or ownership before DB access
+✔ PUBLIC list has no stale entries
+✔ verifySession is always awaited
+✔ user management and login log are admin-only
+✔ password column is never selected back to the browser
+✔ thaiid-login bypass route does not exist
+✔ only approved routes issue a session cookie
+✔ every useronline INSERT hard-codes NULL for password
+✔ login audit no longer carries the password at all
+✔ no other code writes to useronline
+✔ login log API and page do not expose a password field
+✔ limited user: only own CID
+✔ missing, blank, unknown or 'user' status with accessLevel 0 is limited (fail closed)
+✔ limited user without a CID in session gets nothing
+✔ staff roles keep access to any CID (unchanged behaviour)
+✔ no session or empty target CID is denied
+✔ per-officer routes check CID ownership
+ℹ pass 20
+ℹ fail 0
+```
+`tests/login-audit.test.mjs` จับได้จริง: รันกับโค้ดก่อนแก้ (`git stash push -- src`) -> `✖` 3 จาก 4 ตัว
+(ตัวที่ผ่านคือ "no other code writes to useronline" ซึ่งเป็นการยืนยันว่ามีผู้เขียนแค่ 2 ไฟล์); `npx tsc --noEmit` -> 0; `npm run build` -> 0
+
+### เรียกจริงบน dev server
+```
+POST /api/auth/login {"username":"probe-user","password":""}                           -> 400 username and password required
+POST /api/auth/login {"username":"probe-user","password":"Probe-Secret-123","captcha":"XXXXXX"} -> 401 Invalid verification code
+server log: "Login audit insert failed ... Authentication failed against database server" (ถึงขั้น INSERT แล้วล้มที่ DB ของเครื่องนี้)
+ค้น "Probe-Secret" ใน server log -> ไม่พบ
+```
+ยังพิสูจน์ไม่ได้ในเครื่องนี้: แถวที่บันทึกจริงมี password = NULL (ต้องมี DB) — SQL ใน INSERT เป็นค่าคงที่และเทสต์บังคับไว้

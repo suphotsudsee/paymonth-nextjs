@@ -124,7 +124,7 @@
    ยังไม่ได้แก้: EDITOR ยังเห็นทุก CID (ยังไม่จำกัดตามหน่วยงาน); middleware ยังถือ status ว่าง เป็นเจ้าหน้าที่ (ไม่ตรงกับ API)
 3. ~~**[สูง] API ส่วนใหญ่ไม่ตรวจบทบาท**~~ — **แก้แล้ว (TASK_BOARD #2b)**: route งานคลังต้องเป็นเจ้าหน้าที่ (`isStaff`), users/useronline ต้องเป็น admin (`hasAdminAccess`), เทสต์ `tests/api-guards.test.mjs` บังคับให้ route ใหม่มี guard; ข้อความเดิม: — ราว 30 route ตรวจแค่ "login แล้ว" เช่น นำเข้า paydirect, เช็ค, ทะเบียนฎีกา (PUT), หน่วยงาน, รายงาน, export KTB
    USER จึงเรียกได้โดยตรง; middleware ไม่ครอบ `/reports`, `/tools`, `/stations`, `/cpays`, `/charts`
-4. **[สูง] บันทึกรหัสผ่านเป็นข้อความธรรมดาลง `useronline`** ทุกครั้งที่ login รวมถึงครั้งที่พิมพ์ผิด
+4. ~~**[สูง] บันทึกรหัสผ่านเป็นข้อความธรรมดาลง `useronline`**~~ — **แก้แล้วในโค้ด (TASK_BOARD #3)**: บันทึก `NULL` เสมอ; แถวเก่าต้องรัน `prisma/sql/2026-11-23_clear_useronline_passwords.sql` บน DB จริง; ข้อความเดิม: ทุกครั้งที่ login รวมถึงครั้งที่พิมพ์ผิด
 5. **[สูง] `AUTH_SECRET` มีค่า fallback ฝังในโค้ด** (`src/lib/auth.ts`) ถ้าลืมตั้ง env ทุกคนที่เห็นโค้ดปลอม session ได้
 6. **[กลาง] รหัสผ่านเก็บเป็น SHA-1 ไม่มี salt** และ captcha ไม่มีหมดอายุ/ใช้ซ้ำได้ (signature ผูกกับรหัสอย่างเดียว ไม่มีเวลา/nonce)
 7. **[กลาง] export KTB JOIN `bank ON bank.CID = salary.CID`** — คนที่มีหลายบัญชีจะได้หลายแถว (ยอดโอนซ้ำ) ควร JOIN ด้วย `salary.BANKID`

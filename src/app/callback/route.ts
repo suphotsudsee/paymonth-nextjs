@@ -4,7 +4,6 @@ import { signSession } from "@/lib/auth";
 
 type LoginAttempt = {
   username: string | null;
-  password: string | null;
   logined: "Y" | "N";
   ipv4: string | null;
 };
@@ -28,9 +27,8 @@ function extractClientIp(req: NextRequest): string | null {
 async function logLoginAttempt(attempt: LoginAttempt) {
   try {
     await prisma.$executeRawUnsafe(
-      "INSERT INTO useronline (username, password, logined, ipv4, logindate) VALUES (?, ?, ?, ?, NOW())",
+      "INSERT INTO useronline (username, password, logined, ipv4, logindate) VALUES (?, NULL, ?, ?, NOW())",
       attempt.username,
-      attempt.password,
       attempt.logined,
       attempt.ipv4,
     );
@@ -133,7 +131,6 @@ export async function GET(req: NextRequest) {
     if (typeof pid !== "string" || !pid) {
       await logLoginAttempt({
         username,
-        password: null,
         logined: "N",
         ipv4,
       });
@@ -156,7 +153,6 @@ export async function GET(req: NextRequest) {
     if (!user) {
       await logLoginAttempt({
         username,
-        password: null,
         logined: "N",
         ipv4,
       });
@@ -200,7 +196,6 @@ export async function GET(req: NextRequest) {
     });
     await logLoginAttempt({
       username,
-      password: null,
       logined: "Y",
       ipv4,
     });
