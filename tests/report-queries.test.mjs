@@ -258,3 +258,59 @@ test("reports/all runs totals in parallel with the per-period counts", () => {
   assert.match(src, /pickPeriodsForPage\(/);
   assert.doesNotMatch(src, /SELECT COUNT\(\*\) AS total/);
 });
+
+// ---- reports/all: ยอดรวม/จำนวนต่องวด แบบรวมยอดก่อน join (PRD 10.3, TASK_BOARD #18) ----
+test("reports/all route builds totals and period counts from reportsAllQueries", () => {
+  const src = read("src/app/api/reports/all/route.ts");
+  assert.match(src, /const periodQ = periodCountsSql\(f\);/);
+  assert.match(src, /const totalsQ = totalsSql\(f\);/);
+  assert.match(src, /f\.officer\.push\("o\.NAME LIKE \?"\);/, "name filter belongs to the officer side");
+});
+
+test("reports/all: grouped totals and period counts equal the original per-row joins (live DB)", async (t) => {
+  const envPath = new URL("../.env", import.meta.url);
+  if (!existsSync(envPath)) return t.skip("no .env");
+  const require = createRequire(import.meta.url);
+  require("dotenv").config({ path: envPath });
+  const { PrismaClient } = require("@prisma/client");
+  const p = new PrismaClient();
+  try { await p.$connect(); } catch { return t.skip("database not reachable"); }
+  const { periodCountsSql, totalsSql } = await import("../src/lib/reportsAllQueries.ts");
+  try {
+    const [someCid] = await p.$queryRawUnsafe("SELECT s.CID FROM salary s JOIN officer o ON o.CID = s.CID GROUP BY s.CID ORDER BY COUNT(*) DESC LIMIT 1");
+    const cases = [
+      ["no filter", [], [], [], []],
+      ["year", ["s.YEARTHAI = ?"], ["2568"], [], []],
+      ["year+month", ["s.YEARTHAI = ?", "s.MONTHTHAI = ?"], ["2568", "05"], [], []],
+      ["cid", ["s.CID = ?"], [someCid.CID], [], []],
+      ["name", [], [], ["o.NAME LIKE ?"], ["%สม%"]],
+      ["name+year", ["s.YEARTHAI = ?"], ["2567"], ["o.NAME LIKE ?"], ["%นา%"]],
+      ["no match", ["s.YEARTHAI = ?"], ["1900"], [], []],
+    ];
+    for (const [label, sc, sp, oc, op] of cases) {
+      const f = { salary: ["s.IDPAY <> '20004'", ...sc], salaryParams: sp, officer: oc, officerParams: op };
+      const where = `WHERE ${[...f.salary, ...f.officer].join(" AND ")}`;
+      const params = [...sp, ...op];
+      // SQL เดิมก่อนงาน #18 (คัดลอกจาก route เดิม)
+      const oldPeriods = await p.$queryRawUnsafe(
+        `SELECT s.YEARTHAI, s.MONTHTHAI, COUNT(DISTINCT s.CID) AS n FROM salary s JOIN officer o ON o.CID = s.CID ${where}
+         GROUP BY s.YEARTHAI, s.MONTHTHAI ORDER BY s.YEARTHAI DESC, s.MONTHTHAI DESC`, ...params);
+      const oldTotals = await p.$queryRawUnsafe(
+        `SELECT SUM(IF(cpay.PAYTYPE = '1', salary.MONEY, 0)) AS income, SUM(IF(cpay.PAYTYPE <> '1', salary.MONEY, 0)) AS outcome
+         FROM salary INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY INNER JOIN officer ON salary.CID = officer.CID
+         ${where.replace(/s\./g, "salary.").replace(/o\./g, "officer.")}`, ...params);
+      const nq = periodCountsSql(f);
+      const tq = totalsSql(f);
+      const newPeriods = await p.$queryRawUnsafe(nq.sql, ...nq.params);
+      const newTotals = await p.$queryRawUnsafe(tq.sql, ...tq.params);
+      const per = (rows) => rows.map((r) => `${r.YEARTHAI}/${r.MONTHTHAI}:${Number(r.n)}`);
+      const tot = (rows) => [String(rows[0].income ?? "null"), String(rows[0].outcome ?? "null")];
+      assert.deepEqual(per(newPeriods), per(oldPeriods), `${label}: period counts`);
+      assert.deepEqual(tot(newTotals), tot(oldTotals), `${label}: totals`);
+      if (label === "no filter") assert.ok(oldPeriods.length > 100, "sanity: real data present");
+      if (label === "no match") assert.equal(oldPeriods.length, 0);
+    }
+  } finally {
+    await p.$disconnect();
+  }
+});

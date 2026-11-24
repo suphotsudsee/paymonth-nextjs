@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 import { isStaff } from "@/lib/permissions";
 import { pickPeriodsForPage } from "@/lib/reportPaging";
+import { periodCountsSql, totalsSql, type ReportsAllFilters } from "@/lib/reportsAllQueries";
 import { clampPageSize, parsePage } from '@/lib/pagination';
 
 export async function GET(req: NextRequest) {
@@ -20,57 +21,37 @@ export async function GET(req: NextRequest) {
     const pageSize = clampPageSize(searchParams.get("pageSize"), 10);
     const offset = (page - 1) * pageSize;
 
-    // Use table aliases (s/o) up front so the same where-clause can be reused in all queries.
-    const filters: string[] = ["s.IDPAY <> '20004'"];
-    const params: any[] = [];
-
+    // ตัวกรองแยกฝั่ง salary (s) กับ officer (o): ยอดรวม/จำนวนต่องวดรวมยอด salary ก่อนแล้วค่อย join officer (PRD 10.3)
+    const f: ReportsAllFilters = { salary: ["s.IDPAY <> '20004'"], salaryParams: [], officer: [], officerParams: [] };
     if (cid) {
-      filters.push("s.CID = ?");
-      params.push(cid);
+      f.salary.push("s.CID = ?");
+      f.salaryParams.push(cid);
     }
-    if (name) {
-      filters.push("o.NAME LIKE ?");
-      params.push(`%${name}%`);
-    }
-
     if (monththai) {
-      filters.push("s.MONTHTHAI = ?");
-      params.push(monththai);
+      f.salary.push("s.MONTHTHAI = ?");
+      f.salaryParams.push(monththai);
     }
     if (yearthai) {
-      filters.push("s.YEARTHAI = ?");
-      params.push(yearthai);
+      f.salary.push("s.YEARTHAI = ?");
+      f.salaryParams.push(yearthai);
+    }
+    if (name) {
+      f.officer.push("o.NAME LIKE ?");
+      f.officerParams.push(`%${name}%`);
     }
 
-    const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
+    // query รายการหน้าปัจจุบันใช้เงื่อนไขรวมทั้งสองฝั่ง (join ตรงเหมือนเดิม)
+    const whereClause = `WHERE ${[...f.salary, ...f.officer].join(" AND ")}`;
+    const params = [...f.salaryParams, ...f.officerParams];
+    const periodQ = periodCountsSql(f);
+    const totalsQ = totalsSql(f);
 
     // จำนวนกลุ่ม (CID + เดือน + ปี) แยกตามงวด เรียงแบบเดียวกับรายงาน (ปีล่าสุด → เก่าสุด)
     // ใช้ทั้งเป็นยอดรวมรายการ (แทน COUNT ทั้งตาราง) และเพื่อหาว่าหน้าที่ขอตกอยู่ในงวดไหน — TASK_BOARD #10
     // ยอดเงินรวมไม่ขึ้นกับหน้า จึงรันพร้อมกัน (connection pool ของ Prisma รองรับหลาย query พร้อมกัน)
     const [periods, totals] = await Promise.all([
-      prisma.$queryRawUnsafe(
-        `
-          SELECT s.YEARTHAI, s.MONTHTHAI, COUNT(DISTINCT s.CID) AS n
-          FROM salary s
-          JOIN officer o ON o.CID = s.CID
-          ${whereClause}
-          GROUP BY s.YEARTHAI, s.MONTHTHAI
-          ORDER BY s.YEARTHAI DESC, s.MONTHTHAI DESC
-        `,
-        ...params,
-      ) as Promise<{ YEARTHAI: string; MONTHTHAI: string; n: bigint }[]>,
-      prisma.$queryRawUnsafe(
-        `
-          SELECT
-            SUM(IF(cpay.PAYTYPE = '1', salary.MONEY, 0)) AS income,
-            SUM(IF(cpay.PAYTYPE <> '1', salary.MONEY, 0)) AS outcome
-          FROM salary
-            INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
-            INNER JOIN officer ON salary.CID = officer.CID
-          ${whereClause.replace(/s\./g, "salary.").replace(/o\./g, "officer.")}
-        `,
-        ...params,
-      ) as Promise<{ income: any; outcome: any }[]>,
+      prisma.$queryRawUnsafe(periodQ.sql, ...periodQ.params) as Promise<{ YEARTHAI: string; MONTHTHAI: string; n: bigint }[]>,
+      prisma.$queryRawUnsafe(totalsQ.sql, ...totalsQ.params) as Promise<{ income: unknown; outcome: unknown }[]>,
     ]);
 
     const totalRows = periods.reduce((sum, p) => sum + Number(p.n), 0);

@@ -21,7 +21,9 @@
 | 13 | ตัวเลขจำนวนเงินชิดขวาทุกหน้า (PRD 11.2) | เสร็จ (โค้ด ยังไม่ commit) | ดู "หลักฐาน: งาน #13" ด้านล่าง |
 | 14 | ประวัติจ่ายตรงรายคนช้า: index `paydirect (C, A, B)` (PRD 10.2) | เสร็จ (โค้ด ยังไม่ commit) — **ต้องรัน `prisma/sql/2026-11-25_paydirect_cid_index.sql` บน DB server** | ดู "หลักฐาน: งาน #14" ด้านล่าง |
 | 15 | คู่มือ deploy ไป server (`docs/DEPLOY.md`): สำรอง, ไฟล์ค้างบน server ที่ทำให้ deploy ล้ม 3 ครั้ง, `.env`, SQL 3 ไฟล์, ตรวจหลัง deploy, ย้อนกลับ | เสร็จ (เอกสาร ยังไม่ commit) — ยังไม่ได้ทดลองบน server จริง | ดู "หลักฐาน: งาน #15" ด้านล่าง |
-| 16 | รวมการแก้บน server เข้า repo (PRD 12): BigInt ตอนสร้างฎีกา, ชื่อไฟล์ export ภาษาไทย, ส่งออก Excel ทะเบียนคุมหลักฐานการจ่าย (+isStaff), คำผิด ทดรอง, ค้นหาฎีกาแสดงทีละรายการเงิน (+ยอดรวมไม่นับภาษีซ้ำ) | เสร็จ (โค้ด) |  ดู "หลักฐาน: งาน #16" ด้านล่าง |
+| 16 | รวมการแก้บน server เข้า repo (PRD 12): BigInt ตอนสร้างฎีกา, ชื่อไฟล์ export ภาษาไทย, ส่งออก Excel ทะเบียนคุมหลักฐานการจ่าย (+isStaff), คำผิด ทดรอง, ค้นหาฎีกาแสดงทีละรายการเงิน (+ยอดรวมไม่นับภาษีซ้ำ) | เสร็จ — deploy แล้ว (#17) |  ดู "หลักฐาน: งาน #16" ด้านล่าง |
+| 17 | Deploy `4ac8434` ขึ้น test-paymonth (ssh ผ่าน VPN) + รัน SQL 3 ไฟล์ | เสร็จ — แอปล่มราว 2.5 นาทีระหว่าง deploy (ดูหลักฐาน); **หน้า "รายงานทั้งหมด" บน server ยังช้า ~5 วินาที** (local 0.5–1 วินาที) | ดู "หลักฐาน: งาน #17" ด้านล่าง |
+| 18 | รายงานทั้งหมดบน server ช้า ~5 s: รวมยอด salary ก่อน join officer/cpay (ผลเท่าเดิม) (PRD 10.3) | เสร็จ (โค้ด ยังไม่ commit) — **ยังไม่ได้ deploy ขึ้น server** | ดู "หลักฐาน: งาน #18" ด้านล่าง |
 
 ## หลักฐาน: งาน #1 — ลบ route ThaiID login ที่ข้ามการตรวจตัวตน
 
@@ -1158,3 +1160,77 @@ eslint `src`: 252 (ก่อนงาน #11 = 267) ไม่มีปัญห�
 ℹ fail 0
 npm test exit 0
 ```
+
+## หลักฐาน: งาน #17 — deploy ขึ้น test-paymonth (2026-11-24)
+
+ทำตาม `docs/DEPLOY.md` ทาง ssh (`paymonth` → phoubon-test-paymonth@192.168.25.10 ผ่าน VPN) หลังผู้ใช้ยืนยัน "deploy now"
+
+| ขั้น | ผล (output จริง) |
+|-----|-----------------|
+| ตรวจก่อน | HEAD `a93a5b1`, แก้ค้าง 8 ไฟล์ + route ไม่อยู่ใน git 1 ตัว, PM2 online, node v22.21.1, MariaDB 10.11.19, `AUTH_SECRET` 54 ตัว ไม่ตรงกับค่าที่หลุด (เทียบ sha256), DB 660 MB, index ใหม่ยังไม่มีสักตัว, `useronline` มีรหัสผ่าน 14,693 แถว, precheck key เว้นวรรค = 0 |
+| 1.1 สำรองโค้ด/.env | `~/paymonth-backup/20261124-1510/` (drwx------): `server-changes.patch` 17,400 B, `untracked-payvouchers-export.tgz`, `env.backup`, `old-commit.txt` |
+| 1.2 สำรอง DB | รอบแรก `--lock-all-tables` → `Access denied; you need ... RELOAD` → **DUMP FAILED** หยุดเองก่อนล็อก (pipefail ทำงาน); รอบสอง `--lock-tables` → DUMP OK 31 วินาที, gzip OK, `-- Dump completed on 2026-11-24 15:24:35`, 16 ตาราง, 58,388,899 B (-rw-------) |
+| 2 คืนไฟล์ | `test -s patch && test -s tgz && git reset --hard HEAD && mv <route ใหม่> <backup>` → CLEAN OK, `git status` ว่าง |
+| 4 deploy | `git pull --ff-only` → `4ac8434`, `npm ci`, `prisma generate` ผ่าน; **`npm run build` ล้ม** "Cannot find module '../../../src/app/api/auth/thaiid-login/route.js'" จาก `.next/dev/types/validator.ts` (ของ `next dev` เก่าบน server, tsconfig รวมโฟลเดอร์นี้) — แต่สายคำสั่งของผมต่อ build เข้า `| grep` โดยไม่มี pipefail จึงไป `pm2 restart` ต่อ → แอปหา build ไม่เจอ ล่มวน (log: "Could not find a production build" 15:27:07–15:28:13) |
+| แก้ | `rm -rf .next/dev` (ไม่มี `next dev` รันอยู่) → build ใหม่ด้วย pipefail ผ่านใน 39 วินาที (✓ Compiled successfully, 69/69) → restart → `Ready in 1901ms` 15:28:19, `/login` 200 — **ล่มรวมราว 2.5 นาที** (ตั้งแต่ build ล้าง `.next` ~15:26 ถึง 15:28:19) |
+| 5 SQL | clear passwords: 14,693 → 0 (0 วินาที); report indexes: ครบ 5 ตัว (14 วินาที); paydirect index: `idx_paydirect_cid = C,A,B` (11 วินาที) |
+| 6 ตรวจหลัง deploy | ด้านล่าง |
+
+ตรวจบน server (script ชั่วคราวเซ็น session ทดสอบอายุ 5 นาทีด้วย AUTH_SECRET ของ server บนเครื่อง server เอง ไม่ส่งออกมา ลบ script หลังรัน; ยิง `http://127.0.0.1:9102`):
+- `/login`, `/officers`, `/reports` = 200; หน้า login เป็น Bootstrap (`card shadow-lg`, `input-group`)
+- ประวัติจ่ายตรงรายคน (คนที่มี 129 รายการ): 62 / 32 / 27 ms
+- `/api/officers?pageSize=100` = 100 แถว (เดิมตัดที่ 50) 58 ms
+- ค้นหาฎีกา P680000017: total 101, money 267,789,572 (ตรงกับ local) — 365–877 ms
+- ส่งออก Excel ทะเบียนคุมหลักฐานการจ่าย ม.ค. 2025: admin 200 (400,342 B, ชื่อไฟล์ RFC 5987), status user **403**
+- `/api/users`: status user 403, ไม่ login 401
+- PM2 `paymonth-nextjs` online, `git status` บน server ว่าง
+
+### ยังเหลือ / ข้อสังเกต
+- **`/api/reports/all` บน server ช้า ~5 วินาที ทุกครั้ง** (3 รอบ: 5.4 / 5.3 / 4.9 s ที่ 10 แถวต่อหน้า) ขณะที่ DB local ข้อมูลชุดเดียวกัน 0.5–1 s — ไม่ใช่ผลจากงานนี้ (ก่อน deploy ก็ไม่มี index เลย) ต้องสืบต่อว่าทำไม server ช้ากว่า (เครื่อง/การตั้งค่า MariaDB/สถิติ index)
+- `docs/DEPLOY.md` แก้ตามที่เจอ: ใช้ `--lock-tables`, ลบ `.next/dev` ก่อน build, `test -f .next/BUILD_ID` ก่อน restart, ห้ามต่อ build เข้า grep
+- สำรองบน server (`~/paymonth-backup/20261124-1510/`, มี DB dump ข้อมูลบุคคลจริง) ควรลบเมื่อใช้งานแล้วไม่มีปัญหา
+
+### Codex (งาน #17) รอบ 1 (CHANGES_REQUESTED) — แก้แล้ว
+- `--lock-tables` ใช้ READ LOCAL → ตาราง MyISAM ยังรับ INSERT ต่อท้ายได้ระหว่าง dump → snapshot ไม่รับประกันว่าสอดคล้องกัน: คู่มือให้ `pm2 stop paymonth-nextjs` ระหว่าง dump แล้ว `pm2 start` กลับ (user ของแอปไม่มีสิทธิ์ RELOAD จึงใช้ `--lock-all-tables` ไม่ได้)
+  - **dump ของวันนี้ทำตอนแอปยังรันอยู่** (31 วินาที) — ถ้ามีคน login/บันทึกระหว่างนั้น แถวใหม่ (เช่น `useronline`) อาจอยู่ในบางตารางแต่ไม่สอดคล้องกับตารางอื่น; ใช้เป็นสำรองกู้คืนทั่วไปได้ แต่ถ้าต้องการ snapshot ที่สอดคล้องแน่นอนให้ dump ใหม่ตามคู่มือ
+- ขั้นย้อนกลับ hardcode `a93a5b1` → อ่าน commit จาก `old-commit.txt` ของโฟลเดอร์สำรองที่เลือก ตรวจด้วย `git cat-file -e` ก่อน checkout
+
+## หลักฐาน: งาน #18 — รายงานทั้งหมดบน server ช้า ~5 s
+
+### สมมติฐาน → ตรวจ (ทุกอย่างอ่านอย่างเดียวบน DB server)
+1. แยกเวลา query ของ `/api/reports/all` (SHOW PROFILES): server / local
+   | query | server | local |
+   |-------|--------|-------|
+   | Q1 จำนวนต่องวด | 1.21 s | 0.34 s |
+   | Q2 ยอดเงินรวม (EXPLAIN: salary `type=ALL` 332,613 แถว + `eq_ref` officer/cpay ทีละแถว) | 3.03 s (อีกรอบ 1.90 s) | 0.46 s |
+   | Q3 รายการหน้าปัจจุบัน (งวดล่าสุด) | 0.007 s | — |
+   (Q1, Q2 รันพร้อมกัน → เวลาต่อครั้ง ≈ Q2 ≈ ที่วัดได้ 4.9–5.4 s; ค่า 0.9 s ของ Q3 ในรอบแรกมาจาก subquery หาปีล่าสุดในสคริปต์ทดสอบเอง ไม่ใช่ query ของแอป)
+2. ดิสก์หรือ CPU? `SELECT BENCHMARK(5000000, MD5('paymonth'))` server **8.41 s** / local 1.75 s (CPU ช้ากว่า ~4.8 เท่า; Xeon E5-2620 v3, 8 vCPU, load avg ~2.6); อ่าน salary ทั้งตาราง `SELECT SUM(MONEY) FROM salary ...` server **0.21 s** → ไม่ใช่ดิสก์ (`/dev/rbd7`) — งานที่หนักคือ join ทีละแถว
+3. ลองเขียนใหม่ (ผลตรงกันทุกตัว) บน server: Q2 รวมต่อ (CID, IDPAY) ก่อน join **0.65 s** (เดิม 1.90 s รอบเดียวกัน); semi-join `CID IN (SELECT ...)` 1.72 s (ไม่ช่วย); Q1 DISTINCT (ปี, เดือน, CID) ก่อน join **0.72 s** (เดิม 1.15 s)
+
+### แก้
+- ใหม่ `src/lib/reportsAllQueries.ts`: `periodCountsSql()`, `totalsSql()` — ตัวกรองแยกฝั่ง salary (ใส่ในส่วนรวมยอด) / officer (`o.NAME LIKE` หลัง join)
+- `src/app/api/reports/all/route.ts` ใช้ builder ทั้งสอง; query รายการหน้าปัจจุบัน (Q3) คงเดิม
+- เทสต์: `tests/report-queries.test.mjs` +2 — route ใช้ builder และ name filter อยู่ฝั่ง officer; **live DB เทียบ SQL เดิมกับใหม่ 7 กรณี** (ไม่กรอง, ปี, ปี+เดือน, CID ที่มีรายการมากที่สุด, ชื่อ, ชื่อ+ปี, ไม่มีผล) — จำนวนต่องวดทุกงวดและยอดรายรับ/รายจ่ายตรงกันทุกตัว
+
+### ผล (local, `next start -p 9104`)
+- `/api/reports/all?page=1&pageSize=10`: 349 / 340 / 327 / 300 ms (เดิม 476–983 ms) — total 111,215, รายรับ 17,818,761,871.94, รายจ่าย 600,425,825.88 (เท่ากับที่ server ให้ก่อนแก้)
+- กรองปี 2568: 33 ms; กรองชื่อ "สม": 245 ms
+- คาดบน server: ≈ Q1 ใหม่ 0.72 s + Q3 → ราว 1 วินาที (เดิม ~5 s) — **ต้อง deploy แล้ววัดจริง**
+
+```
+$ npx tsc --noEmit -p .
+tsc exit 0
+
+$ npm test
+✔ reports/all: new per-period paging returns the same rows as the old global sort (live DB) (13187.1566ms)
+✔ reports/all runs totals in parallel with the per-period counts (0.3193ms)
+✔ reports/all route builds totals and period counts from reportsAllQueries (0.215ms)
+✔ reports/all: grouped totals and period counts equal the original per-row joins (live DB) (2864.7015ms)
+ℹ tests 75
+ℹ pass 75
+ℹ fail 0
+ℹ skipped 0
+npm test exit 0
+```
+eslint `src`: 249 (ก่อนงาน #11 = 267) ไม่มีปัญหาใหม่; `next build` ✓

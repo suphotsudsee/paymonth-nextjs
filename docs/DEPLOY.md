@@ -8,15 +8,17 @@
 | โฟลเดอร์แอปบน server | `/home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th` |
 | process | PM2 ชื่อ `paymonth-nextjs` (`npm start` → `next start -p 9102`) |
 | deploy อัตโนมัติ | `.github/workflows/deploy.yml` (runner self-hosted บน server): push เข้า `main` → `git pull` → `npm ci` → `npx prisma generate` → `npm run build` → `pm2 restart` |
-| โค้ดบน server | ค้างที่ `a93a5b1` — deploy 3 ครั้งล่าสุดล้มที่ `git pull` เพราะมีไฟล์ถูกแก้ค้างบน server 8 ไฟล์ (ดูขั้น 2) |
-| โค้ดล่าสุดใน GitHub | `aab74a3` |
+| โค้ดบน server | `4ac8434` — deploy ด้วยมือตามคู่มือนี้เมื่อ 2026-11-24 15:28 (ก่อนหน้านั้นค้างที่ `a93a5b1` เพราะมีไฟล์แก้ค้างบน server — ย้ายเข้า repo แล้วใน TASK_BOARD #16) |
+| SQL บน DB server | รันครบ 3 ไฟล์แล้ว 2026-11-24 (ขั้น 5) |
 
-ขั้นที่ **ต้องทำก่อน** ให้ deploy อัตโนมัติผ่าน: ขั้น 1–3. ขั้น 5 (SQL) workflow ไม่ทำให้ — ถ้าไม่รัน หน้ารายงานและประวัติจ่ายตรงบน server จะยังช้า และรหัสผ่านเก่าใน `useronline` ยังค้างอยู่
+ตอนนี้ server สะอาดแล้ว push เข้า `main` ครั้งต่อไป deploy อัตโนมัติจะผ่านขั้น `git pull` ได้ — ขั้น 1–5 ด้านล่างเก็บไว้เป็นวิธีทำเมื่อมีไฟล์แก้ค้างบน server อีก หรือมี SQL ใหม่ (workflow ไม่รัน SQL ให้)
+
+**ข้อควรรู้: `next build` ล้าง `.next` ตั้งแต่เริ่ม** — ระหว่าง build (~1 นาทีบน server) แอปที่รันอยู่อาจเปิดหน้าใหม่ไม่ได้ ทั้งตอน deploy อัตโนมัติและทำมือ
 
 ---
 
 ## 1. สำรองก่อนแตะอะไร
-ทำในช่วงปิดปรับปรุง (แจ้งผู้ใช้ก่อน) — ขั้น 1.2 ล็อกทุกตารางไม่ให้เขียนระหว่าง dump
+ทำในช่วงปิดปรับปรุง (แจ้งผู้ใช้ก่อน) — ขั้น 1.2 ล็อกทุกตารางไม่ให้เขียนระหว่าง dump (2026-11-24: DB 660 MB ใช้ 31 วินาที ได้ไฟล์ 58 MB)
 ```bash
 cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
 umask 077                          # ไฟล์สำรองมีรหัส DB และข้อมูลเงินเดือน — ให้อ่านได้เฉพาะเจ้าของ
@@ -32,8 +34,14 @@ cp .env ~/paymonth-backup/$STAMP/env.backup                                  # �
 
 # 1.2 ฐานข้อมูล — อ่านชื่อ DB/user/host จาก DATABASE_URL ใน .env (mysql://USER:PASS@HOST:PORT/DBNAME)
 #     -p ให้พิมพ์รหัสเอง อย่าใส่รหัสในคำสั่ง (จะติดอยู่ใน history)
-#     ตารางเป็น MyISAM: --single-transaction ไม่ได้ snapshot ที่สอดคล้องกัน จึงใช้ --lock-all-tables (ล็อกการเขียนทั้ง DB ระหว่าง dump)
-mysqldump -h HOST -P PORT -u USER -p --lock-all-tables --routines DBNAME   | gzip > ~/paymonth-backup/$STAMP/db.sql.gz   && echo "DUMP OK" || echo "DUMP FAILED — หยุด อย่าทำขั้นต่อไป"
+#     ตารางเป็น MyISAM: --single-transaction ไม่ได้ snapshot ที่สอดคล้องกัน; --lock-tables ใช้ READ LOCAL ซึ่งยังยอมให้ INSERT ต่อท้ายตาราง MyISAM ได้
+#     → หยุดแอป (ตัวเขียนเดียวของ DB นี้) ระหว่าง dump แล้วค่อยเปิดกลับ เพื่อให้ได้ snapshot ที่สอดคล้องกันทุกตาราง (เว็บปิดราว 30 วินาที)
+#     ไม่ใช้ --lock-all-tables: user ของแอปบน server ไม่มีสิทธิ์ RELOAD (ลองแล้ว 2026-11-24 → Access denied); DB เดียว --lock-tables ได้ snapshot เท่ากัน
+pm2 stop paymonth-nextjs \
+  && mysqldump -h HOST -P PORT -u USER -p --lock-tables --routines DBNAME \
+  | gzip > ~/paymonth-backup/$STAMP/db.sql.gz \
+  && echo "DUMP OK" || echo "DUMP FAILED — หยุด อย่าทำขั้นต่อไป"
+pm2 start paymonth-nextjs          # เปิดแอปกลับเสมอ ไม่ว่า dump สำเร็จหรือไม่
 
 # 1.3 ตรวจว่าไฟล์สำรองใช้ได้ (ต้องผ่านทั้งสองบรรทัด)
 gzip -t ~/paymonth-backup/$STAMP/db.sql.gz && echo "gzip OK"
@@ -66,7 +74,9 @@ less ~/paymonth-backup/$STAMP/server-changes.patch
 ทิ้งการแก้บน server (หลังสำรองและตัดสินใจแล้ว) — คืนทั้งไฟล์ที่ staged และยังไม่ staged ให้ตรงกับ commit ปัจจุบัน:
 ```bash
 # reset จะทำก็ต่อเมื่อมี patch สำรองที่ไม่ว่าง (ไม่งั้นหยุดและไม่ทิ้งอะไร)
-test -s ~/paymonth-backup/$STAMP/server-changes.patch   && git reset --hard HEAD   && echo "RESET OK" || echo "ไม่มี patch สำรอง (หรือว่าง) — ไม่ได้ reset; กลับไปทำขั้น 1.1"
+test -s ~/paymonth-backup/$STAMP/server-changes.patch \
+  && git reset --hard HEAD \
+  && echo "RESET OK" || echo "ไม่มี patch สำรอง (หรือว่าง) — ไม่ได้ reset; กลับไปทำขั้น 1.1"
 # git reset --hard HEAD = ทิ้งการแก้ที่ track ไว้ทั้งหมด ทั้ง staged/ไม่ staged (ไม่แตะไฟล์ untracked เช่น .env)
 git status --short          # ต้องไม่เหลือบรรทัดที่ขึ้นต้นด้วย M / A / D (เหลือได้แค่ ??)
 ```
@@ -97,10 +107,22 @@ git status --short          # ต้องไม่เหลือบรรท�
 
 **ทางที่ 2 — ทำมือบน server** (ลำดับเดียวกับ workflow; ทุกขั้นต่อด้วย `&&` จึงหยุดทันทีที่ขั้นไหนล้ม และไม่ restart ถ้า build ไม่ผ่าน):
 ```bash
-cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th   && git pull --ff-only origin main   && git log --oneline -1   && npm ci   && npx prisma generate   && npm run build   && pm2 restart paymonth-nextjs   && pm2 save   && echo "DEPLOY OK" || echo "DEPLOY FAILED — ดู error ด้านบน (ถ้าล้มที่ build ให้ทำขั้น 7)"
+cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th \
+  && git pull --ff-only origin main \
+  && git log --oneline -1 \
+  && npm ci \
+  && npx prisma generate \
+  && rm -rf .next/dev \
+  && npm run build \
+  && test -f .next/BUILD_ID \
+  && pm2 restart paymonth-nextjs \
+  && pm2 save \
+  && echo "DEPLOY OK" || echo "DEPLOY FAILED — ดู error ด้านบน (ถ้าล้มที่ build ให้ทำขั้น 7)"
 ```
 - `git pull --ff-only`: ถ้ามีไฟล์ค้าง (ขั้น 2 ยังไม่เสร็จ) หรือประวัติแยกกัน จะหยุดเลย ไม่สร้าง merge commit บน server; `git log` ต้องขึ้น `aab74a3` หรือใหม่กว่า
 - `npm ci` ติดตั้ง dependency ใหม่ (bootstrap 5.3) ตาม `package-lock.json`; `npm run build` ต้องจบด้วย ✓ Compiled successfully
+- `rm -rf .next/dev`: ไฟล์ของ `next dev` ที่เคยรันบน server (`.next/dev/types/validator.ts`) ค้างอ้าง route ที่ลบไปแล้ว และ `tsconfig.json` รวมโฟลเดอร์นี้ใน type check → build ล้ม "Cannot find module .../thaiid-login/route.js" (เจอจริง 2026-11-24) — production ไม่ใช้โฟลเดอร์นี้
+- `test -f .next/BUILD_ID` กันซ้ำอีกชั้นก่อน restart — **ห้ามต่อ `npm run build` เข้า `| grep` / `| tail` ในสายนี้** ถ้าไม่ได้ `set -o pipefail`: exit code จะเป็นของ grep ทำให้ build ล้มแล้วยัง restart → แอปหา build ไม่เจอ ล่มวน (เจอจริง 2026-11-24 ล่มราว 2.5 นาที)
 
 ถ้า `npm run build` ล้ม: `next build` ล้างโฟลเดอร์ `.next` ตั้งแต่เริ่ม build (`cleanDistDir`) แอปที่รันอยู่จึงอาจเปิดบางหน้าไม่ได้แล้ว → **ย้อนกลับตามขั้น 7 ทันที** แล้วส่ง log ของ build ให้คนดูแลโค้ด
 
@@ -139,10 +161,22 @@ curl -sI http://127.0.0.1:9102/login | head -1    # HTTP/1.1 200
 
 ## 7. ถ้าต้องย้อนกลับ
 ```bash
-cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th   && git checkout a93a5b1   && npm ci   && npx prisma generate   && npm run build   && pm2 restart paymonth-nextjs   && echo "ROLLBACK OK" || echo "ROLLBACK FAILED — ดู error ด้านบน"
+BK=~/paymonth-backup/<STAMP>          # โฟลเดอร์สำรองของรอบที่จะย้อน (ขั้น 1)
+OLD=$(cat "$BK/old-commit.txt")      # commit ที่รันอยู่ก่อน deploy รอบนั้น
+cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th \
+  && git cat-file -e "$OLD^{commit}" \
+  && git log --oneline -1 "$OLD" \
+  && git checkout "$OLD" \
+  && npm ci \
+  && npx prisma generate \
+  && rm -rf .next/dev \
+  && npm run build \
+  && test -f .next/BUILD_ID \
+  && pm2 restart paymonth-nextjs \
+  && echo "ROLLBACK OK" || echo "ROLLBACK FAILED — ดู error ด้านบน"
 ```
-(`a93a5b1` = ค่าใน `~/paymonth-backup/<STAMP>/old-commit.txt`; หลัง checkout จะอยู่ในสถานะ detached HEAD)
-- โค้ดเก่า (`a93a5b1`) **ก่อนงาน #4 มี AUTH_SECRET fallback ฝังในโค้ด** — ย้อนแล้วรีบแก้แล้ว deploy ใหม่ อย่าค้างไว้
+(`git cat-file -e` ตรวจว่า commit ใน `old-commit.txt` มีจริงก่อน checkout; หลัง checkout จะอยู่ในสถานะ detached HEAD — การสำรองวันที่ 2026-11-24 อยู่ที่ `~/paymonth-backup/20261124-1510/` ซึ่ง `old-commit.txt` = `a93a5b1`)
+- ถ้าย้อนไปถึงโค้ดก่อนงาน #4 (เช่น `a93a5b1`) **โค้ดนั้นมี AUTH_SECRET fallback ฝังอยู่** — ย้อนแล้วรีบแก้แล้ว deploy ใหม่ อย่าค้างไว้
 - index ที่เพิ่มไม่ทำให้โค้ดเก่าพัง ไม่ต้องลบ; ถ้าจะลบ: `DROP INDEX idx_paydirect_cid ON paydirect;` (รายชื่อ index รายงานอยู่ในหัวไฟล์ `2026-11-24_report_indexes.sql`)
 - การล้างรหัสผ่านใน `useronline` ย้อนไม่ได้ (และไม่ควรย้อน) — ถ้าจำเป็นจริงใช้ `db.sql.gz` จากขั้น 1.2
 - กลับมาใช้ deploy อัตโนมัติ: `git checkout main` แล้วให้ `git status` สะอาด
