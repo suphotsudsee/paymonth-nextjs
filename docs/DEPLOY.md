@@ -175,7 +175,7 @@ cd /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th \
   && pm2 restart paymonth-nextjs \
   && echo "ROLLBACK OK" || echo "ROLLBACK FAILED — ดู error ด้านบน"
 ```
-(`git cat-file -e` ตรวจว่า commit ใน `old-commit.txt` มีจริงก่อน checkout; หลัง checkout จะอยู่ในสถานะ detached HEAD — การสำรองวันที่ 2026-11-24 อยู่ที่ `~/paymonth-backup/20261124-1510/` ซึ่ง `old-commit.txt` = `a93a5b1`)
+(`git cat-file -e` ตรวจว่า commit ใน `old-commit.txt` มีจริงก่อน checkout; หลัง checkout จะอยู่ในสถานะ detached HEAD — การสำรองวันที่ 2026-11-24 ลบแล้ว — ถ้าต้องย้อนไปก่อนวันนั้น commit เดิมคือ `a93a5b1`)
 - ถ้าย้อนไปถึงโค้ดก่อนงาน #4 (เช่น `a93a5b1`) **โค้ดนั้นมี AUTH_SECRET fallback ฝังอยู่** — ย้อนแล้วรีบแก้แล้ว deploy ใหม่ อย่าค้างไว้
 - index ที่เพิ่มไม่ทำให้โค้ดเก่าพัง ไม่ต้องลบ; ถ้าจะลบ: `DROP INDEX idx_paydirect_cid ON paydirect;` (รายชื่อ index รายงานอยู่ในหัวไฟล์ `2026-11-24_report_indexes.sql`)
 - การล้างรหัสผ่านใน `useronline` ย้อนไม่ได้ (และไม่ควรย้อน) — ถ้าจำเป็นจริงใช้ `db.sql.gz` จากขั้น 1.2

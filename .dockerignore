@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.env*
+*.sql
+*.sql.gz
+tsconfig.tsbuildinfo
+thaiid-login-package
+docs
+tests

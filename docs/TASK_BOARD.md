@@ -23,7 +23,8 @@
 | 15 | คู่มือ deploy ไป server (`docs/DEPLOY.md`): สำรอง, ไฟล์ค้างบน server ที่ทำให้ deploy ล้ม 3 ครั้ง, `.env`, SQL 3 ไฟล์, ตรวจหลัง deploy, ย้อนกลับ | เสร็จ (เอกสาร ยังไม่ commit) — ยังไม่ได้ทดลองบน server จริง | ดู "หลักฐาน: งาน #15" ด้านล่าง |
 | 16 | รวมการแก้บน server เข้า repo (PRD 12): BigInt ตอนสร้างฎีกา, ชื่อไฟล์ export ภาษาไทย, ส่งออก Excel ทะเบียนคุมหลักฐานการจ่าย (+isStaff), คำผิด ทดรอง, ค้นหาฎีกาแสดงทีละรายการเงิน (+ยอดรวมไม่นับภาษีซ้ำ) | เสร็จ — deploy แล้ว (#17) |  ดู "หลักฐาน: งาน #16" ด้านล่าง |
 | 17 | Deploy `4ac8434` ขึ้น test-paymonth (ssh ผ่าน VPN) + รัน SQL 3 ไฟล์ | เสร็จ — แอปล่มราว 2.5 นาทีระหว่าง deploy (ดูหลักฐาน); **หน้า "รายงานทั้งหมด" บน server ยังช้า ~5 วินาที** (local 0.5–1 วินาที) | ดู "หลักฐาน: งาน #17" ด้านล่าง |
-| 18 | รายงานทั้งหมดบน server ช้า ~5 s: รวมยอด salary ก่อน join officer/cpay (ผลเท่าเดิม) (PRD 10.3) | เสร็จ (โค้ด ยังไม่ commit) — **ยังไม่ได้ deploy ขึ้น server** | ดู "หลักฐาน: งาน #18" ด้านล่าง |
+| 18 | รายงานทั้งหมดบน server ช้า ~5 s: รวมยอด salary ก่อน join officer/cpay (ผลเท่าเดิม) (PRD 10.3) | เสร็จ — deploy `851a4e7` แล้ว: server ~5 s → ~1.7 s | ดู "หลักฐาน: งาน #18" ด้านล่าง |
+| 19 | ย้าย test-paymonth ไป Coolify (coolify.phoubon.in.th): Dockerfile + `output: "standalone"`, MariaDB ใหม่ใน Coolify + import dump, ชี้โดเมนเดิม | กำลังทำ — image ผ่าน smoke test local แล้ว ยังไม่ deploy | ดู "หลักฐาน: งาน #19" ด้านล่าง |
 
 ## หลักฐาน: งาน #1 — ลบ route ThaiID login ที่ข้ามการตรวจตัวตน
 
@@ -1188,7 +1189,7 @@ npm test exit 0
 ### ยังเหลือ / ข้อสังเกต
 - **`/api/reports/all` บน server ช้า ~5 วินาที ทุกครั้ง** (3 รอบ: 5.4 / 5.3 / 4.9 s ที่ 10 แถวต่อหน้า) ขณะที่ DB local ข้อมูลชุดเดียวกัน 0.5–1 s — ไม่ใช่ผลจากงานนี้ (ก่อน deploy ก็ไม่มี index เลย) ต้องสืบต่อว่าทำไม server ช้ากว่า (เครื่อง/การตั้งค่า MariaDB/สถิติ index)
 - `docs/DEPLOY.md` แก้ตามที่เจอ: ใช้ `--lock-tables`, ลบ `.next/dev` ก่อน build, `test -f .next/BUILD_ID` ก่อน restart, ห้ามต่อ build เข้า grep
-- สำรองบน server (`~/paymonth-backup/20261124-1510/`, มี DB dump ข้อมูลบุคคลจริง) ควรลบเมื่อใช้งานแล้วไม่มีปัญหา
+- สำรองบน server (`~/paymonth-backup/20261124-1510/`, มี DB dump ข้อมูลบุคคลจริง) — **ลบแล้ว 2026-11-24** ตามที่ผู้ใช้ยืนยัน (`rm -rf ~/paymonth-backup` → ตรวจแล้วไม่มีโฟลเดอร์, `.env` ของแอปยังอยู่, `/login` 200)
 
 ### Codex (งาน #17) รอบ 1 (CHANGES_REQUESTED) — แก้แล้ว
 - `--lock-tables` ใช้ READ LOCAL → ตาราง MyISAM ยังรับ INSERT ต่อท้ายได้ระหว่าง dump → snapshot ไม่รับประกันว่าสอดคล้องกัน: คู่มือให้ `pm2 stop paymonth-nextjs` ระหว่าง dump แล้ว `pm2 start` กลับ (user ของแอปไม่มีสิทธิ์ RELOAD จึงใช้ `--lock-all-tables` ไม่ได้)
@@ -1216,7 +1217,13 @@ npm test exit 0
 ### ผล (local, `next start -p 9104`)
 - `/api/reports/all?page=1&pageSize=10`: 349 / 340 / 327 / 300 ms (เดิม 476–983 ms) — total 111,215, รายรับ 17,818,761,871.94, รายจ่าย 600,425,825.88 (เท่ากับที่ server ให้ก่อนแก้)
 - กรองปี 2568: 33 ms; กรองชื่อ "สม": 245 ms
-- คาดบน server: ≈ Q1 ใหม่ 0.72 s + Q3 → ราว 1 วินาที (เดิม ~5 s) — **ต้อง deploy แล้ววัดจริง**
+- คาดบน server ราว 1 วินาที (เดิม ~5 s) — วัดจริงหลัง deploy ด้านล่าง
+
+### หลัง deploy (`851a4e7`, GitHub Actions run 45362576137 ผ่านทุกขั้น — deploy อัตโนมัติครั้งแรกที่ผ่านตั้งแต่ ก.พ.)
+วัดบน server (script ชั่วคราวเซ็น session 5 นาทีบน server เอง ลบหลังรัน; ยิง `127.0.0.1:9102`):
+- `/api/reports/all?page=1&pageSize=10` 5 รอบ: 2073 / 1711 / 1669 / 1689 / 1685 ms (เดิม 4888–5422 ms) — total 111,215, รายรับ 17,818,761,871.94, รายจ่าย 600,425,825.88 **เท่าก่อนแก้**
+- size 100: 1717 ms (100 แถว); กรองปี 2568: 162 ms; กรองชื่อ "สม": 1338 ms; `/login` 200; PM2 online, log ไม่มี error, `git status` บน server ว่าง
+- เร็วขึ้น ~3 เท่า แต่ช้ากว่าที่คาด (~1 s): Q1 กับ Q2 รันพร้อมกันบน CPU ที่ช้าและมีโหลดอื่น จึงแย่ง CPU กันเอง — ถ้าต้องเร็วกว่านี้ ทางต่อไปคือเก็บยอดรวม/จำนวนต่องวดไว้ชั่วคราว (ค่าไม่ขึ้นกับหน้า) ซึ่งต้องตัดสินเรื่องความสดของข้อมูล
 
 ```
 $ npx tsc --noEmit -p .
@@ -1234,3 +1241,25 @@ $ npm test
 npm test exit 0
 ```
 eslint `src`: 249 (ก่อนงาน #11 = 267) ไม่มีปัญหาใหม่; `next build` ✓
+
+## หลักฐาน: งาน #19 — ย้ายไป Coolify
+
+### ไฟล์ที่เพิ่ม/แก้
+- `Dockerfile` (multi-stage, node:20-bookworm-slim, รันเป็น user `app`, พอร์ต 3000), `.dockerignore` (ไม่ใส่ `.env*`, `*.sql`, `docs`, `tests` ใน image)
+- `next.config.ts`: `output: "standalone"` — `next start` บน PM2 เดิมยังใช้ได้
+- ต้องตั้ง `AUTH_TRUST_HOST=true` ใน Coolify: แอปอยู่หลัง proxy (Traefik) — ไม่ตั้งแล้ว Auth.js ฟ้อง `UntrustedHost` ทุก request ที่ `/api/auth/*` (เจอตอนทดสอบ image)
+
+### ทดสอบ image ในเครื่อง (`docker run` ต่อ DB local ผ่าน host.docker.internal:3310)
+```
+$ node scripts/local-smoke.mjs http://localhost:3999
+✔ admin login -> 200 + session cookie — status 200
+✔ user login -> 200 + session cookie — status 200
+✔ user ดูข้อมูลคนอื่น -> 403 (กัน IDOR) — status 403
+✔ admin /api/cheques -> 200 — status 200, 436ms
+... (16 ข้อ)
+ALL PASSED
+$ npm test
+ℹ pass 75
+ℹ fail 0
+```
+
