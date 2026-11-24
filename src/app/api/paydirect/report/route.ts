@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getAppSessionFromRequest } from '@/lib/session';
 import { buildPaydirectAccessClause } from '@/lib/paydirectAccess';
+import { bigintToJson } from '@/lib/json';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest) {
     `%${nameprn}%`,
     ...access.params,
   )) as {
-    ID: number;
+    ID: bigint | number;
     A: string | null;
     B: string | null;
     C: string | null;
@@ -81,5 +82,6 @@ export async function GET(req: NextRequest) {
     AA: string | null;
   }[];
 
-  return NextResponse.json({ items: rows });
+  // paydirect.ID เป็น BIGINT → Prisma คืน BigInt ซึ่ง JSON.stringify ไม่รับ (เดิมตอบ 500 ทุกครั้งที่มีข้อมูล)
+  return NextResponse.json({ items: rows.map((r) => ({ ...r, ID: bigintToJson(r.ID) })) });
 }

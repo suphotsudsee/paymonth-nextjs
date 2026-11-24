@@ -184,3 +184,10 @@
 4. รายงาน (reports/*) — อ่านอย่างเดียว เหมาะกับ server component ที่สุด
 5. หน้าจัดการข้อมูล (cheques, deegars, regisdeegars, cpays, stations, users, officers) — server component + Server Actions
 6. login/logo/policy/term: login ยังต้องเป็น client (captcha, ฟอร์ม); policy/term เปลี่ยนเป็น server ได้ทันที
+
+### 10.1 index และ query ของรายงาน (TASK_BOARD #10, ทำแล้ว)
+- index ที่รายงานพึ่ง: `salary(PNUMBER, NODEEGAR, DUPDATE, ID)`, `salary(YEARTHAI, MONTHTHAI, CID, IDPAY)`, `deegar(CHEQUE)`, `cheque(PAYDATE)`, `bank(CID)` — สร้างด้วย `prisma/sql/2026-11-24_report_indexes.sql`
+- join จาก deegar ไป salary/regisdeegar: ถ้า key ฝั่งนั้นไม่ขึ้นต้นด้วยเว้นวรรค (ทุก route ที่เขียน trim ก่อนบันทึก) ใช้ `s.PNUMBER = TRIM(deegar.PNUMBER)` ซึ่งใช้ index ได้; โค้ดตรวจข้อมูลเองตอนรัน (จำผล 5 นาที) ถ้าพบจะใช้ TRIM ทั้งสองฝั่งแบบเดิม (ถูกแต่ช้า) — `src/lib/keyJoin.ts`, `src/lib/keyHygiene.ts`; ถ้า import ข้อมูลเข้าตารางเหล่านี้ตรงๆ ควร trim
+- มีแถวขยะ `salary.YEARTHAI = 'YEAR'` — ทุกที่ที่หา "ปีล่าสุด" ต้องกรองเฉพาะตัวเลข 4 หลัก
+- รายงานทั้งหมด แบ่งหน้าตามงวดก่อน (`src/lib/reportPaging.ts`) ลำดับยังเป็น ปี desc, เดือน desc, ชื่อ asc
+

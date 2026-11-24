@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 type Row = {
-  ID: number;
+  ID: number | string; // BIGINT ที่เกินช่วง Number ปลอดภัยจะมาเป็น string (src/lib/json.ts)
   A: string | null;
   B: string | null;
   C: string | null;

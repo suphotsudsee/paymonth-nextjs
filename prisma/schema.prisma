@@ -23,6 +23,7 @@ model cheque {
   ACCNUMBER  String    @db.VarChar(10)
   PAYDATE    DateTime? @db.Date
   DUPDATE    DateTime  @db.DateTime(0)
+  @@index([PAYDATE], map: "idx_cheque_paydate") // TASK_BOARD #10
 }
 
 model cmonth {
@@ -52,6 +53,7 @@ model deegar {
   DUPDATE   DateTime @db.DateTime(0)
 
   @@unique([PNUMBER, NODEEGAR], map: "PNUMBER")
+  @@index([CHEQUE], map: "idx_deegar_cheque") // TASK_BOARD #10
 }
 
 model officer {
@@ -265,6 +267,9 @@ model salary {
   DUPDATE   DateTime @db.DateTime(0)
 
   @@unique([CID, IDPAY, PNUMBER, NODEEGAR, NUM, MONTHTHAI, YEARTHAI], map: "IDPYEAR")
+  // index สำหรับรายงาน — prisma/sql/2026-11-24_report_indexes.sql (TASK_BOARD #10)
+  @@index([PNUMBER, NODEEGAR, DUPDATE, ID], map: "idx_salary_pnumber_nodeegar")
+  @@index([YEARTHAI, MONTHTHAI, CID, IDPAY], map: "idx_salary_year_month")
 }
 
 model station {

@@ -39,7 +39,8 @@ export async function GET(req: NextRequest) {
     // If year not provided, pick the latest YEARTHAI from salary as a sensible default.
     if (!yearthai) {
       const latest = (await prisma.$queryRawUnsafe(
-        `SELECT MAX(YEARTHAI) as latest FROM salary WHERE YEARTHAI IS NOT NULL`,
+        // เฉพาะปีที่เป็นตัวเลข 4 หลัก: มีแถวขยะ YEARTHAI = 'YEAR' ซึ่งมากกว่า '25xx' เมื่อเทียบแบบข้อความ → รายงานว่างเปล่า
+        `SELECT MAX(YEARTHAI) as latest FROM salary WHERE YEARTHAI REGEXP '^[0-9]{4}$'`,
       )) as { latest: string | null }[];
       yearthai = latest?.[0]?.latest ?? '';
     if (!yearthai) {

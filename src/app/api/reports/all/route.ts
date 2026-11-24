@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 import { isStaff } from "@/lib/permissions";
+import { pickPeriodsForPage } from "@/lib/reportPaging";
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,8 +43,45 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-    // Paginate at the grouped-key level inside the DB: first select the keyset with LIMIT/OFFSET (derived table), then aggregate only those keys.
-    const rows = (await prisma.$queryRawUnsafe(
+    // จำนวนกลุ่ม (CID + เดือน + ปี) แยกตามงวด เรียงแบบเดียวกับรายงาน (ปีล่าสุด → เก่าสุด)
+    // ใช้ทั้งเป็นยอดรวมรายการ (แทน COUNT ทั้งตาราง) และเพื่อหาว่าหน้าที่ขอตกอยู่ในงวดไหน — TASK_BOARD #10
+    // ยอดเงินรวมไม่ขึ้นกับหน้า จึงรันพร้อมกัน (connection pool ของ Prisma รองรับหลาย query พร้อมกัน)
+    const [periods, totals] = await Promise.all([
+      prisma.$queryRawUnsafe(
+        `
+          SELECT s.YEARTHAI, s.MONTHTHAI, COUNT(DISTINCT s.CID) AS n
+          FROM salary s
+          JOIN officer o ON o.CID = s.CID
+          ${whereClause}
+          GROUP BY s.YEARTHAI, s.MONTHTHAI
+          ORDER BY s.YEARTHAI DESC, s.MONTHTHAI DESC
+        `,
+        ...params,
+      ) as Promise<{ YEARTHAI: string; MONTHTHAI: string; n: bigint }[]>,
+      prisma.$queryRawUnsafe(
+        `
+          SELECT
+            SUM(IF(cpay.PAYTYPE = '1', salary.MONEY, 0)) AS income,
+            SUM(IF(cpay.PAYTYPE <> '1', salary.MONEY, 0)) AS outcome
+          FROM salary
+            INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
+            INNER JOIN officer ON salary.CID = officer.CID
+          ${whereClause.replace(/s\./g, "salary.").replace(/o\./g, "officer.")}
+        `,
+        ...params,
+      ) as Promise<{ income: any; outcome: any }[]>,
+    ]);
+
+    const totalRows = periods.reduce((sum, p) => sum + Number(p.n), 0);
+    const page_ = pickPeriodsForPage(
+      periods.map((p) => ({ year: p.YEARTHAI, month: p.MONTHTHAI, count: Number(p.n) })),
+      offset,
+      pageSize,
+    );
+
+    // เรียงตาม ปี desc, เดือน desc, ชื่อ asc เหมือนเดิม แต่เรียงเฉพาะงวดที่หน้านี้ครอบคลุม (เดิมเรียงทุกกลุ่มทั้งตาราง ~111,000 กลุ่ม)
+    // แล้วค่อยรวมยอดเฉพาะ key ที่ได้ (derived table) เหมือนเดิม
+    const rows = page_.periods.length === 0 ? [] : ((await prisma.$queryRawUnsafe(
       `
         SELECT o.NAME,
                o.LPOS,
@@ -60,6 +98,7 @@ export async function GET(req: NextRequest) {
           FROM salary s
           JOIN officer o ON o.CID = s.CID
           ${whereClause}
+            AND (${page_.periods.map(() => "(s.YEARTHAI = ? AND s.MONTHTHAI = ?)").join(" OR ")})
           GROUP BY s.CID, s.MONTHTHAI, s.YEARTHAI
           ORDER BY s.YEARTHAI DESC, s.MONTHTHAI DESC, o.NAME ASC
           LIMIT ? OFFSET ?
@@ -71,11 +110,11 @@ export async function GET(req: NextRequest) {
         LEFT JOIN cmonth cm ON cm.ID = s.MONTHTHAI
         GROUP BY s.CID, s.MONTHTHAI, s.YEARTHAI, o.NAME, o.LPOS, st.NAMESTATION, cm.NAMEMONTH_TH
         ORDER BY s.YEARTHAI DESC, s.MONTHTHAI DESC, o.NAME ASC;
-
       `,
       ...params,
+      ...page_.periods.flatMap((p) => [p.year, p.month]),
       pageSize,
-      offset,
+      page_.offsetWithin,
     )) as {
       NAME: string | null;
       LPOS: string | null;
@@ -87,36 +126,7 @@ export async function GET(req: NextRequest) {
       PAYNAME: string | null;
       INCOME: any;
       OUTCOME: any;
-    }[];
-
-    const countRows = (await prisma.$queryRawUnsafe(
-      `
-        SELECT COUNT(*) AS total
-        FROM (
-          SELECT s.CID, s.MONTHTHAI, s.YEARTHAI
-          FROM salary s
-          JOIN officer o ON o.CID = s.CID
-          ${whereClause}
-          GROUP BY s.CID, s.MONTHTHAI, s.YEARTHAI
-        ) AS count_q
-      `,
-      ...params,
-    )) as { total: bigint }[];
-
-    const totalRows = Number(countRows?.[0]?.total ?? 0);
-
-    const totals = (await prisma.$queryRawUnsafe(
-      `
-        SELECT
-          SUM(IF(cpay.PAYTYPE = '1', salary.MONEY, 0)) AS income,
-          SUM(IF(cpay.PAYTYPE <> '1', salary.MONEY, 0)) AS outcome
-        FROM salary
-          INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
-          INNER JOIN officer ON salary.CID = officer.CID
-        ${whereClause.replace(/s\./g, "salary.").replace(/o\./g, "officer.")}
-      `,
-      ...params,
-    )) as { income: any; outcome: any }[];
+    }[]);
 
     const totalIncome = Number(totals?.[0]?.income ?? 0);
     const totalOutcome = Number(totals?.[0]?.outcome ?? 0);

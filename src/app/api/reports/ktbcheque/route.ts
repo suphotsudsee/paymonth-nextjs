@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
+import { latestSalaryMatch } from '@/lib/keyJoin';
+import { salaryKeysAreTrimmed } from '@/lib/keyHygiene';
 import { isStaff } from '@/lib/permissions';
 
 type Row = {
@@ -24,6 +26,8 @@ export async function GET(req: NextRequest) {
     const session = await verifySession(req.cookies.get('session')?.value);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (!isStaff(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // join แบบเร็วได้ก็ต่อเมื่อ key ของ salary/regisdeegar ไม่ขึ้นต้นด้วยเว้นวรรค (src/lib/keyJoin.ts)
+    const keysTrimmed = await salaryKeysAreTrimmed();
 
     const { searchParams } = new URL(req.url);
     const cheque = searchParams.get('cheque')?.trim();
@@ -65,8 +69,8 @@ export async function GET(req: NextRequest) {
           LEFT JOIN salary ON salary.ID = (
             SELECT s2.ID
             FROM salary s2
-            WHERE TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER)
-              AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)
+            -- ดู src/lib/keyJoin.ts: แบบเร็วใช้ index ได้, ถ้ามีข้อมูลเก่าขึ้นต้นด้วยเว้นวรรคจะใช้ TRIM ทั้งสองฝั่งแบบเดิม
+            WHERE ${latestSalaryMatch(keysTrimmed, "s2", "deegar")}
             ORDER BY s2.DUPDATE DESC, s2.ID DESC
             LIMIT 1
           )

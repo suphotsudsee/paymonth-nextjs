@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
+import { latestSalaryMatch, regisdeegarMatch } from '@/lib/keyJoin';
+import { salaryKeysAreTrimmed } from '@/lib/keyHygiene';
 import { isStaff } from '@/lib/permissions';
 
 export async function GET(req: NextRequest) {
@@ -18,6 +20,8 @@ export async function GET(req: NextRequest) {
     const session = await verifySession(req.cookies.get('session')?.value);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (!isStaff(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // join แบบเร็วได้ก็ต่อเมื่อ key ของ salary/regisdeegar ไม่ขึ้นต้นด้วยเว้นวรรค (src/lib/keyJoin.ts)
+    const keysTrimmed = await salaryKeysAreTrimmed();
 
     const filters: string[] = [];
     const params: any[] = [];
@@ -45,6 +49,31 @@ export async function GET(req: NextRequest) {
 
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
+    // นับจำนวนทั้งหมดพร้อมกับดึงหน้าปัจจุบัน (ไม่ขึ้นต่อกัน) — TASK_BOARD #10
+    const countPromise = prisma.$queryRawUnsafe(
+      `
+        SELECT COUNT(*) as total
+        FROM deegar
+          LEFT JOIN salary ON salary.ID = (
+            SELECT s2.ID
+            FROM salary s2
+            -- ดู src/lib/keyJoin.ts: แบบเร็วใช้ index ได้, ถ้ามีข้อมูลเก่าขึ้นต้นด้วยเว้นวรรคจะใช้ TRIM ทั้งสองฝั่งแบบเดิม
+            WHERE ${latestSalaryMatch(keysTrimmed, "s2", "deegar")}
+            ORDER BY s2.DUPDATE DESC, s2.ID DESC
+            LIMIT 1
+          )
+          LEFT JOIN officer ON salary.CID = officer.CID
+          LEFT JOIN bank ON bank.CID = salary.CID
+          LEFT JOIN regisdeegar ON ${regisdeegarMatch(keysTrimmed, "regisdeegar", "deegar")}
+          LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
+        ${whereClause}
+      `,
+      ...params,
+    ) as Promise<{ total: bigint }[]>;
+    // ถ้า query หน้าปัจจุบันล้มก่อน จะไม่มีใคร await countPromise → กัน unhandled rejection (Node อาจปิด process)
+    // ส่วน await countPromise ด้านล่างยังได้ error ตามปกติ
+    countPromise.catch(() => undefined);
+
     const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
@@ -66,14 +95,14 @@ export async function GET(req: NextRequest) {
           LEFT JOIN salary ON salary.ID = (
             SELECT s2.ID
             FROM salary s2
-            WHERE TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER)
-              AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)
+            -- ดู src/lib/keyJoin.ts: แบบเร็วใช้ index ได้, ถ้ามีข้อมูลเก่าขึ้นต้นด้วยเว้นวรรคจะใช้ TRIM ทั้งสองฝั่งแบบเดิม
+            WHERE ${latestSalaryMatch(keysTrimmed, "s2", "deegar")}
             ORDER BY s2.DUPDATE DESC, s2.ID DESC
             LIMIT 1
           )
           LEFT JOIN officer ON salary.CID = officer.CID
           LEFT JOIN bank ON bank.CID = salary.CID
-          LEFT JOIN regisdeegar ON TRIM(regisdeegar.PNUMBER) = TRIM(deegar.PNUMBER)
+          LEFT JOIN regisdeegar ON ${regisdeegarMatch(keysTrimmed, "regisdeegar", "deegar")}
           LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
         ${whereClause}
         ORDER BY deegar.PNUMBER, deegar.NODEEGAR
@@ -110,26 +139,7 @@ export async function GET(req: NextRequest) {
       PAYDATE: row.PAYDATE instanceof Date ? row.PAYDATE.toISOString() : row.PAYDATE,
     }));
 
-    const countRows = (await prisma.$queryRawUnsafe(
-      `
-        SELECT COUNT(*) as total
-        FROM deegar
-          LEFT JOIN salary ON salary.ID = (
-            SELECT s2.ID
-            FROM salary s2
-            WHERE TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER)
-              AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)
-            ORDER BY s2.DUPDATE DESC, s2.ID DESC
-            LIMIT 1
-          )
-          LEFT JOIN officer ON salary.CID = officer.CID
-          LEFT JOIN bank ON bank.CID = salary.CID
-          LEFT JOIN regisdeegar ON TRIM(regisdeegar.PNUMBER) = TRIM(deegar.PNUMBER)
-          LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
-        ${whereClause}
-      `,
-      ...params,
-    )) as { total: bigint }[];
+    const countRows = await countPromise;
 
     const total = Number(countRows?.[0]?.total ?? 0);
 

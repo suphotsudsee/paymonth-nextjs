@@ -74,6 +74,24 @@ export async function GET(req: NextRequest) {
     const sortDir = sortDirParam === 'desc' ? 'DESC' : 'ASC';
     const orderBy = sortField ? `${sortField} ${sortDir}` : 'PNUMBER DESC, NODEEGAR DESC';
 
+    // นับจำนวนทั้งหมดพร้อมกับดึงหน้าปัจจุบัน (ไม่ขึ้นต่อกัน) — TASK_BOARD #10
+    const countPromise = prisma.$queryRawUnsafe(
+      `
+        SELECT COUNT(*) AS total FROM (
+          SELECT d.PNUMBER, d.NODEEGAR
+          FROM deegar AS d
+            LEFT JOIN salary AS s ON d.PNUMBER = s.PNUMBER AND d.NODEEGAR = s.NODEEGAR
+            LEFT JOIN cheque ON TRIM(d.CHEQUE) = cheque.CHEQUE
+          ${whereClause}
+          GROUP BY d.PNUMBER, d.NODEEGAR
+        ) grouped
+      `,
+      ...params,
+    ) as Promise<{ total: bigint }[]>;
+    // ถ้า query หน้าปัจจุบันล้มก่อน จะไม่มีใคร await countPromise → กัน unhandled rejection (Node อาจปิด process)
+    // ส่วน await countPromise ด้านล่างยังได้ error ตามปกติ
+    countPromise.catch(() => undefined);
+
     // Paginate inside the DB at the grouped level to avoid fetching all rows.
     const rows = (await prisma.$queryRawUnsafe(
       `
@@ -111,19 +129,7 @@ export async function GET(req: NextRequest) {
       offset,
     )) as Row[];
 
-    const countRows = (await prisma.$queryRawUnsafe(
-      `
-        SELECT COUNT(*) AS total FROM (
-          SELECT d.PNUMBER, d.NODEEGAR
-          FROM deegar AS d
-            LEFT JOIN salary AS s ON d.PNUMBER = s.PNUMBER AND d.NODEEGAR = s.NODEEGAR
-            LEFT JOIN cheque ON TRIM(d.CHEQUE) = cheque.CHEQUE
-          ${whereClause}
-          GROUP BY d.PNUMBER, d.NODEEGAR
-        ) grouped
-      `,
-      ...params,
-    )) as { total: bigint }[];
+    const countRows = await countPromise;
 
     const items = rows.map((row) => ({
       PNUMBER: row.PNUMBER ?? '',
