@@ -14,6 +14,7 @@
 | 6 | ตั้งระบบเทสต์ของแอป (ยังไม่มีเลย) ก่อนเริ่มงาน 1–5 | รอ | |
 | 7 | ย้ายการโหลดข้อมูลไป Server Components / Server Actions ให้เร็วใกล้ PHP (PRD ข้อ 10) — 34 หน้า client | รอ (วางแผนแล้ว) | เริ่มที่วัด baseline + หน้าทดลอง payperson/สลิป ก่อนทำหน้าที่เหลือ |
 | 8 | ตั้ง DB local (MariaDB 10.11 Docker) จาก dump `test-paymonth.sql` + smoke test ของงาน #1–#4 กับข้อมูลจริง | เสร็จ | ดู "หลักฐาน: งาน #8" ด้านล่าง; คู่มือ `docs/LOCAL_DEV.md` |
+| 9 | ช่องรหัสผ่านมีปุ่มรูปตา (แสดง/ซ่อน) ในหน้า login และฟอร์มจัดการผู้ใช้ ซ่อนกลับเองเมื่อส่งฟอร์ม | เสร็จ (โค้ด ยังไม่ commit) | ดู "หลักฐาน: งาน #9" ด้านล่าง |
 
 ## หลักฐาน: งาน #1 — ลบ route ThaiID login ที่ข้ามการตรวจตัวตน
 
@@ -404,4 +405,33 @@ working tree (new)   isStaff: false  hasAdminAccess: false  canAccessCid(other):
 
 ### ยังเหลือ
 - หน้า `/tools/*`, `/reports/*`, `/stations`, `/cpays`, `/charts` ไม่อยู่ใน `PROTECTED_PATHS` ของ middleware: ผู้ใช้ทั่วไปเปิดหน้าได้ (เห็นแค่โครงหน้า ข้อมูลโดน API ตอบ 403) → รวมในงาน #2c
+
+## หลักฐาน: งาน #9 — ช่องรหัสผ่านแบบมีปุ่มตา
+
+### สิ่งที่เปลี่ยน
+- `src/components/PasswordInput.tsx` (ใหม่): ช่องรหัสผ่าน + ปุ่ม `Eye`/`EyeOff` จาก `lucide-react` (มีในโปรเจกต์แล้ว หน้าตาแบบเดียวกับ fa-eye ไม่ต้องเพิ่ม Font Awesome)
+  ปุ่มเป็น `type="button"`, มี `aria-label`/`aria-pressed`; ซ่อนกลับเองเมื่อ `<form>` ที่ครอบถูก submit/reset และเมื่อ `concealKey` เปลี่ยน
+- `src/app/(auth)/login/page.tsx`: ใช้ `PasswordInput` (`autoComplete="current-password"`)
+- `src/app/(dashboard)/tools/users/page.tsx`: ใช้ `PasswordInput` (`autoComplete="new-password"`); ฟอร์มนี้ไม่มี `<form>` จึงเพิ่ม `submitCount` ทุกครั้งที่กดบันทึก (ก่อนเรียก API → บันทึกไม่ผ่านก็ซ่อน) ส่งเป็น `concealKey`; ปิด modal = unmount = ซ่อนอยู่แล้ว
+
+### Codex รอบ 1 (CHANGES_REQUESTED) — แก้แล้ว
+- รหัสที่กดดูไว้ค้างอยู่หลังส่งฟอร์มถ้าฟอร์มยังเปิดอยู่ (เช่น login ไม่ผ่าน) → เพิ่มการซ่อนเมื่อ submit/reset และ `concealKey` ตามข้างบน + เทสต์ `tests/password-input.test.mjs`
+- ข้อจำกัด: ยังไม่มี DOM สำหรับเทสต์ (ไม่มี jsdom และไม่เพิ่ม dependency เพื่องานนี้) เทสต์จึงตรวจการผูก event จากซอร์ส ส่วนพฤติกรรมจริงตรวจในเบราว์เซอร์ด้านล่าง
+
+### เทสต์ — `npm test` (output จริง)
+```
+ℹ tests 36
+ℹ pass 36
+ℹ fail 0
+```
+
+### ตรวจในเบราว์เซอร์ (dev server localhost:9102 หน้า /login)
+| ขั้นตอน | type ของช่องรหัสผ่าน | ป้ายปุ่ม |
+|---|---|---|
+| เปิดหน้า | password | แสดงรหัสผ่าน |
+| กดตา | text | ซ่อนรหัสผ่าน |
+| กดตาซ้ำ (ไม่ส่งฟอร์ม) | password | แสดงรหัสผ่าน |
+| กดตาให้แสดง แล้วกด Login ด้วย captcha ผิด (login ไม่ผ่าน ยังอยู่หน้า /login) | password | แสดงรหัสผ่าน |
+
+หน้าจัดการผู้ใช้ยังไม่ได้ตรวจในเบราว์เซอร์ (ต้อง login admin)
 

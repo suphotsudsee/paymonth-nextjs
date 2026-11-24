@@ -3,6 +3,7 @@
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import styles from "../../officers/page.module.css";
+import { PasswordInput } from "@/components/PasswordInput";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { AppHeader } from "@/components/layout/AppHeader";
 
@@ -53,6 +54,7 @@ export default function ManageUsersPage() {
   });
   const [modalMode, setModalMode] = useState<"create" | "edit" | "view" | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+  const [submitCount, setSubmitCount] = useState(0);
   const [formSaving, setFormSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
@@ -178,6 +180,7 @@ export default function ManageUsersPage() {
 
   const submitForm = async () => {
     if (!modalMode) return;
+    setSubmitCount((n) => n + 1); // ซ่อนรหัสผ่านที่กดดูไว้ ทุกครั้งที่กดบันทึก (สำเร็จหรือไม่ก็ตาม)
     setFormSaving(true);
     setFormError(null);
     try {
@@ -479,9 +482,10 @@ export default function ManageUsersPage() {
                     </label>
                     <label>
                       รหัสผ่าน (ปล่อยว่างเพื่อไม่เปลี่ยน)
-                      <input
+                      <PasswordInput
                         className={styles.input}
-                        type="password"
+                        autoComplete="new-password"
+                        concealKey={submitCount}
                         value={form.password}
                         onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
                       />

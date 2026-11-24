@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { PasswordInput } from '@/components/PasswordInput';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -201,10 +202,10 @@ export default function LoginPage() {
               <label style={{ fontSize: 13, color: '#2b2b2b' }}>
                 Password <span style={{ color: '#c00' }}>*</span>
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
                 required
                 style={{
                   width: '100%',
