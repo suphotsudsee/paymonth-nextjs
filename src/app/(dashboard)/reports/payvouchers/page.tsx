@@ -4,6 +4,7 @@ import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
+import { FileSpreadsheet } from 'lucide-react';
 import { Pagination } from '@/components/Pagination';
 
 type Item = {
@@ -62,6 +63,16 @@ export default function PayVouchersPage() {
   // ตัวกรองของการค้นหาครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า
   // (ไม่ใช้ค่าที่พิมพ์ค้างในฟอร์มแต่ยังไม่กดค้นหา — Codex review งาน #12)
   const [appliedFilters, setAppliedFilters] = useState(filters);
+  // ส่งออก Excel ตามการค้นหาครั้งล่าสุดที่แสดงอยู่ (ไม่ใช่ค่าที่พิมพ์ค้างในฟอร์ม) — ต้องมีช่วงวันที่ (PRD 12)
+  const canExport = Boolean(data && appliedFilters.startdate.trim() && appliedFilters.enddate.trim());
+  const exportHref = canExport
+    ? `/api/reports/payvouchers/export?${new URLSearchParams({
+        startdate: appliedFilters.startdate.trim(),
+        enddate: appliedFilters.enddate.trim(),
+        field: appliedFilters.field,
+        ...(appliedFilters.query.trim() ? { query: appliedFilters.query.trim() } : {}),
+      }).toString()}`
+    : undefined;
   const [chequeOptions, setChequeOptions] = useState<string[]>([]);
   const [pnumberOptions, setPnumberOptions] = useState<string[]>([]);
 
@@ -227,8 +238,8 @@ export default function PayVouchersPage() {
         <section className="card shadow-sm mb-3 overflow-hidden">
           <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <div className="d-flex flex-column gap-1">
-              <h1 className="h5 mb-0">ทะเบียนคุมใบสำคัญจ่ายฯ</h1>
-              <p className="small text-secondary mb-0">ค้นหาใบสำคัญจ่ายตามช่วงวันที่และเงื่อนไข</p>
+              <h1 className="h5 mb-0">ทะเบียนคุมหลักฐานการจ่าย</h1>
+              <p className="small text-secondary mb-0">ค้นหาหลักฐานการจ่ายตามช่วงวันที่และเงื่อนไข</p>
             </div>
             <div className="d-flex flex-wrap align-items-center gap-2">
               <div className="d-flex flex-wrap align-items-center gap-2">
@@ -244,6 +255,16 @@ export default function PayVouchersPage() {
                   >
                     {loading ? 'กำลังค้นหา...' : 'ค้นหา'}
                   </button>
+                  <a
+                    className={`btn btn-success d-inline-flex align-items-center gap-2${canExport && !loading ? '' : ' disabled'}`}
+                    href={exportHref}
+                    aria-disabled={!canExport || loading}
+                    title={canExport ? 'ส่งออกทุกแถวของการค้นหานี้เป็น Excel' : 'ค้นหาด้วยช่วงวันที่ก่อนส่งออก Excel'}
+                  >
+                    {/* 16px = ขนาดไอคอนในปุ่มเดิมบน server */}
+                    <FileSpreadsheet size={16} aria-hidden />
+                    <span>ส่งออก Excel</span>
+                  </a>
                   <button type="button" className="btn btn-outline-secondary" onClick={handleReset} disabled={loading}>
                     ล้างข้อมูล
                   </button>

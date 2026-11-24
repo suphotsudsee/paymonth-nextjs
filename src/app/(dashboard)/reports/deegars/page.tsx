@@ -40,17 +40,13 @@ export default function ReportDeegarSearchPage() {
   const [page, setPage] = useState(1);
   // ค่าเริ่มต้น 50 = เท่ากับจำนวนแถวที่หน้านี้ได้จริงก่อนแบ่งหน้า (API ตัดที่ 50)
   const [pageSize, setPageSize] = useState(50);
-  const [filters, setFilters] = useState({ pnumber: "", nodeegar: "" });
+  // ค้นด้วยเลขที่ฎีกาอย่างเดียว (ตัดช่อง NODEEGAR ตามการแก้บน server — PRD 12)
+  const [filters, setFilters] = useState({ pnumber: "" });
   // ตัวกรองของการค้นหาครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า
   // (ไม่ใช้ค่าที่พิมพ์ค้างในฟอร์มแต่ยังไม่กดค้นหา — Codex review งาน #12)
   const [appliedFilters, setAppliedFilters] = useState(filters);
   const [pnumberOptions, setPnumberOptions] = useState<string[]>([]);
   const [pnumberQuery, setPnumberQuery] = useState("");
-
-  const onFilterChange =
-    (field: keyof typeof filters) =>
-    (e: ChangeEvent<HTMLInputElement>) =>
-      setFilters((prev) => ({ ...prev, [field]: e.target.value }));
 
   const onPnumberFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -109,7 +105,6 @@ export default function ReportDeegarSearchPage() {
         pageSize: String(targetSize),
       });
       params.set("pnumber", trimmedPnumber);
-      if (currentFilters.nodeegar.trim()) params.set("nodeegar", currentFilters.nodeegar.trim());
 
       const res = await fetch(`/api/salaries/deegars?${params.toString()}`, {
         cache: "no-store",
@@ -144,7 +139,7 @@ export default function ReportDeegarSearchPage() {
   };
 
   const handleReset = () => {
-    const cleared = { pnumber: "", nodeegar: "" };
+    const cleared = { pnumber: "" };
     setFilters(cleared);
     void fetchData(cleared);
   };
@@ -193,18 +188,6 @@ export default function ReportDeegarSearchPage() {
                   void loadPnumberOptions(e.currentTarget.value);
                 }}
                 placeholder="ระบุเลขที่ฎีกา"
-              />
-            </div>
-            <div className="d-flex align-items-center gap-2 fw-semibold">
-              <label className="text-nowrap mb-0" htmlFor="nodeegar">
-                NODEEGAR :
-              </label>
-              <input
-                id="nodeegar"
-                className="form-control"
-                value={filters.nodeegar}
-                onChange={onFilterChange("nodeegar")}
-                placeholder="ระบุ NODEEGAR"
               />
             </div>
             <div className="d-flex flex-wrap align-items-center gap-2">

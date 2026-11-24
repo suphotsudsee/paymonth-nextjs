@@ -30,10 +30,10 @@ test("paydirect report serializes ID through bigintToJson", () => {
   assert.doesNotMatch(src, /return NextResponse\.json\(\{ items: rows \}\)/);
 });
 
+// salaries/deegars ไม่อยู่ในรายการนี้แล้ว: ตั้งแต่งาน #16 ค้นหาฎีกาเริ่มจาก salary แล้ว join ไป deegar (เทสต์แยกด้านล่าง)
 const LATEST_SALARY = [
   "src/app/api/reports/ktbcheque/route.ts",
   "src/app/api/reports/ktbcheque/export/route.ts",
-  "src/app/api/salaries/deegars/route.ts",
 ];
 
 test("latest-salary/regisdeegar joins go through keyJoin with a runtime data check", () => {
@@ -47,8 +47,26 @@ test("latest-salary/regisdeegar joins go through keyJoin with a runtime data che
     const check = src.indexOf("const keysTrimmed = await salaryKeysAreTrimmed();");
     assert.ok(guard !== -1 && check > guard && check < src.indexOf("prisma.$queryRawUnsafe("), `${f}: data check after auth, before queries`);
   }
-  const deegars = read("src/app/api/salaries/deegars/route.ts");
-  assert.equal((deegars.match(/LEFT JOIN regisdeegar ON \$\{regisdeegarMatch\(keysTrimmed, "regisdeegar", "deegar"\)\}/g) ?? []).length, 2);
+});
+
+test("deegar search (salary-first) joins through keyJoin with runtime checks for both key sets", () => {
+  // PRD 12 / TASK_BOARD #16: หนึ่งแถวต่อรายการเงิน — join salary → deegar ด้วย index ของ deegar ได้เมื่อ key ไม่มีเว้นวรรคนำหน้า
+  const src = read("src/app/api/salaries/deegars/route.ts");
+  const sql = sqlOnly(src);
+  assert.match(src, /FROM salary\n\s+LEFT JOIN deegar ON \$\{deegarFromSalaryMatch\(deegarTrimmed, "deegar", "salary"\)\}/);
+  assert.match(src, /LEFT JOIN regisdeegar ON \$\{regisdeegarMatch\(keysTrimmed, "regisdeegar", "salary"\)\}/);
+  assert.doesNotMatch(sql, /TRIM\(deegar\.PNUMBER\) = TRIM\(salary/, "no hard-coded slow join");
+  const guard = src.indexOf("isStaff(session)");
+  const q = src.indexOf("prisma.$queryRawUnsafe(");
+  for (const check of ["const keysTrimmed = await salaryKeysAreTrimmed();", "const deegarTrimmed = await deegarKeysAreTrimmed();"]) {
+    const at = src.indexOf(check);
+    assert.ok(guard !== -1 && at > guard && at < q, `${check} must run after auth, before queries`);
+  }
+  // ภาษี/ค่าปรับเป็นค่าระดับฎีกา: รวมฎีกาละครั้ง ไม่ใช่ทุกรายการเงิน
+  assert.match(sql, /SELECT DISTINCT deegar\.ID, deegar\.TAX, deegar\.FEE/);
+  assert.match(sql, /COALESCE\(SUM\(d\.TAX\), 0\) AS sumTax/);
+  // ลำดับไม่ซ้ำสำหรับ OFFSET
+  assert.match(sql, /ORDER BY salary\.PNUMBER, salary\.NODEEGAR, salary\.NUM, officer\.NAME, salary\.ID, bank\.id/);
 });
 
 test("keyJoin: fast form only when keys are trimmed, otherwise the original TRIM-both-sides form", async () => {
@@ -57,6 +75,10 @@ test("keyJoin: fast form only when keys are trimmed, otherwise the original TRIM
   assert.equal(latestSalaryMatch(false, "s2", "deegar"), "TRIM(s2.PNUMBER) = TRIM(deegar.PNUMBER) AND TRIM(s2.NODEEGAR) = TRIM(deegar.NODEEGAR)");
   assert.equal(regisdeegarMatch(true, "regisdeegar", "deegar"), "regisdeegar.PNUMBER = TRIM(deegar.PNUMBER)");
   assert.equal(regisdeegarMatch(false, "regisdeegar", "deegar"), "TRIM(regisdeegar.PNUMBER) = TRIM(deegar.PNUMBER)");
+  const { deegarFromSalaryMatch, DEEGAR_LEADING_SPACE_SQL } = await import("../src/lib/keyJoin.ts");
+  assert.equal(deegarFromSalaryMatch(true, "deegar", "salary"), "deegar.PNUMBER = TRIM(salary.PNUMBER) AND deegar.NODEEGAR = TRIM(salary.NODEEGAR)");
+  assert.equal(deegarFromSalaryMatch(false, "deegar", "salary"), "TRIM(deegar.PNUMBER) = TRIM(salary.PNUMBER) AND TRIM(deegar.NODEEGAR) = TRIM(salary.NODEEGAR)");
+  assert.match(DEEGAR_LEADING_SPACE_SQL, /FROM deegar WHERE PNUMBER LIKE ' %' OR NODEEGAR LIKE ' %'/);
   assert.match(LEADING_SPACE_KEYS_SQL, /FROM salary WHERE PNUMBER LIKE ' %' OR NODEEGAR LIKE ' %'/);
   assert.match(LEADING_SPACE_KEYS_SQL, /FROM regisdeegar WHERE PNUMBER LIKE ' %'/);
   // cache สั้นพอ และ fail closed (อ่านค่าไม่ได้ = ถือว่าไม่ผ่าน → ใช้แบบเดิม)

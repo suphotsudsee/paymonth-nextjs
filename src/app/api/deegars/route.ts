@@ -6,6 +6,31 @@ import { clampPageSize, parsePage } from '@/lib/pagination';
 
 const PNUMBER_MAX_LENGTH = 10;
 
+// ผลจาก prisma.deegar.create มี ID เป็น BigInt และ TAX/FEE/MONEY เป็น Decimal — NextResponse.json ส่ง BigInt ไม่ได้ (throw)
+// แปลงเป็น number ก่อนส่ง (มาจากการแก้บน server, PRD 12); FEE ส่งชื่อ PAY ให้ตรงกับ GET
+const toNumber = (value: unknown) => (value === null || value === undefined ? null : Number(value));
+const serializeDeegarItem = (item: {
+  ID: bigint;
+  PNUMBER: string;
+  NODEEGAR: string;
+  ACCNUMBER: string;
+  ACCNAME: string;
+  TAX: unknown;
+  FEE: unknown;
+  MONEY: unknown;
+  CHEQUE: string | null;
+}) => ({
+  ID: Number(item.ID),
+  PNUMBER: item.PNUMBER,
+  NODEEGAR: item.NODEEGAR,
+  ACCNUMBER: item.ACCNUMBER,
+  ACCNAME: item.ACCNAME,
+  TAX: toNumber(item.TAX),
+  PAY: toNumber(item.FEE),
+  MONEY: toNumber(item.MONEY),
+  CHEQUE: item.CHEQUE,
+});
+
 // GET /api/deegars
 // Supports optional filters: pnumber, nodeegar, accnumber, accname, cheque, paydate
 // Pagination: page, pageSize
@@ -211,7 +236,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ item: created });
+    return NextResponse.json({ item: serializeDeegarItem(created) });
   } catch (err: any) {
     console.error("create deegar error", err);
     if (err?.code === "P2002") {

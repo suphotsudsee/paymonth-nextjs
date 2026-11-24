@@ -21,6 +21,7 @@
 | 13 | ตัวเลขจำนวนเงินชิดขวาทุกหน้า (PRD 11.2) | เสร็จ (โค้ด ยังไม่ commit) | ดู "หลักฐาน: งาน #13" ด้านล่าง |
 | 14 | ประวัติจ่ายตรงรายคนช้า: index `paydirect (C, A, B)` (PRD 10.2) | เสร็จ (โค้ด ยังไม่ commit) — **ต้องรัน `prisma/sql/2026-11-25_paydirect_cid_index.sql` บน DB server** | ดู "หลักฐาน: งาน #14" ด้านล่าง |
 | 15 | คู่มือ deploy ไป server (`docs/DEPLOY.md`): สำรอง, ไฟล์ค้างบน server ที่ทำให้ deploy ล้ม 3 ครั้ง, `.env`, SQL 3 ไฟล์, ตรวจหลัง deploy, ย้อนกลับ | เสร็จ (เอกสาร ยังไม่ commit) — ยังไม่ได้ทดลองบน server จริง | ดู "หลักฐาน: งาน #15" ด้านล่าง |
+| 16 | รวมการแก้บน server เข้า repo (PRD 12): BigInt ตอนสร้างฎีกา, ชื่อไฟล์ export ภาษาไทย, ส่งออก Excel ทะเบียนคุมหลักฐานการจ่าย (+isStaff), คำผิด ทดรอง, ค้นหาฎีกาแสดงทีละรายการเงิน (+ยอดรวมไม่นับภาษีซ้ำ) | เสร็จ (โค้ด) |  ดู "หลักฐาน: งาน #16" ด้านล่าง |
 
 ## หลักฐาน: งาน #1 — ลบ route ThaiID login ที่ข้ามการตรวจตัวตน
 
@@ -1100,3 +1101,60 @@ RESET OK
 
 ### ยังไม่ได้ทำ
 - ยังไม่ได้รันขั้นตอนบน server จริง (ไม่มีสิทธิ์เข้า server จากเครื่องนี้)
+
+## หลักฐาน: งาน #16 — รวมการแก้บน server เข้า repo
+
+### ที่มา
+เตรียม deploy (ssh เข้า server ผ่าน VPN) พบ server ค้างที่ `a93a5b1` + แก้ค้าง 8 ไฟล์ + route ใหม่ที่ไม่อยู่ใน git 1 ตัว — เป็นการแก้บั๊ก/ฟีเจอร์จริง (ไม่ใช่ไฟล์ทดลอง)
+สำรองไว้บน server แล้ว: `~/paymonth-backup/20261124-1510/` (`server-changes.patch`, `untracked-payvouchers-export.tgz`, `env.backup`, `old-commit.txt`, สิทธิ์ 700/600) — ผู้ใช้ยืนยัน "keep all"
+
+### สิ่งที่ย้ายเข้า repo (ปรับให้เข้ากับงาน #11–#14)
+| บน server | ใน repo |
+|-----------|--------|
+| `api/deegars` POST แปลง BigInt/Decimal ก่อนส่ง | เหมือนกัน (`serializeDeegarItem`) |
+| ชื่อไฟล์ export ภาษาไทย (KTB เช็ค/ฎีกา) — โค้ดซ้ำในแต่ละ route | helper เดียว `src/lib/attachment.ts` ใช้ใน 3 route |
+| route ใหม่ `api/reports/payvouchers/export` ตรวจแค่ login, FROM/WHERE เขียนซ้ำกับหน้ารายการ | **เพิ่ม `isStaff`**; FROM/WHERE ใช้ร่วมกับหน้ารายการ (`src/lib/payvouchersQuery.ts`); whitelist ช่องค้นหาแบบ own-property (`__proto__`/`toString` ใช้ pnumber); ไม่ส่งข้อความ error ภายใน |
+| ปุ่มส่งออก Excel ใช้ค่าในฟอร์ม | ปุ่ม Bootstrap `btn-success` + ไอคอน lucide, ใช้ตัวกรองของการค้นหาครั้งล่าสุด (เหมือนงาน #12), ปิดไว้จนกว่าจะค้นหา |
+| หัวหน้า "ทะเบียนคุมหลักฐานการจ่าย", คำผิด "ทดรอง" | เหมือนกัน |
+| ค้นหาฎีกา: FROM salary, ตัด NODEEGAR, join TRIM ทั้งสองฝั่ง | เหมือนกัน + join แบบเร็ว `deegarFromSalaryMatch` (ตรวจข้อมูลจริงก่อน fallback TRIM) — วัดบน DB local 0.97 s → 0.05 s; ยอดรวมทั้งผลค้นหา (งาน #12) โดย **ภาษี/ค่าปรับนับฎีกาละครั้ง**; ลำดับไม่ซ้ำ (`salary.ID, bank.id`) |
+- เทสต์: ใหม่ `tests/server-port.test.mjs` 7 ข้อ; `tests/report-queries.test.mjs` ปรับข้อของ salaries/deegars ให้ตรงกับการ join แบบใหม่ (เดิมบังคับ join จาก deegar)
+
+### ตรวจกับข้อมูลจริง (`next start -p 9104`, DB local)
+- ค้นหาฎีกา P680000017: DB `SELECT COUNT(*), SUM(MONEY) FROM salary WHERE PNUMBER LIKE '%P680000017%'` = 101 / 267,789,572.00 → API total 101, totals.money 267,789,572; ดึงทีละ 5 แถวจนครบ = 101 แถวไม่ซ้ำ ผลรวม 267,789,572; ~140 ms
+- ภาษีไม่นับซ้ำ: ฎีกา A640000133 (ฎีกาเดียว ภาษี 26.17 มีรายการเงิน 2 แถว + อีก 1 แถวที่ไม่มีฎีกาคู่) → totals.tax 26.17 (ถ้ารวมทุกแถวจะได้ 52.34), money 2,826.17 = DB; แถวที่ไม่มีฎีกาคู่แสดงโดยภาษีว่าง
+- ส่งออก Excel ทะเบียนคุมหลักฐานการจ่าย 2025-01-01..2025-01-31: ไฟล์ xlsx (`PK`) ชีต PayVouchers 880 แถวข้อมูล + หัว 8 คอลัมน์, ผลรวมจำนวนเงิน 109,829,429.11 = หน้ารายการ (total 880, totalMoney 109,829,429.11); admin 200, ผู้ใช้ทั่วไป **403**, ไม่ login 401, ไม่มีช่วงวันที่ 400, `field=__proto__` 200 (ใช้ pnumber)
+- หน้า: ปุ่ม "ส่งออก Excel" disabled ก่อนค้นหา → หลังค้นหาลิงก์ตามช่วงวันที่ที่ค้น → แก้วันที่ในฟอร์มแต่ไม่กดค้นหา ลิงก์ยังเป็นช่วงเดิม; หัวหน้า "ทะเบียนคุมหลักฐานการจ่าย"; ค้นหาฎีกาเหลือช่อง PNUMBER ช่องเดียว
+- Content-Disposition KTB เช็ค: `filename="31310248649_..."; filename*=UTF-8''31310248649_...` 
+
+```
+$ npx tsc --noEmit -p .
+tsc exit 0
+
+$ npm test
+✔ latest-salary/regisdeegar joins go through keyJoin with a runtime data check (1.4324ms)
+✔ deegar search (salary-first) joins through keyJoin with runtime checks for both key sets (0.4683ms)
+✔ every writer of salary/regisdeegar trims PNUMBER (and NODEEGAR) before saving (0.7011ms)
+✔ attachmentHeader: ASCII fallback + RFC 5987 UTF-8 name for Thai filenames (1.099ms)
+✔ payvoucherWhere: date range always, search column only from the whitelist (0.8972ms)
+✔ payvouchers export: staff only, same FROM/WHERE as the list, all rows, Thai-safe filename (0.7343ms)
+✔ KTB exports use the Thai-safe filename header (0.4638ms)
+✔ payvouchers page: export button uses the last applied search; title renamed (0.349ms)
+✔ creating a deegar returns plain numbers (no BigInt in JSON) (1.0287ms)
+✔ deegar search page has no NODEEGAR filter; summary typo fixed (0.6012ms)
+ℹ tests 73
+ℹ pass 73
+ℹ fail 0
+ℹ skipped 0
+npm test exit 0
+```
+eslint `src`: 252 (ก่อนงาน #11 = 267) ไม่มีปัญหาใหม่; `next build` ✓ (69/69 — เพิ่ม `/api/reports/payvouchers/export`)
+
+### Codex รอบ 1 (CHANGES_REQUESTED) — แก้แล้ว
+- `filename*` ใช้ `encodeURIComponent` ซึ่งไม่ escape `' ( ) *` (RFC 5987 attr-char ไม่อนุญาต) → escape เพิ่มใน `rfc5987()`; เทสต์ใหม่: ชื่อ "ฎีกา (ครั้งที่ 2) O'Neil*" → ทุกตัวใน `filename*` เป็น attr-char, มี %28 %29 %27 %2A, decode กลับได้ชื่อเดิม
+```
+✔ attachmentHeader: ASCII fallback + RFC 5987 UTF-8 name for Thai filenames (1.0256ms)
+ℹ tests 73
+ℹ pass 73
+ℹ fail 0
+npm test exit 0
+```

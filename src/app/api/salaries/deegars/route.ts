@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
-import { latestSalaryMatch, regisdeegarMatch } from '@/lib/keyJoin';
-import { salaryKeysAreTrimmed } from '@/lib/keyHygiene';
+import { deegarFromSalaryMatch, regisdeegarMatch } from '@/lib/keyJoin';
+import { deegarKeysAreTrimmed, salaryKeysAreTrimmed } from '@/lib/keyHygiene';
 import { isStaff } from '@/lib/permissions';
 import { clampPageSize, parsePage } from '@/lib/pagination';
 
+// ค้นหาฎีกา (/reports/deegars): หนึ่งแถว = หนึ่งรายการเงินเดือน (salary) ในฎีกา พร้อมข้อมูลฎีกา/เช็คที่คู่กัน
+// เปลี่ยนจาก "หนึ่งแถวต่อฎีกา" ตามการแก้บน server ที่ผู้ใช้ยืนยันให้เก็บ (PRD 12, TASK_BOARD #16)
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const pnumber = searchParams.get('pnumber')?.trim() || undefined;
-    const nodeegar = searchParams.get('nodeegar')?.trim() || undefined;
     const accnumber = searchParams.get('accnumber')?.trim() || undefined;
     const accname = searchParams.get('accname')?.trim() || undefined;
     const cheque = searchParams.get('cheque')?.trim() || undefined;
@@ -21,19 +22,16 @@ export async function GET(req: NextRequest) {
     const session = await verifySession(req.cookies.get('session')?.value);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (!isStaff(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    // join แบบเร็วได้ก็ต่อเมื่อ key ของ salary/regisdeegar ไม่ขึ้นต้นด้วยเว้นวรรค (src/lib/keyJoin.ts)
+    // join แบบเร็วได้ก็ต่อเมื่อ key ฝั่งที่ถูกค้นไม่ขึ้นต้นด้วยเว้นวรรค (src/lib/keyJoin.ts) — ตรวจจากข้อมูลจริงและจำผล 5 นาที
     const keysTrimmed = await salaryKeysAreTrimmed();
+    const deegarTrimmed = await deegarKeysAreTrimmed();
 
     const filters: string[] = [];
-    const params: any[] = [];
+    const params: string[] = [];
 
     if (pnumber) {
-      filters.push('deegar.PNUMBER LIKE ?');
+      filters.push('salary.PNUMBER LIKE ?');
       params.push(`%${pnumber}%`);
-    }
-    if (nodeegar) {
-      filters.push('deegar.NODEEGAR LIKE ?');
-      params.push(`%${nodeegar}%`);
     }
     if (accnumber) {
       filters.push('deegar.ACCNUMBER LIKE ?');
@@ -49,31 +47,31 @@ export async function GET(req: NextRequest) {
     }
 
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
-
-    // นับจำนวนทั้งหมดพร้อมกับดึงหน้าปัจจุบัน (ไม่ขึ้นต่อกัน) — TASK_BOARD #10
-    const countPromise = prisma.$queryRawUnsafe(
-      `
-        -- ยอดรวมของผลค้นหาทั้งหมด (ไม่ใช่เฉพาะหน้าที่แสดง) ใช้แถว Total ของหน้าค้นหาฎีกา — PRD 11.1
-        -- นิพจน์เดียวกับคอลัมน์ MONEY/TAX/PAY ใน query หน้าปัจจุบัน
-        SELECT COUNT(*) as total,
-          COALESCE(SUM(COALESCE(salary.MONEY, deegar.MONEY)), 0) AS sumMoney,
-          COALESCE(SUM(deegar.TAX), 0) AS sumTax,
-          COALESCE(SUM(deegar.FEE), 0) AS sumPay
-        FROM deegar
-          LEFT JOIN salary ON salary.ID = (
-            SELECT s2.ID
-            FROM salary s2
-            -- ดู src/lib/keyJoin.ts: แบบเร็วใช้ index ได้, ถ้ามีข้อมูลเก่าขึ้นต้นด้วยเว้นวรรคจะใช้ TRIM ทั้งสองฝั่งแบบเดิม
-            WHERE ${latestSalaryMatch(keysTrimmed, "s2", "deegar")}
-            ORDER BY s2.DUPDATE DESC, s2.ID DESC
-            LIMIT 1
-          )
+    const from = `
+        FROM salary
+          LEFT JOIN deegar ON ${deegarFromSalaryMatch(deegarTrimmed, "deegar", "salary")}
           LEFT JOIN officer ON salary.CID = officer.CID
           LEFT JOIN bank ON bank.CID = salary.CID
-          LEFT JOIN regisdeegar ON ${regisdeegarMatch(keysTrimmed, "regisdeegar", "deegar")}
-          LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
-        ${whereClause}
+          LEFT JOIN regisdeegar ON ${regisdeegarMatch(keysTrimmed, "regisdeegar", "salary")}
+          LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE`;
+
+    // นับจำนวนและยอดรวมของผลค้นหาทั้งหมด พร้อมกับดึงหน้าปัจจุบัน (ไม่ขึ้นต่อกัน) — TASK_BOARD #10, PRD 11.1
+    // รายรับรวมทุกแถว; ภาษี/ค่าปรับเป็นค่าระดับฎีกา ถ้ารวมทุกแถวจะนับซ้ำเท่าจำนวนรายการในฎีกา → รวมฎีกาละครั้ง (DISTINCT deegar.ID)
+    const countPromise = prisma.$queryRawUnsafe(
+      `
+        SELECT
+          (SELECT COUNT(*) ${from} ${whereClause}) AS total,
+          (SELECT COALESCE(SUM(salary.MONEY), 0) ${from} ${whereClause}) AS sumMoney,
+          COALESCE(SUM(d.TAX), 0) AS sumTax,
+          COALESCE(SUM(d.FEE), 0) AS sumPay
+        FROM (
+          SELECT DISTINCT deegar.ID, deegar.TAX, deegar.FEE
+          ${from}
+          ${whereClause}
+        ) d
       `,
+      ...params,
+      ...params,
       ...params,
     ) as Promise<{ total: bigint; sumMoney: unknown; sumTax: unknown; sumPay: unknown }[]>;
     // ถ้า query หน้าปัจจุบันล้มก่อน จะไม่มีใคร await countPromise → กัน unhandled rejection (Node อาจปิด process)
@@ -83,13 +81,13 @@ export async function GET(req: NextRequest) {
     const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
-          COALESCE(salary.ID, deegar.ID) AS ID,
+          salary.ID AS ID,
           bank.IDBANK,
           COALESCE(officer.NAME, regisdeegar.NAME) AS NAME,
           COALESCE(salary.CID, '') AS CID,
-          COALESCE(salary.MONEY, deegar.MONEY) AS MONEY,
-          deegar.PNUMBER,
-          deegar.NODEEGAR,
+          salary.MONEY AS MONEY,
+          salary.PNUMBER,
+          salary.NODEEGAR,
           salary.NUM,
           deegar.CHEQUE,
           cheque.PAYDATE,
@@ -97,24 +95,12 @@ export async function GET(req: NextRequest) {
           deegar.ACCNAME,
           deegar.TAX,
           deegar.FEE AS PAY
-        FROM deegar
-          LEFT JOIN salary ON salary.ID = (
-            SELECT s2.ID
-            FROM salary s2
-            -- ดู src/lib/keyJoin.ts: แบบเร็วใช้ index ได้, ถ้ามีข้อมูลเก่าขึ้นต้นด้วยเว้นวรรคจะใช้ TRIM ทั้งสองฝั่งแบบเดิม
-            WHERE ${latestSalaryMatch(keysTrimmed, "s2", "deegar")}
-            ORDER BY s2.DUPDATE DESC, s2.ID DESC
-            LIMIT 1
-          )
-          LEFT JOIN officer ON salary.CID = officer.CID
-          LEFT JOIN bank ON bank.CID = salary.CID
-          LEFT JOIN regisdeegar ON ${regisdeegarMatch(keysTrimmed, "regisdeegar", "deegar")}
-          LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
+        ${from}
         ${whereClause}
-        -- (PNUMBER, NODEEGAR) unique ใน deegar แต่ JOIN bank ตาม CID อาจได้หลายแถว → ต่อท้าย deegar.ID, bank.id ให้ลำดับไม่ซ้ำ ข้ามหน้าไม่หาย/ไม่ซ้ำ
-        ORDER BY deegar.PNUMBER, deegar.NODEEGAR, deegar.ID, bank.id
+        -- เรียงตามฎีกา/ครั้งที่/ลำดับ/ชื่อ ตามแบบบน server; salary.ID, bank.id ต่อท้ายให้ลำดับไม่ซ้ำ แบ่งหน้าแล้วแถวไม่หาย/ไม่ซ้ำ
+        ORDER BY salary.PNUMBER, salary.NODEEGAR, salary.NUM, officer.NAME, salary.ID, bank.id
         LIMIT ? OFFSET ?
-      `, 
+      `,
       ...params,
       pageSize,
       offset,
@@ -127,8 +113,6 @@ export async function GET(req: NextRequest) {
       PNUMBER: string;
       NODEEGAR: string;
       NUM: string | null;
-      PAYTYPE: string | null;
-      IDPAY: string | null;
       CHEQUE: string | null;
       PAYDATE: Date | null;
       ACCNUMBER?: string | null;
@@ -163,11 +147,8 @@ export async function GET(req: NextRequest) {
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('deegars API error', err);
-    return NextResponse.json(
-      { error: 'Failed to load deegars', detail: String(err?.message || err) },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Failed to load deegars' }, { status: 500 });
   }
 }

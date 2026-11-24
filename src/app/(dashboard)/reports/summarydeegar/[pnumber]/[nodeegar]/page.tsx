@@ -189,7 +189,7 @@ export default function SummaryDeegarDetailPage() {
                   Total คืนเงินบำรุงสสจ.: <strong>{formatMoney(totals.outcome1)}</strong>
                 </span>
                 <span>
-                  Total คืนเงินทดลองราชการ: <strong>{formatMoney(totals.outcome2)}</strong>
+                  Total คืนเงินทดรองราชการ: <strong>{formatMoney(totals.outcome2)}</strong>
                 </span>
               </div>
               <div className="d-flex flex-wrap align-items-center gap-2">

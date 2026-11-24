@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
 import { isStaff } from '@/lib/permissions';
+import { attachmentHeader } from '@/lib/attachment';
 
 export async function GET(req: NextRequest) {
   try {
@@ -91,12 +92,12 @@ export async function GET(req: NextRequest) {
     const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(
       now.getHours(),
     )}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-    const filename = `${pnumber}_${stamp}.xlsx`;
+    const filename = `${pnumber}_${stamp}`;
     return new NextResponse(workbookBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': attachmentHeader(filename, 'ktbdeegar-export'),
       },
     });
   } catch (err: any) {

@@ -5,6 +5,7 @@ import { verifySession } from '@/lib/auth';
 import { latestSalaryMatch } from '@/lib/keyJoin';
 import { salaryKeysAreTrimmed } from '@/lib/keyHygiene';
 import { isStaff } from '@/lib/permissions';
+import { attachmentHeader } from '@/lib/attachment';
 
 export async function GET(req: NextRequest) {
   try {
@@ -94,12 +95,12 @@ export async function GET(req: NextRequest) {
     const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}:${pad(
       now.getMinutes(),
     )}:${pad(now.getSeconds())}`;
-    const filename = `${cheque}_${stamp}.xlsx`;
+    const filename = `${cheque}_${stamp}`;
     return new NextResponse(workbookBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': attachmentHeader(filename, 'ktbcheque-export'),
       },
     });
   } catch (err: any) {

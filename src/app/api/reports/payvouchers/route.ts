@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
 import { isStaff } from '@/lib/permissions';
+import { PAYVOUCHER_FROM, payvoucherWhere } from '@/lib/payvouchersQuery';
 
 type Row = {
   PAYDATE: Date | null;
@@ -15,12 +16,6 @@ type Row = {
   totalRows?: any;
 };
 
-const FIELD_MAP: Record<string, string> = {
-  pnumber: 'deegar.PNUMBER',
-  cheque: 'cheque.CHEQUE',
-  payname: 'cpay.PAYNAME',
-  name: 'officer.NAME',
-};
 
 export async function GET(req: NextRequest) {
   try {
@@ -48,15 +43,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const filters: string[] = ['cheque.PAYDATE BETWEEN ? AND ?'];
-    const params: any[] = [start, end];
-    const column = FIELD_MAP[fieldKey] || FIELD_MAP.pnumber;
-    if (term) {
-      filters.push(`${column} LIKE ?`);
-      params.push(`%${term}%`);
-    }
-
-    const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+    const { whereClause, params } = payvoucherWhere(start, end, fieldKey, term);
 
     const rows = (await prisma.$queryRawUnsafe(
       `
@@ -70,11 +57,7 @@ export async function GET(req: NextRequest) {
           deegar.PNUMBER,
           salary.MONEY,
           COUNT(*) OVER() AS totalRows
-        FROM cheque
-          INNER JOIN deegar ON cheque.CHEQUE = deegar.CHEQUE
-          INNER JOIN salary ON deegar.PNUMBER = salary.PNUMBER AND deegar.NODEEGAR = salary.NODEEGAR
-          INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
-          INNER JOIN officer ON salary.CID = officer.CID
+        ${PAYVOUCHER_FROM}
         ${whereClause}
         ORDER BY cheque.PAYDATE, cheque.ID
         LIMIT ? OFFSET ?
@@ -103,11 +86,7 @@ export async function GET(req: NextRequest) {
     const totals = (await prisma.$queryRawUnsafe(
       `
         SELECT SUM(salary.MONEY) AS totalMoney
-        FROM cheque
-          INNER JOIN deegar ON cheque.CHEQUE = deegar.CHEQUE
-          INNER JOIN salary ON deegar.PNUMBER = salary.PNUMBER AND deegar.NODEEGAR = salary.NODEEGAR
-          INNER JOIN cpay ON salary.IDPAY = cpay.IDPAY
-          INNER JOIN officer ON salary.CID = officer.CID
+        ${PAYVOUCHER_FROM}
         ${whereClause}
       `,
       ...params,

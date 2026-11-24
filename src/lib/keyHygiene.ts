@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { LEADING_SPACE_KEYS_SQL } from "@/lib/keyJoin";
+import { DEEGAR_LEADING_SPACE_SQL, LEADING_SPACE_KEYS_SQL } from "@/lib/keyJoin";
 
 // ตรวจว่าใช้ join แบบเร็ว (src/lib/keyJoin.ts) ได้หรือไม่ แล้วจำผลไว้
 // 5 นาที: การตรวจอ่าน index ของ salary ทั้งก้อน (~100–150 ms บน DB local) ไม่ควรทำทุกคำขอ
@@ -15,5 +15,19 @@ export async function salaryKeysAreTrimmed(): Promise<boolean> {
     console.warn("salary/regisdeegar มี key ขึ้นต้นด้วยเว้นวรรค — รายงานใช้ join แบบ TRIM ทั้งสองฝั่ง (ช้ากว่า) จนกว่าจะแก้ข้อมูล");
   }
   cached = { at: Date.now(), trimmed };
+  return trimmed;
+}
+
+// เหมือนข้างบน แต่สำหรับ key ฝั่ง deegar (join จาก salary ไป deegar — keyJoin.deegarFromSalaryMatch)
+let deegarCached: { at: number; trimmed: boolean } | null = null;
+
+export async function deegarKeysAreTrimmed(): Promise<boolean> {
+  if (deegarCached && Date.now() - deegarCached.at < CACHE_MS) return deegarCached.trimmed;
+  const rows = (await prisma.$queryRawUnsafe(DEEGAR_LEADING_SPACE_SQL)) as { n: bigint | number }[];
+  const trimmed = Number(rows?.[0]?.n ?? 1) === 0;
+  if (!trimmed) {
+    console.warn("deegar มี key ขึ้นต้นด้วยเว้นวรรค — ค้นหาฎีกาใช้ join แบบ TRIM ทั้งสองฝั่ง (ช้ากว่า) จนกว่าจะแก้ข้อมูล");
+  }
+  deegarCached = { at: Date.now(), trimmed };
   return trimmed;
 }

@@ -247,3 +247,20 @@
   (C ขึ้นก่อนเพื่อค้นตามคน, A, B ต่อท้ายให้ GROUP BY ปี/เดือน อ่านจาก index ได้)
 - Edge cases: ตาราง MyISAM ล็อกระหว่างสร้าง index → รันช่วงไม่มีคนนำเข้าข้อมูล; script รันซ้ำได้ (`IF NOT EXISTS`); การนำเข้า paydirect (`INSERT IGNORE`) ช้าลงเล็กน้อยเพราะต้องอัปเดต index เพิ่ม 1 ตัว
 - **ต้องรัน SQL บน DB ของ server** (เหมือนงาน #10) ไม่งั้นบน server ยังช้าเหมือนเดิม
+
+## 12. รวมการแก้ที่ทำตรงบน server เข้า repo (TASK_BOARD #16)
+พบตอนเตรียม deploy (2026-11-24): server ค้างที่ `a93a5b1` และมีการแก้ที่ไม่เคยเข้า repo 8 ไฟล์ + route ใหม่ 1 ตัว (สำรองไว้ที่ `~/paymonth-backup/20261124-1510/` บน server)
+ผู้ใช้ยืนยันให้เก็บทั้งหมด — ย้ายเข้า repo ให้ทำงานร่วมกับงาน #11–#14 แล้วจึง deploy
+
+| เรื่อง | ไฟล์ | ข้อกำหนด |
+|-------|-----|---------|
+| สร้างฎีกาแล้ว response พัง | `api/deegars` POST | `prisma.deegar.create` คืน `ID` เป็น BigInt และตัวเลข Decimal → แปลงก่อนส่ง (`ID` เป็น number, `TAX`/`FEE→PAY`/`MONEY` เป็น number) |
+| ชื่อไฟล์ export ภาษาไทย | `api/reports/ktbcheque/export`, `ktbdeegar/export`, ใหม่ `payvouchers/export` | `Content-Disposition` มีทั้ง `filename="<ascii>"` (ตัวอักษรนอก ASCII เป็น `_`) และ `filename*=UTF-8''<encodeURIComponent>`; ทำเป็น helper เดียว `src/lib/attachment.ts` |
+| ส่งออก Excel ทะเบียนคุมหลักฐานการจ่าย | หน้า `/reports/payvouchers` + ใหม่ `GET /api/reports/payvouchers/export` | ปุ่ม "ส่งออก Excel" (ต้องมีช่วงวันที่) ส่งออกทุกแถวตามเงื่อนไข: วดป/จ่าย, ลำดับที่, หมายเลขเช็ค, รายการเช็ค, จ่ายให้, รายการจ่าย, ที่ฎีกา, จำนวนเงิน; หัวหน้าเปลี่ยนเป็น "ทะเบียนคุมหลักฐานการจ่าย"; **เพิ่ม `isStaff` ใน route** (บน server ตรวจแค่ login — ผิดหลักงาน #2b); export ใช้ตัวกรองของการค้นหาครั้งล่าสุด (เหมือนการเปลี่ยนหน้า งาน #12); ช่องค้นหา (`field`) ต้องอยู่ใน whitelist |
+| คำผิด | `reports/summarydeegar/[pnumber]/[nodeegar]` | "คืนเงินทดลองราชการ" → "คืนเงินทดรองราชการ" |
+| ค้นหาฎีกาแสดงทีละรายการเงิน | หน้า `/reports/deegars` + `api/salaries/deegars` | ตั้งต้นจาก `salary` (หนึ่งแถว = หนึ่งรายการเงินเดือนในฎีกา) แทนหนึ่งแถวต่อฎีกา; ค้นด้วย `salary.PNUMBER`; ตัดช่อง/ตัวกรอง NODEEGAR; เรียง PNUMBER, NODEEGAR, NUM, ชื่อ (+ `salary.ID`, `bank.id` ให้ลำดับไม่ซ้ำตอนแบ่งหน้า) |
+
+Edge cases ของค้นหาฎีกาแบบใหม่
+- ยอดรวมทั้งผลค้นหา (งาน #12): รายรับ = SUM(`salary.MONEY`) ทุกแถว; **ภาษี/ค่าปรับ (TAX/FEE) เป็นค่าระดับฎีกา** ถ้ารวมทุกแถวจะนับซ้ำตามจำนวนรายการในฎีกานั้น → รวมแบบนับฎีกาละครั้ง (DISTINCT `deegar.ID`)
+- รายการเงินที่ไม่มีฎีกาคู่ (LEFT JOIN ไม่เจอ) ยังแสดง โดยช่องของฎีกาว่าง
+- คนที่มีหลายบัญชี (`bank.CID`) ยังได้หลายแถวเหมือนเดิม (PRD 8.7 ยังไม่แก้)
