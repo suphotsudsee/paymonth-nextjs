@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
+import { hasAdminAccess } from "@/lib/permissions";
 
-const canManageBanks = (session: { status?: unknown; accessLevel?: unknown }) => {
-  const statusStr =
-    typeof session.status === "string"
-      ? session.status.toLowerCase()
-      : String(session.status ?? "").toLowerCase();
-  if (statusStr.includes("admin") || statusStr.includes("manager")) return true;
-
-  const level = Number(session.accessLevel);
-  return Number.isFinite(level) && level >= 1;
-};
+// admin / manager เท่านั้น (ไม่ใช้ accessLevel — ดู roleOf ใน src/lib/permissions.ts)
+const canManageBanks = (session: Parameters<typeof hasAdminAccess>[0]) => hasAdminAccess(session);
 
 export async function PUT(
   req: NextRequest,

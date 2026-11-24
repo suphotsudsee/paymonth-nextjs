@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession, type SessionPayload } from "@/lib/auth";
+import { roleOf } from "@/lib/permissions";
 
 export type AppRole = "ADMIN" | "EDITOR" | "USER";
 
@@ -17,15 +18,8 @@ export type AppSession = {
   orgId?: string | null;
 };
 
-const deriveRole = (session: SessionPayload): AppRole => {
-  const status = String(session.status ?? "").toLowerCase();
-  const accessLevel = Number(session.accessLevel ?? 0);
-  if (status.includes("admin") || status.includes("manager")) return "ADMIN";
-  if (status.includes("editor")) return "EDITOR";
-  if (status === "user") return "USER";
-  if (accessLevel >= 1) return "ADMIN";
-  return "USER";
-};
+// เกณฑ์เดียวกับ isStaff / hasAdminAccess (src/lib/permissions.ts) — ดูเหตุผลที่ไม่ใช้ accessLevel ที่ roleOf
+const deriveRole = (session: SessionPayload): AppRole => roleOf(session);
 
 export async function getAppSessionFromToken(token?: string): Promise<AppSession | null> {
   const session = await verifySession(token);

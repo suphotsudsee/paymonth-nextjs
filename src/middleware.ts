@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifySession } from '@/lib/auth';
+import { roleOf } from '@/lib/permissions';
 
 const PROTECTED_PATHS = ['/deegars', '/cheques', '/regisdeegars', '/salaries', '/paydirect', '/regisdeegar', '/officers'];
 
@@ -17,9 +18,8 @@ export async function middleware(req: NextRequest) {
   const session = await verifySession(token, { skipNextAuth: true });
 
   if (session) {
-    const statusRaw = typeof session.status === 'string' ? session.status : 'user';
-    const status = statusRaw.toLowerCase();
-    const isLimitedUser = status === 'user';
+    // เกณฑ์เดียวกับ API (roleOf): status ว่าง/ไม่รู้จัก = ผู้ใช้สิทธิ์จำกัด
+    const isLimitedUser = roleOf(session) === 'USER';
     const userCid = session.cid;
 
     if (isLimitedUser) {

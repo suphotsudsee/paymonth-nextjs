@@ -6,6 +6,7 @@
 | 1 | [วิกฤต] ปิด/แก้ `POST /api/auth/thaiid-login` ที่ออก session จาก `pid` ใน body โดยไม่ตรวจ (PRD ข้อ 8.1) | เสร็จ | ดู "หลักฐาน: งาน #1" ด้านล่าง |
 | 2 | [สูง] ตรวจสิทธิ์เจ้าของข้อมูลใน API payperson และ route รายคนที่ใช้แค่ `verifySession` (PRD 8.2) | เสร็จ | ดู "หลักฐาน: งาน #2" ด้านล่าง |
 | 2b | [สูง] route ฝั่งงานคลัง (นำเข้า paydirect, เช็ค, ฎีกา, หน่วยงาน, รายงาน, export KTB, users) ยังไม่ตรวจบทบาท — USER เรียกได้ (PRD 8.3); `/api/users` GET คืนคอลัมน์ password ด้วย | เสร็จ | ดู "หลักฐาน: งาน #2b" ด้านล่าง |
+| 2d | [วิกฤต] แก้ #2/#2b ที่ไม่ได้ผลกับข้อมูลจริง: ผู้ใช้ทั่วไป 12,128 คนมี `accessLevel = 1` → `isStaff`/`hasAdminAccess` ให้สิทธิ์เจ้าหน้าที่+admin (ดูสลิปคนอื่น, จัดการ users) | เสร็จ (โค้ด ยังไม่ commit) | ดู "หลักฐาน: งาน #2d" ด้านล่าง |
 | 2c | [กลาง] จำกัด EDITOR ตามหน่วยงาน และให้ middleware ใช้เกณฑ์เดียวกับ `canAccessCid` (status ว่าง = สิทธิ์จำกัด) | รอ | |
 | 3 | [สูง] เลิกบันทึกรหัสผ่านลง `useronline` (PRD 8.4) | เสร็จ (โค้ด) — **รอคนรัน SQL ล้างแถวเก่าบน DB จริง** | ดู "หลักฐาน: งาน #3" ด้านล่าง |
 | 4 | [สูง] บังคับตั้ง `AUTH_SECRET` (ไม่มี fallback) (PRD 8.5) | เสร็จ (โค้ด) — **ต้องตั้ง AUTH_SECRET ใหม่ใน .env ของ server ก่อน push** | ดู "หลักฐาน: งาน #4" ด้านล่าง |
@@ -340,3 +341,67 @@ ALL PASSED
 - เปิดหน้าสลิป `/officers/payperson/<cid>/2569/05` ในเบราว์เซอร์ด้วย localuser: แสดงชื่อ หน่วยงาน รายรับ 1,550.00 บาท
   และเลขบัญชี ครบ; server log ไม่มี error
 - ข้อสังเกต: CID แรกที่ลองมีแถว salary 10/2569 `PNUMBER=P000000000`, `MONEY=0.00` → สลิปแสดง 0.00 ตรงกับ DB (ไม่ใช่บั๊กของแอป)
+
+## หลักฐาน: งาน #2d — บทบาทต้องดูจาก status ไม่ใช่ accessLevel
+
+### ต้นเหตุ (พบระหว่างผู้ใช้ทดสอบ login บนเครื่อง 2026-11-24)
+ตาราง `user` ใน DB local (12,140 แถว) แยกตาม status/accessLevel:
+
+| status | accessLevel | จำนวน |
+|---|---|---|
+| user | 1 | 12,128 |
+| manager | 1 | 4 |
+| user | 0 | 3 |
+| admin | 9 | 2 |
+| `๊user` (มีวรรณยุกต์นำหน้า) | 1 | 1 |
+| manager | 8 | 1 |
+| นางสาว | 1 | 1 |
+
+`isStaff` (งาน #2) และ `hasAdminAccess` (เดิม) ถือ `accessLevel >= 1` เป็นเจ้าหน้าที่/admin → ผู้ใช้ทั่วไปเกือบทุกคนผ่าน
+สมมติฐานใน #2 ที่ว่า "user ทั่วไปมี accessLevel 0" ผิด — เทสต์และ live check ของ #2/#2b ใช้ token ที่ตั้ง accessLevel 0 เอง จึงไม่เจอ
+(smoke test ของงาน #8 ผ่านด้วยเหตุผลเดียวกัน: บัญชี localuser ไม่ได้มี accessLevel 1 แบบข้อมูลจริง — ควรเพิ่มกรณีนี้ใน `scripts/local-smoke.mjs`)
+
+### สิ่งที่เปลี่ยน
+- `src/lib/permissions.ts`: เพิ่ม `roleOf(session)` ดูจาก status อย่างเดียว เทียบตรงตัว (ไม่สนตัวพิมพ์/ช่องว่าง): `admin`/`manager` → ADMIN, `editor` → EDITOR, อื่นๆ/ว่าง → USER; `isStaff` = ไม่ใช่ USER; `hasAdminAccess` = ADMIN
+- `src/lib/session.ts`: `deriveRole` = `roleOf` (เดิม status ไม่รู้จัก + accessLevel ≥ 1 → ADMIN)
+- `src/middleware.ts`: ผู้ใช้สิทธิ์จำกัด = `roleOf(session) === 'USER'` (เดิมเทียบ `status === 'user'` ตรงๆ — บัญชี "นางสาว"/"๊user" หลุด)
+- `src/app/api/banks/route.ts`, `banks/[id]/route.ts`: `canManageBanks` = `hasAdminAccess` (เดิมใช้ accessLevel ≥ 1 เหมือนกัน)
+- ผลข้างเคียงที่ตั้งใจ: บัญชี status "นางสาว" และ "๊user" (accessLevel 1) จากเดิมได้ ADMIN ใน `deriveRole` → เป็น USER — ถ้าเป็นเจ้าหน้าที่จริงต้องแก้ status ใน DB
+
+### เทสต์ — `npm test` (output จริง)
+```
+ℹ tests 30
+ℹ pass 30
+ℹ fail 0
+```
+เทสต์ใหม่ใน `tests/permissions.test.mjs`: status user/ว่าง/ไม่รู้จัก × accessLevel (0,1,2,8,9,99,...) ต้องเป็น USER ทุกกรณี; admin/manager/editor ไม่ขึ้นกับ accessLevel; ห้ามมี `accessLevel >= n` ในไฟล์ตรวจสิทธิ์
+เทียบโค้ดเดิม (HEAD) กับใหม่ ด้วย session `{status:"user", accessLevel:1}`:
+```
+HEAD (old)           isStaff: true  hasAdminAccess: true  canAccessCid(other): true
+working tree (new)   isStaff: false  hasAdminAccess: false  canAccessCid(other): false
+```
+
+### เรียกจริง — `next build` + `next start -p 9104` กับ DB local (token เซ็นด้วย AUTH_SECRET ของเครื่อง, ผู้ใช้จริง status=user accessLevel=1)
+| คำขอ | user (status=user, lvl 1) | admin |
+|---|---|---|
+| สลิปตัวเอง `/api/officers/<own>/personal` | 200 | 200 |
+| สลิปคนอื่น `/api/officers/<other>/personal` | 403 | 200 |
+| ข้อมูลคนอื่น `/api/officers/<other>` | 403 | 200 |
+| เงินเดือนคนอื่น `/api/officers/<other>/salaries` | 403 | 200 |
+| บัญชีธนาคารคนอื่น `/api/banks?cid=<other>` | 403 | 200 |
+| `/api/users` | 403 | 200 |
+| `/api/useronline` | 403 | 200 |
+| `/api/cheques` | 403 | 200 |
+| `/api/reports/taxtitle` | 403 | 200 |
+| หน้า `/officers`, `/cheques` | 307 → หน้าตัวเอง | – |
+
+ก่อนแก้ (dev server 9102 ที่ยังถือโค้ดเดิมในหน่วยความจำ) สลิปคนอื่นและข้อมูลคนอื่นได้ 200 — dev server ไม่โหลด permissions ใหม่ให้ route ที่ compile ไว้แล้ว จึงวัดด้วย production build แทน
+
+### Codex รอบ 1 (CHANGES_REQUESTED) — แก้แล้ว
+- `permissions.ts:20` จับ status แบบ substring (`includes`) → ค่าอย่าง `not-admin`, `former-manager`, `non-editor` ได้สิทธิ์สูง ขัดกับที่บอกว่า fail closed
+- แก้: ใช้ allowlist ตรงตัว (`ADMIN_STATUSES`, `EDITOR_STATUSES`) + เทสต์ว่า `not-admin`, `former-manager`, `non-editor`, `Super Admin`, `admin2`, `administrator`, `editor-trainee` เป็น USER ทุก accessLevel
+- ข้อมูลจริงมีแค่ `user`/`manager`/`admin` (และ 2 ค่าที่สะกดผิด) จึงไม่มีบัญชีไหนเสียสิทธิ์จากการเปลี่ยนนี้; `npm test` หลังแก้: tests 30, pass 30, fail 0; `tsc --noEmit` ผ่าน
+
+### ยังเหลือ
+- หน้า `/tools/*`, `/reports/*`, `/stations`, `/cpays`, `/charts` ไม่อยู่ใน `PROTECTED_PATHS` ของ middleware: ผู้ใช้ทั่วไปเปิดหน้าได้ (เห็นแค่โครงหน้า ข้อมูลโดน API ตอบ 403) → รวมในงาน #2c
+

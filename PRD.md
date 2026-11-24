@@ -132,12 +132,15 @@
 9. **[ต่ำ] `paydirect` เก็บตัวเลขเป็น VarChar** — การรวมยอดต้องแปลงเอง; การนำเข้าซ้ำไม่อัปเดตข้อมูลที่แก้แล้ว
 10. **[ต่ำ] `README.md` ล้าสมัย** (พูดถึง carbooking-nextjs, port 9100 ขณะที่ใช้ 9102)
 
+- **8.3b บทบาทต้องดูจาก `status` ไม่ใช่ `accessLevel`** (พบ 2026-11-24, TASK_BOARD #2d): ในข้อมูลจริงผู้ใช้ทั่วไป 12,128 จาก 12,140 คนมี `accessLevel = 1`, manager มี 1 หรือ 8, admin มี 9 → `accessLevel` แยกบทบาทไม่ได้ ใช้ `roleOf()` ใน `src/lib/permissions.ts` ที่เดียว: status ตรงตัว `admin`/`manager` = ADMIN, `editor` = EDITOR, อื่นๆ (รวมว่าง/สะกดผิด/ค่าที่แค่มีคำเหล่านี้ปน) = USER
+
 ## 9. ข้อที่ต้องยืนยันกับเจ้าของระบบ
 
 - ความหมายของคอลัมน์ paydirect ที่ยังเป็นตัวอักษร (D..CA) และรูปแบบไฟล์ต้นทาง (มาจากระบบใด)
 - `IDPAY = '20004'` ที่ถูกตัดออกจากสลิปคืออะไร และทำไม
 - EDITOR ใช้งานจริงหรือไม่ (มีใน `paydirectAccess.ts` แต่ middleware/route อื่นไม่รู้จัก)
 - `/api/thaiid/exchange` ยังใช้อยู่หรือเลิกแล้ว (ไม่ออก session แต่คืน token/profile ของ DOPA ให้ client; ถ้าเลิก ควรลบ)
+- บัญชี status "นางสาว" และ "๊user" (accessLevel 1) เป็นเจ้าหน้าที่หรือผู้ใช้ทั่วไป — ตอนนี้ถือเป็นผู้ใช้ทั่วไป (TASK_BOARD #2d)
 - กฎการปัดเศษ/ภาษีในรายงานภาษี และ bank code `006` ใช้กับทุกบัญชีหรือเฉพาะกรุงไทย
 
 ## 10. ย้ายการโหลดข้อมูลไปฝั่ง server (Server Components / Server Actions) — TASK_BOARD #7
