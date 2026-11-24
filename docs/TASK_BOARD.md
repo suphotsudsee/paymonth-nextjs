@@ -11,6 +11,8 @@
 | 4 | [สูง] บังคับตั้ง `AUTH_SECRET` (ไม่มี fallback) (PRD 8.5) | เสร็จ (โค้ด) — **ต้องตั้ง AUTH_SECRET ใหม่ใน .env ของ server ก่อน push** | ดู "หลักฐาน: งาน #4" ด้านล่าง |
 | 5 | [กลาง] export KTB ใช้ `salary.BANKID` แทน JOIN ตาม CID (PRD 8.7) | รอ | |
 | 6 | ตั้งระบบเทสต์ของแอป (ยังไม่มีเลย) ก่อนเริ่มงาน 1–5 | รอ | |
+| 7 | ย้ายการโหลดข้อมูลไป Server Components / Server Actions ให้เร็วใกล้ PHP (PRD ข้อ 10) — 34 หน้า client | รอ (วางแผนแล้ว) | เริ่มที่วัด baseline + หน้าทดลอง payperson/สลิป ก่อนทำหน้าที่เหลือ |
+| 8 | ตั้ง DB local (MariaDB 10.11 Docker) จาก dump `test-paymonth.sql` + smoke test ของงาน #1–#4 กับข้อมูลจริง | เสร็จ | ดู "หลักฐาน: งาน #8" ด้านล่าง; คู่มือ `docs/LOCAL_DEV.md` |
 
 ## หลักฐาน: งาน #1 — ลบ route ThaiID login ที่ข้ามการตรวจตัวตน
 
@@ -298,3 +300,43 @@ token "forged" = JWT admin ที่เซ็นด้วยค่า fallback �
    (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) — ถ้ายังเป็นค่าเก่า/ไม่ได้ตั้ง หลัง deploy ทุกหน้าที่ต้อง login จะเป็น 500
 2. ผู้ใช้ทุกคนต้อง login ใหม่ (session เดิมเซ็นด้วยกุญแจเก่า)
 3. NextAuth ใช้ `AUTH_SECRET` ตัวเดียวกันเข้ารหัส cookie ของ ThaiID — เปลี่ยนแล้ว flow ThaiID ที่ค้างอยู่ต้องเริ่มใหม่
+
+## หลักฐาน: งาน #8 — รันบนเครื่องกับ DB local
+
+### สิ่งที่ทำ
+- `docker-compose.local.yml`: MariaDB 10.11 (รุ่นเดียวกับ server ตาม header ของ dump) ที่ `127.0.0.1:3310`
+  (3306 = XAMPP ซึ่งรหัสใน `.env` เดิมเข้าไม่ได้)
+- import `test-paymonth.sql` (826MB): 1 นาที 40 วินาที, EXIT=0, 16 ตาราง (salary 332,613 แถว, paydirect 564,977 แถว)
+- รัน `prisma/sql/2026-11-23_clear_useronline_passwords.sql` บนสำเนา local: 14,659 → 0 แถวที่มีรหัสผ่าน
+  **DB บน server ยังมีอยู่** (dump มาจากที่นั่น) — งาน #3 ยังรอคนรันบน server
+- `.env` ชี้ `DATABASE_URL` มาที่ DB local (สำรองค่าเดิมเป็น `.env.backup-before-localdb`); `npx prisma validate` ผ่าน
+- สร้างบัญชีทดสอบเฉพาะ DB local `localadmin` / `localuser` (รหัสสุ่มอยู่ใน `.env.db.local`)
+- `.gitignore`: เพิ่ม `/*.sql` กันไฟล์ dump (ข้อมูลบุคคลจริง) หลุดเข้า git
+- `scripts/local-smoke.mjs`: ยิง API จริงบน dev server (อ่าน captcha จาก SVG แล้ว login)
+
+### `node scripts/local-smoke.mjs` (output จริง — หลังแก้ตาม Codex 2 รอบ: ไม่ login ต้องได้ 401; รหัสผิดต้องได้ "Invalid credentials" และไม่มี session cookie (ไม่ใช่ 401 จาก captcha); fetch ตอน login ใช้ `redirect: 'error'`; งวดสลิปมาจาก `LOCAL_TEST_USER_PERIOD`)
+```
+✔ รหัสผิด -> 401 Invalid credentials ไม่มี session — status 401, error "Invalid credentials"
+✔ admin login -> 200 + session cookie — status 200
+✔ user login -> 200 + session cookie — status 200
+✔ ไม่ login เรียกข้อมูลรายคน -> 401 — status 401
+✔ user /api/auth/me -> 200 — status 200
+✔ user ดูข้อมูลตัวเอง -> 200 — status 200, 27ms, 730 bytes
+✔ user ดูสลิปตัวเอง 2569/05 -> 200 — status 200, 20ms
+✔ user ดูข้อมูลคนอื่น -> 403 (กัน IDOR) — status 403
+✔ user เรียก /api/users -> 403 — status 403
+✔ user เรียก /api/cheques (งานคลัง) -> 403 — status 403
+✔ admin ดูข้อมูลคนอื่น -> 200 — status 200, 20ms
+✔ admin /api/users -> 200 — status 200, 18ms
+✔ admin /api/users ไม่ส่ง hash รหัสผ่าน
+✔ admin /api/cheques -> 200 — status 200, 12ms
+✔ หน้า / -> 200/3xx — status 307, 8ms
+✔ หน้า /login -> 200/3xx — status 200, 41ms
+
+ALL PASSED
+```
+- ตาราง `useronline` หลัง login: แถวใหม่ทั้งหมด `password IS NULL` (งาน #3 ทำงานกับ DB จริง)
+- `npm test`: pass 28, fail 0
+- เปิดหน้าสลิป `/officers/payperson/<cid>/2569/05` ในเบราว์เซอร์ด้วย localuser: แสดงชื่อ หน่วยงาน รายรับ 1,550.00 บาท
+  และเลขบัญชี ครบ; server log ไม่มี error
+- ข้อสังเกต: CID แรกที่ลองมีแถว salary 10/2569 `PNUMBER=P000000000`, `MONEY=0.00` → สลิปแสดง 0.00 ตรงกับ DB (ไม่ใช่บั๊กของแอป)

@@ -1,0 +1,27 @@
+# ฐานข้อมูลสำหรับพัฒนาบนเครื่อง (local) เท่านั้น — ไม่ใช้บน server จริง
+# ใช้:  docker compose -f docker-compose.local.yml --env-file .env.db.local up -d
+# รหัสผ่านอยู่ใน .env.db.local (ไม่ commit, .gitignore มี .env*)
+services:
+  db:
+    # 10.11 = รุ่นเดียวกับ server ที่ dump มา (Navicat header: MariaDB 101119 = 10.11.19)
+    image: mariadb:10.11
+    container_name: paymonth-local-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${LOCAL_DB_ROOT_PASSWORD:?ตั้ง LOCAL_DB_ROOT_PASSWORD ใน .env.db.local}
+      MARIADB_DATABASE: test-paymonth
+    ports:
+      # 3310: 3306 ถูก XAMPP ใช้อยู่, 33066/33067 ถูก container ams-* ใช้อยู่
+      - "127.0.0.1:3310:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      # 256M: dump จาก Navicat มี INSERT ทีละแถว แต่บางแถวยาว (ข้อความ/ข้อมูลดิบ) — กันตอน import ล้ม
+      - --max-allowed-packet=256M
+      # ตารางเป็น MyISAM ทั้งหมด; 512M ช่วยให้ import/สร้าง index ไฟล์ ~800MB เร็วขึ้น
+      - --key-buffer-size=512M
+    volumes:
+      - paymonth-local-db:/var/lib/mysql
+
+volumes:
+  paymonth-local-db:

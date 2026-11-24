@@ -139,3 +139,45 @@
 - EDITOR ใช้งานจริงหรือไม่ (มีใน `paydirectAccess.ts` แต่ middleware/route อื่นไม่รู้จัก)
 - `/api/thaiid/exchange` ยังใช้อยู่หรือเลิกแล้ว (ไม่ออก session แต่คืน token/profile ของ DOPA ให้ client; ถ้าเลิก ควรลบ)
 - กฎการปัดเศษ/ภาษีในรายงานภาษี และ bank code `006` ใช้กับทุกบัญชีหรือเฉพาะกรุงไทย
+
+## 10. ย้ายการโหลดข้อมูลไปฝั่ง server (Server Components / Server Actions) — TASK_BOARD #7
+
+### เป้าหมาย
+ให้เปิดหน้าแล้วได้ HTML ที่มีข้อมูลครบใน request เดียว เหมือน PHP (เบราว์เซอร์ขอหน้า → server query DB → ส่ง HTML)
+
+### สภาพปัจจุบัน (สำรวจ 2026-11-23)
+- หน้าใน `src/app` มี 39 ไฟล์: เป็น client component (`'use client'`) 34 ไฟล์ (~13,000 บรรทัด), server component 5 ไฟล์
+- หน้า client โหลดข้อมูลแบบ waterfall: HTML เปล่า → โหลด JS → hydrate → `fetch('/api/...')` → API ตรวจ session อีกรอบ → DB → render
+  ผู้ใช้จึงรอ 2 round trip + เวลาโหลด/รัน JS ก่อนเห็นข้อมูล (PHP รอแค่ 1 round trip)
+- session ถูกตรวจซ้ำ 3 ครั้งต่อการเปิดหน้า: middleware, `(dashboard)/layout.tsx`, และ API route
+- production รัน `next start` (ไม่ใช่ dev) ผ่าน PM2 ใน fork mode, instance เดียว
+- index ใน DB: `salary` มี unique key ขึ้นต้นด้วย CID (ค้นรายคนใช้ index ได้); `paydirect` มี key (A=ปี, B=เดือน, C=CID) ค้นด้วย CID อย่างเดียวจะ scan ทั้งตาราง
+
+### สมมติฐานที่ต้องพิสูจน์ก่อนทำทั้งหมด (Attack the Premise)
+การย้ายไป server component ตัด round trip ที่ 2 และเวลารอ JS ได้ แต่ถ้าที่ช้าจริงคือ query DB การย้ายจะไม่ช่วยมาก
+จึงทำหน้าทดลองก่อน 1–2 หน้า วัดเวลาก่อน/หลัง (TTFB และเวลาจนเห็นข้อมูล) แล้วค่อยตัดสินใจทำหน้าที่เหลือ
+
+### หลักการแปลง
+- หน้าอ่านข้อมูล: `page.tsx` เป็น async server component เรียก query ตรง (ไม่ผ่าน `fetch` ไป API ของตัวเอง)
+- query และการตรวจสิทธิ์ย้ายไปเป็นฟังก์ชันใน `src/lib/data/*.ts` (`import 'server-only'`) ใช้ร่วมกันระหว่างหน้าและ API route
+  → guard เดิม (`isStaff` / `canAccessCid` / `hasAdminAccess`) ต้องถูกเรียกในฟังก์ชันเหล่านี้ ไม่ใช่แค่ใน route
+- ตัวกรอง/แบ่งหน้า ใช้ `searchParams` ใน URL (ลิงก์/ฟอร์ม GET) แทน state ใน client
+- ส่วนที่ต้องโต้ตอบจริง (ฟอร์มแก้ไข, modal, ปุ่มพิมพ์) แยกเป็น client component เล็กๆ รับข้อมูลเป็น props
+- การเขียนข้อมูล (เพิ่ม/แก้/ลบ) ใช้ Server Actions ที่เรียก guard ตัวเดียวกับ API
+- API route เดิมยังเก็บไว้ (export Excel/KTB, import ไฟล์, ระบบอื่นที่อาจเรียก) จนกว่าจะยืนยันว่าไม่มีใครใช้
+- เวลาโหลดของ server component ต้องไม่ตรวจ session ซ้ำเกินจำเป็น: ใช้ `React.cache` ห่อ `verifySession` ต่อ request
+
+### Edge cases
+- ผู้ใช้ USER เปิดหน้าของคนอื่น: server component ต้องคืน 403/redirect เหมือน API (ห้ามพึ่ง middleware อย่างเดียว)
+- หน้า print/สลิป: ต้องได้ HTML ครบตั้งแต่ server เพื่อสั่งพิมพ์ได้ทันที
+- ข้อมูลเงินเดือนต้องไม่ถูก cache ข้ามผู้ใช้: ทุกหน้าที่อ่าน cookie เป็น dynamic อยู่แล้ว ห้ามใช้ `unstable_cache`/`'use cache'` กับข้อมูลรายคน
+- DB error ต้องแสดงหน้า error ทั่วไป (`error.tsx`) ไม่ส่งรายละเอียด SQL ไปเบราว์เซอร์ (เกี่ยวกับ PRD 8.8)
+- ปุ่ม export/ดาวน์โหลดยังเรียก API route เดิม
+
+### ลำดับ (ทีละโมดูล พร้อมเทสต์)
+1. วัด baseline บน server จริง: TTFB และเวลาจนเห็นข้อมูล ของหน้าสลิปและหน้ารายการเงินเดือนรายคน
+2. หน้าทดลอง: `officers/[cid]/payperson` และ `officers/payperson/[cid]/[yearthai]/[monththai]` (ผู้ใช้ทั่วไปเปิดบ่อยที่สุด)
+3. หน้ารายคนที่เหลือ: personal, paydirect, salaries
+4. รายงาน (reports/*) — อ่านอย่างเดียว เหมาะกับ server component ที่สุด
+5. หน้าจัดการข้อมูล (cheques, deegars, regisdeegars, cpays, stations, users, officers) — server component + Server Actions
+6. login/logo/policy/term: login ยังต้องเป็น client (captcha, ฟอร์ม); policy/term เปลี่ยนเป็น server ได้ทันที

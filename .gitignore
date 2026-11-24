@@ -42,3 +42,7 @@ next-env.d.ts
 /actions-runner
 actions-runner
 /actions-runner/
+
+# ไฟล์ dump ฐานข้อมูล (ข้อมูลบุคคลจริง ห้าม commit)
+/*.sql
+*.sql.gz
