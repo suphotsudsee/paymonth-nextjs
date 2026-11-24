@@ -2,9 +2,9 @@
 
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import styles from "./page.module.css";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { Pagination, useReloadOnPageSizeChange } from "@/components/Pagination";
 
 type RegisRow = {
   PNUMBER: string;
@@ -77,8 +77,11 @@ export default function RegisdeegarsListPage() {
     regisdate: "",
     senddate: "",
   });
+  // ตัวกรองของการโหลดครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า (Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
 
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
+  useReloadOnPageSizeChange(pageSize, () => void fetchData(1, appliedFilters));
 
   const fetchData = async (
     targetPage: number,
@@ -107,6 +110,7 @@ export default function RegisdeegarsListPage() {
         setData(null);
       } else {
         setData(json);
+        setAppliedFilters(currentFilters);
         setPage(targetPage);
       }
     } catch (err) {
@@ -131,16 +135,8 @@ export default function RegisdeegarsListPage() {
     const start = (page - 1) * pageSize + 1;
     const end = Math.min(page * pageSize, data.total);
     return `${start}-${end}`;
-  }, [data, page]);
+  }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 2, total - 4));
-    const end = Math.min(total, start + 4);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const onFilterChange =
     (field: keyof typeof filters) =>
@@ -349,28 +345,28 @@ export default function RegisdeegarsListPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/regisdeegars" />
 
-      <main className={styles.main}>
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeadRow}>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <span>ทะเบียนคุมเบิกจ่ายฎีกา</span>
-            <div className={styles.tableHeadActions}>
-              <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <span className="small text-secondary fw-semibold">
                 แสดง {displayRange} จากทั้งหมด {data?.total ?? 0} รายการ
               </span>
-              <button type="button" className={styles.createBtn} onClick={openCreate}>
+              <button type="button" className="btn btn-primary" onClick={openCreate}>
                 + เพิ่มทะเบียนคุมเบิกจ่ายฎีกา
               </button>
             </div>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>Pnumber</th>
                   <th>ชื่อ</th>
@@ -382,10 +378,10 @@ export default function RegisdeegarsListPage() {
                   <th>อัปเดตล่าสุด</th>
                   <th>เครื่องมือ</th>
                 </tr>
-                <tr className={styles.filterRow}>
+                <tr>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค้นหา Pnumber"
                       maxLength={PNUMBER_MAX_LENGTH}
                       value={filters.pnumber}
@@ -398,7 +394,7 @@ export default function RegisdeegarsListPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค้นหา ชื่อ"
                       value={filters.name}
                       onChange={onFilterChange("name")}
@@ -409,7 +405,7 @@ export default function RegisdeegarsListPage() {
                   <th />
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       type="date"
                       value={filters.regisdate}
                       onChange={onFilterChange("regisdate")}
@@ -417,7 +413,7 @@ export default function RegisdeegarsListPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       type="date"
                       value={filters.senddate}
                       onChange={onFilterChange("senddate")}
@@ -432,15 +428,15 @@ export default function RegisdeegarsListPage() {
                   <tr key={`${row.PNUMBER}-${idx}`}>
                     <td>{row.PNUMBER}</td>
                     <td>{row.NAME}</td>
-                    <td className={styles.numberCell}>{formatNumber(row.MONEY)}</td>
-                    <td className={styles.numberCell}>{formatNumber(row.TAX)}</td>
-                    <td className={styles.numberCell}>{formatNumber(row.MONEYDRAW)}</td>
+                    <td className="text-end text-nowrap">{formatNumber(row.MONEY)}</td>
+                    <td className="text-end text-nowrap">{formatNumber(row.TAX)}</td>
+                    <td className="text-end text-nowrap">{formatNumber(row.MONEYDRAW)}</td>
                     <td>{formatDate(row.REGISDATE)}</td>
                     <td>{formatDate(row.SENDDATE)}</td>
                     <td>{formatDate(row.DUPDATE)}</td>
-                    <td className={styles.actionsCell}>
+                    <td className="text-center text-nowrap">
                       <button
-                        className={styles.iconBtn}
+                        className="btn btn-sm btn-outline-primary mx-1"
                         title="ดูรายละเอียด"
                         type="button"
                         onClick={() => openDetail(row.PNUMBER)}
@@ -448,7 +444,7 @@ export default function RegisdeegarsListPage() {
                         🔍
                       </button>
                       <button
-                        className={styles.iconBtn}
+                        className="btn btn-sm btn-outline-primary mx-1"
                         title="แก้ไข"
                         type="button"
                         onClick={() => openEdit(row.PNUMBER)}
@@ -460,7 +456,7 @@ export default function RegisdeegarsListPage() {
                 ))}
                 {!data?.items?.length && (
                   <tr>
-                    <td colSpan={9} className={styles.emptyState}>
+                    <td colSpan={9} className="text-center text-secondary p-3">
                       {loading ? "กำลังโหลด..." : "ไม่พบข้อมูล"}
                     </td>
                   </tr>
@@ -469,55 +465,36 @@ export default function RegisdeegarsListPage() {
             </table>
           </div>
 
-          {data && data.totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.max(page - 1, 1))}
-                disabled={page === 1 || loading}
-              >
-                &lt; ก่อนหน้า
-              </button>
-              {pageWindow.map((p) => (
-                <button
-                  key={p}
-                  className={`${styles.pageBtn} ${p === page ? styles.currentPage : ""}`}
-                  onClick={() => fetchData(p)}
-                  disabled={p === page || loading}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.min(page + 1, data.totalPages))}
-                disabled={page === data.totalPages || loading}
-              >
-                ถัดไป &gt;
-              </button>
-            </div>
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchData(p, appliedFilters)}
+              onPageSizeChange={setPageSize}
+            />
           )}
         </section>
       </main>
 
       {modalMode && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>{modalMode === "edit" ? `Update Regis ${editPnumber ?? ""}` : "Create Regis"}</h2>
-              <button className={styles.modalClose} onClick={() => setModalMode(null)} aria-label="Close">
-                ✕
-              </button>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">{modalMode === "edit" ? `Update Regis ${editPnumber ?? ""}` : "Create Regis"}</h2>
+              <button className="btn-close" onClick={() => setModalMode(null)} aria-label="Close"></button>
             </div>
-            <div className={styles.modalBody}>
-              <p className={styles.modalHint}>
+            <div className="modal-body">
+              <p className="small text-secondary mb-2">
                 Fields with * are required. {modalLoading ? "กำลังโหลด..." : ""}
               </p>
-              <div className={styles.formGrid}>
+              <div className="row row-cols-1 row-cols-md-2 g-3">
                 <label>
                   Pnumber *
                   <input
-                    className={styles.input}
+                    className="form-control"
                     maxLength={PNUMBER_MAX_LENGTH}
                     value={form.pnumber}
                     list="pnumberOptions"
@@ -529,24 +506,24 @@ export default function RegisdeegarsListPage() {
                 </label>
                 <label>
                   ชื่อ *
-                  <input className={styles.input} value={form.name} onChange={onFormChange("name")} />
+                  <input className="form-control" value={form.name} onChange={onFormChange("name")} />
                 </label>
                 <label>
                   จำนวนเงิน *
-                  <input className={styles.input} value={form.money} onChange={onFormChange("money")} />
+                  <input className="form-control" value={form.money} onChange={onFormChange("money")} />
                 </label>
                 <label>
                   ภาษี *
-                  <input className={styles.input} value={form.tax} onChange={onFormChange("tax")} />
+                  <input className="form-control" value={form.tax} onChange={onFormChange("tax")} />
                 </label>
                 <label>
                   เงินโอน *
-                  <input className={styles.input} value={form.moneydraw} onChange={onFormChange("moneydraw")} />
+                  <input className="form-control" value={form.moneydraw} onChange={onFormChange("moneydraw")} />
                 </label>
                 <label>
                   วันที่รับ *
                   <input
-                    className={styles.input}
+                    className="form-control"
                     type="date"
                     value={form.regisdate}
                     onChange={onFormChange("regisdate")}
@@ -555,7 +532,7 @@ export default function RegisdeegarsListPage() {
                 <label>
                   วันที่ส่ง
                   <input
-                    className={styles.input}
+                    className="form-control"
                     type="date"
                     value={form.senddate}
                     onChange={onFormChange("senddate")}
@@ -563,45 +540,43 @@ export default function RegisdeegarsListPage() {
                 </label>
                 <label>
                   CODEBUDGET *
-                  <input className={styles.input} value={form.codebudget} onChange={onFormChange("codebudget")} />
+                  <input className="form-control" value={form.codebudget} onChange={onFormChange("codebudget")} />
                 </label>
                 <label>
                   CODEACTIVE *
-                  <input className={styles.input} value={form.codeactive} onChange={onFormChange("codeactive")} />
+                  <input className="form-control" value={form.codeactive} onChange={onFormChange("codeactive")} />
                 </label>
                 <label>
                   GFMISNUMBER *
-                  <input className={styles.input} value={form.gfmisnumber} onChange={onFormChange("gfmisnumber")} />
+                  <input className="form-control" value={form.gfmisnumber} onChange={onFormChange("gfmisnumber")} />
                 </label>
               </div>
-              {formError && <div className={styles.error}>{formError}</div>}
-              <div className={styles.saveRow}>
-                <button className={styles.primaryBtn} onClick={submitForm} disabled={formSaving || modalLoading}>
+              {formError && <div className="alert alert-danger py-2 px-3 m-2 small">{formError}</div>}
+              <div className="d-flex gap-2 mt-3">
+                <button className="btn btn-primary" onClick={submitForm} disabled={formSaving || modalLoading}>
                   {formSaving ? "Saving..." : "Save"}
                 </button>
-                <button className={styles.secondaryBtn} type="button" onClick={() => setModalMode(null)}>
+                <button className="btn btn-outline-secondary" type="button" onClick={() => setModalMode(null)}>
                   Cancel
                 </button>
               </div>
             </div>
-          </div>
+          </div></div>
         </div>
       )}
 
       {detailOpen && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>{detail?.PNUMBER ? `View Regis ${detail.PNUMBER}` : "View Regis"}</h2>
-              <button className={styles.modalClose} onClick={() => setDetailOpen(false)} aria-label="Close">
-                ✕
-              </button>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">{detail?.PNUMBER ? `View Regis ${detail.PNUMBER}` : "View Regis"}</h2>
+              <button className="btn-close" onClick={() => setDetailOpen(false)} aria-label="Close"></button>
             </div>
-            <div className={styles.modalBody}>
-              {detailLoading && <p className={styles.modalHint}>กำลังโหลด...</p>}
-              {detailError && <div className={styles.error}>{detailError}</div>}
+            <div className="modal-body">
+              {detailLoading && <p className="small text-secondary mb-2">กำลังโหลด...</p>}
+              {detailError && <div className="alert alert-danger py-2 px-3 m-2 small">{detailError}</div>}
               {detail && (
-                <table className={styles.detailTable}>
+                <table className="table table-sm table-bordered mb-0">
                   <tbody>
                     <tr>
                       <th>ID</th>
@@ -617,15 +592,15 @@ export default function RegisdeegarsListPage() {
                     </tr>
                     <tr>
                       <th>จำนวนเงิน</th>
-                      <td>{formatNumber(detail.MONEY)}</td>
+                      <td className="text-end text-nowrap">{formatNumber(detail.MONEY)}</td>
                     </tr>
                     <tr>
                       <th>ภาษี</th>
-                      <td>{formatNumber(detail.TAX)}</td>
+                      <td className="text-end text-nowrap">{formatNumber(detail.TAX)}</td>
                     </tr>
                     <tr>
                       <th>เงินโอน</th>
-                      <td>{formatNumber(detail.MONEYDRAW)}</td>
+                      <td className="text-end text-nowrap">{formatNumber(detail.MONEYDRAW)}</td>
                     </tr>
                     <tr>
                       <th>วันที่รับ</th>
@@ -651,7 +626,7 @@ export default function RegisdeegarsListPage() {
                 </table>
               )}
             </div>
-          </div>
+          </div></div>
         </div>
       )}
 

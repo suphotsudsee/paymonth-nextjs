@@ -4,6 +4,7 @@ import { verifySession } from '@/lib/auth';
 import { latestSalaryMatch, regisdeegarMatch } from '@/lib/keyJoin';
 import { salaryKeysAreTrimmed } from '@/lib/keyHygiene';
 import { isStaff } from '@/lib/permissions';
+import { clampPageSize, parsePage } from '@/lib/pagination';
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,8 +14,8 @@ export async function GET(req: NextRequest) {
     const accnumber = searchParams.get('accnumber')?.trim() || undefined;
     const accname = searchParams.get('accname')?.trim() || undefined;
     const cheque = searchParams.get('cheque')?.trim() || undefined;
-    const page = Math.max(1, Number(searchParams.get('page') || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(searchParams.get('pageSize') || 10)));
+    const page = parsePage(searchParams.get('page'));
+    const pageSize = clampPageSize(searchParams.get('pageSize'), 10);
     const offset = (page - 1) * pageSize;
 
     const session = await verifySession(req.cookies.get('session')?.value);
@@ -52,7 +53,12 @@ export async function GET(req: NextRequest) {
     // นับจำนวนทั้งหมดพร้อมกับดึงหน้าปัจจุบัน (ไม่ขึ้นต่อกัน) — TASK_BOARD #10
     const countPromise = prisma.$queryRawUnsafe(
       `
-        SELECT COUNT(*) as total
+        -- ยอดรวมของผลค้นหาทั้งหมด (ไม่ใช่เฉพาะหน้าที่แสดง) ใช้แถว Total ของหน้าค้นหาฎีกา — PRD 11.1
+        -- นิพจน์เดียวกับคอลัมน์ MONEY/TAX/PAY ใน query หน้าปัจจุบัน
+        SELECT COUNT(*) as total,
+          COALESCE(SUM(COALESCE(salary.MONEY, deegar.MONEY)), 0) AS sumMoney,
+          COALESCE(SUM(deegar.TAX), 0) AS sumTax,
+          COALESCE(SUM(deegar.FEE), 0) AS sumPay
         FROM deegar
           LEFT JOIN salary ON salary.ID = (
             SELECT s2.ID
@@ -69,7 +75,7 @@ export async function GET(req: NextRequest) {
         ${whereClause}
       `,
       ...params,
-    ) as Promise<{ total: bigint }[]>;
+    ) as Promise<{ total: bigint; sumMoney: unknown; sumTax: unknown; sumPay: unknown }[]>;
     // ถ้า query หน้าปัจจุบันล้มก่อน จะไม่มีใคร await countPromise → กัน unhandled rejection (Node อาจปิด process)
     // ส่วน await countPromise ด้านล่างยังได้ error ตามปกติ
     countPromise.catch(() => undefined);
@@ -105,7 +111,8 @@ export async function GET(req: NextRequest) {
           LEFT JOIN regisdeegar ON ${regisdeegarMatch(keysTrimmed, "regisdeegar", "deegar")}
           LEFT JOIN cheque ON cheque.CHEQUE = deegar.CHEQUE
         ${whereClause}
-        ORDER BY deegar.PNUMBER, deegar.NODEEGAR
+        -- (PNUMBER, NODEEGAR) unique ใน deegar แต่ JOIN bank ตาม CID อาจได้หลายแถว → ต่อท้าย deegar.ID, bank.id ให้ลำดับไม่ซ้ำ ข้ามหน้าไม่หาย/ไม่ซ้ำ
+        ORDER BY deegar.PNUMBER, deegar.NODEEGAR, deegar.ID, bank.id
         LIMIT ? OFFSET ?
       `, 
       ...params,
@@ -142,10 +149,16 @@ export async function GET(req: NextRequest) {
     const countRows = await countPromise;
 
     const total = Number(countRows?.[0]?.total ?? 0);
+    const totals = {
+      money: Number(countRows?.[0]?.sumMoney ?? 0),
+      tax: Number(countRows?.[0]?.sumTax ?? 0),
+      pay: Number(countRows?.[0]?.sumPay ?? 0),
+    };
 
     return NextResponse.json({
       items: safeRows,
       total,
+      totals,
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize),

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import styles from "../page.module.css";
+import { useEffect, useState } from "react";
+import { Pagination, useReloadOnPageSizeChange } from "@/components/Pagination";
 
 type OfficerInfo = {
   cid: string;
@@ -38,10 +38,12 @@ export default function MyPaydirectPage() {
   const [items, setItems] = useState<PaydirectRow[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
+  useReloadOnPageSizeChange(pageSize, () => void loadPage(1));
 
   const resolveCid = async (): Promise<string> => {
     if (cid) return cid;
@@ -76,6 +78,7 @@ export default function MyPaydirectPage() {
       setItems(json.items ?? []);
       setPage(json.page ?? targetPage);
       setTotalPages(json.totalPages ?? 1);
+      setTotal(json.total ?? 0);
     } catch (err: any) {
       setError(err?.message || "Failed to load paydirect data");
       setItems([]);
@@ -90,13 +93,6 @@ export default function MyPaydirectPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pageWindow = useMemo(() => {
-    const total = Math.max(1, totalPages);
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 2, total - 4));
-    const end = Math.min(total, start + 4);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [page, totalPages]);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -115,21 +111,21 @@ export default function MyPaydirectPage() {
   };
 
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <div className={styles.titleArea}>
-          <h1>My PayDirect</h1>
-          <p>Salary slips available for your account</p>
+    <div className="d-flex flex-column flex-grow-1">
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <div className="mb-3">
+          <h1 className="h4 mb-0">My PayDirect</h1>
+          <p className="small text-secondary mb-0 mt-1">Salary slips available for your account</p>
         </div>
 
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeadRow}>
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <div>
               <span>PayDirect list</span>
               {officer && (
-                <div className={styles.paydirectHeader}>
-                  <div className={styles.paydirectName}>{officer.name ?? officer.cid}</div>
-                  <div className={styles.paydirectMetaRow}>
+                <div className="mb-3">
+                  <div className="fs-5 fw-bold">{officer.name ?? officer.cid}</div>
+                  <div className="d-flex flex-wrap gap-3 small text-secondary">
                     <span>{`CID: ${officer.cid}`}</span>
                     {officer.position && <span>{`Position: ${officer.position}`}</span>}
                     {officer.station && <span>{`Station: ${officer.station}`}</span>}
@@ -137,29 +133,28 @@ export default function MyPaydirectPage() {
                 </div>
               )}
             </div>
-            <div className={styles.tableHeadActions}>
-              <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <span className="small text-secondary fw-semibold">
                 Page {page} of {totalPages} • {items.length} items
               </span>
-              <button className={styles.createBtn} type="button" onClick={() => loadPage(1)} disabled={loading}>
+              <button className="btn btn-primary" type="button" onClick={() => loadPage(1)} disabled={loading}>
                 Refresh
               </button>
-              <button className={styles.secondaryBtn} type="button" onClick={handleLogout} disabled={loggingOut}>
+              <button className="btn btn-outline-secondary" type="button" onClick={handleLogout} disabled={loggingOut}>
                 {loggingOut ? "Logging out..." : "Logout"}
               </button>
             </div>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.paydirectTableSection}>
-            <div className={styles.tableTop}>
-              <div className={styles.tableTitle}>Salary slips</div>
-              <div className={styles.results}>Rows per page: {pageSize}</div>
+          <div className="border rounded overflow-hidden bg-white">
+            <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
+              <div className="fw-bold">Salary slips</div>
             </div>
-            <div className={styles.paydirectTableWrap}>
-              <table className={styles.paydirectTable}>
-                <thead>
+            <div className="table-responsive">
+              <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+                <thead className="table-light">
                   <tr>
                     <th>Year</th>
                     <th>Month</th>
@@ -185,9 +180,9 @@ export default function MyPaydirectPage() {
                       <tr key={item.id}>
                         <td>{item.A ?? "-"}</td>
                         <td>{item.NAMEMONTH_TH ?? item.B ?? "-"}</td>
-                        <td>{formatBaht(item.TOTALINCOME)}</td>
-                        <td>{formatBaht(item.TOTALOUTCOME)}</td>
-                        <td>{formatBaht(item.BALANCE)}</td>
+                        <td className="text-end text-nowrap">{formatBaht(item.TOTALINCOME)}</td>
+                        <td className="text-end text-nowrap">{formatBaht(item.TOTALOUTCOME)}</td>
+                        <td className="text-end text-nowrap">{formatBaht(item.BALANCE)}</td>
                         <td>
                           {item.PAYID ? (
                             <Link href={`/officers/paydirect/${item.PAYID}`}>View slip</Link>
@@ -202,32 +197,17 @@ export default function MyPaydirectPage() {
             </div>
           </div>
 
-          <div className={styles.pagination}>
-            <button
-              className={styles.pageBtn}
-              disabled={loading || page <= 1}
-              onClick={() => loadPage(Math.max(1, page - 1))}
-            >
-              Prev
-            </button>
-            {pageWindow.map((p) => (
-              <button
-                key={p}
-                className={`${styles.pageBtn} ${p === page ? styles.currentPage : ""}`}
-                disabled={loading}
-                onClick={() => loadPage(p)}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              className={styles.pageBtn}
-              disabled={loading || page >= totalPages}
-              onClick={() => loadPage(Math.min(totalPages, page + 1))}
-            >
-              Next
-            </button>
-          </div>
+          {!error && (
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => loadPage(p)}
+              onPageSizeChange={setPageSize}
+            />
+          )}
         </section>
       </main>
     </div>

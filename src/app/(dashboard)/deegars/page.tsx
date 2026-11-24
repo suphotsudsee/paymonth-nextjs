@@ -2,9 +2,9 @@
 
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import styles from "./page.module.css";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { Pagination, useReloadOnPageSizeChange } from "@/components/Pagination";
 
 type DeegarRow = {
   PNUMBER: string;
@@ -65,6 +65,8 @@ export default function DeegarPage() {
     paydate: "",
     cheque: "",
   });
+  // ตัวกรองของการโหลดครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า (Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -80,7 +82,8 @@ export default function DeegarPage() {
   const modalOpen = modalMode !== null;
   const isEditMode = modalMode === "edit";
 
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
+  useReloadOnPageSizeChange(pageSize, () => void fetchData(1, appliedFilters));
 
   const fetchData = async (
     targetPage: number,
@@ -118,6 +121,7 @@ export default function DeegarPage() {
         setData(null);
       } else {
         setData(json);
+        setAppliedFilters(currentFilters);
         setPage(targetPage);
       }
     } catch (err) {
@@ -221,16 +225,8 @@ export default function DeegarPage() {
     const start = (page - 1) * pageSize + 1;
     const end = Math.min(page * pageSize, data.total);
     return `${start}-${end}`;
-  }, [data, page]);
+  }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 2, total - 4));
-    const end = Math.min(total, start + 4);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const onFilterChange =
     (field: keyof typeof filters) =>
@@ -424,125 +420,125 @@ export default function DeegarPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/deegars" />
 
-      <main className={styles.main}>
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeadRow}>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <span>ทะเบียนฏีกา</span>
-            <div className={styles.tableHeadActions}>
-              <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <span className="small text-secondary fw-semibold">
                 แสดง {displayRange} จากทั้งหมด {data?.total ?? 0} รายการ
               </span>
-              <button type="button" className={styles.createBtn} onClick={openCreate}>
+              <button type="button" className="btn btn-primary" onClick={openCreate}>
                 + เพิ่มทะเบียนฎีกา
               </button>
             </div>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "PNUMBER" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "PNUMBER" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("PNUMBER")}
                     >
                       Pnumber
-                      {sortBy === "PNUMBER" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "PNUMBER" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "NODEEGAR" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "NODEEGAR" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("NODEEGAR")}
                     >
                       Nodeegar
-                      {sortBy === "NODEEGAR" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "NODEEGAR" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "ACCNUMBER" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "ACCNUMBER" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("ACCNUMBER")}
                     >
                       เลขบัญชี
-                      {sortBy === "ACCNUMBER" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "ACCNUMBER" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "ACCNAME" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "ACCNAME" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("ACCNAME")}
                     >
                       ชื่อบัญชี
-                      {sortBy === "ACCNAME" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "ACCNAME" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "TAX" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "TAX" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("TAX")}
                     >
                       ภาษี
-                      {sortBy === "TAX" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "TAX" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "PAY" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "PAY" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("PAY")}
                     >
                       ค่าปรับ
-                      {sortBy === "PAY" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "PAY" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "MONEY" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "MONEY" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("MONEY")}
                     >
                       Money
-                      {sortBy === "MONEY" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "MONEY" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "PAYDATE" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "PAYDATE" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("PAYDATE")}
                     >
                       วันที่จ่าย
-                      {sortBy === "PAYDATE" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "PAYDATE" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "CHEQUE" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "CHEQUE" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("CHEQUE")}
                     >
                       เลขที่เช็ค
-                      {sortBy === "CHEQUE" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "CHEQUE" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>เครื่องมือ</th>
                 </tr>
-                <tr className={styles.filterRow}>
+                <tr>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค้นหา Pnumber"
                       maxLength={PNUMBER_MAX_LENGTH}
                       value={filters.pnumber}
@@ -555,7 +551,7 @@ export default function DeegarPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค้นหา Nodeegar"
                       value={filters.nodeegar}
                       onChange={onFilterChange("nodeegar")}
@@ -563,7 +559,7 @@ export default function DeegarPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="เลขบัญชี"
                       value={filters.accnumber}
                       onChange={onFilterChange("accnumber")}
@@ -571,7 +567,7 @@ export default function DeegarPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ชื่อบัญชี"
                       value={filters.accname}
                       onChange={onFilterChange("accname")}
@@ -579,7 +575,7 @@ export default function DeegarPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ภาษี"
                       value={filters.tax}
                       onChange={onFilterChange("tax")}
@@ -587,7 +583,7 @@ export default function DeegarPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค่าปรับ"
                       value={filters.pay}
                       onChange={onFilterChange("pay")}
@@ -595,7 +591,7 @@ export default function DeegarPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ยอดเงิน"
                       value={filters.money}
                       onChange={onFilterChange("money")}
@@ -603,7 +599,7 @@ export default function DeegarPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       type="date"
                       value={filters.paydate}
                       onChange={onFilterChange("paydate")}
@@ -611,7 +607,7 @@ export default function DeegarPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="เลขที่เช็ค"
                       maxLength={CHEQUE_MAX_LENGTH}
                       list="chequeOptions"
@@ -632,14 +628,14 @@ export default function DeegarPage() {
                     <td>{row.NODEEGAR}</td>
                     <td>{row.ACCNUMBER ?? "-"}</td>
                     <td>{row.ACCNAME ?? "-"}</td>
-                    <td className={styles.numberCell}>{row.TAX?.toLocaleString() ?? "0.00"}</td>
-                    <td className={styles.numberCell}>{row.PAY?.toLocaleString() ?? "0.00"}</td>
-                    <td className={styles.moneyCell}>{formatMoney(row.MONEY)}</td>
-                    <td className={styles.numberCell}>{formatDate(row.PAYDATE)}</td>
-                    <td className={styles.chequeCell}>{row.CHEQUE ?? "-"}</td>
-                    <td className={styles.actionsCell}>
+                    <td className="text-end text-nowrap">{row.TAX?.toLocaleString() ?? "0.00"}</td>
+                    <td className="text-end text-nowrap">{row.PAY?.toLocaleString() ?? "0.00"}</td>
+                    <td className="text-end text-nowrap fw-semibold">{formatMoney(row.MONEY)}</td>
+                    <td className="text-center">{formatDate(row.PAYDATE)}</td>
+                    <td className="text-end">{row.CHEQUE ?? "-"}</td>
+                    <td className="text-center text-nowrap">
                       <button
-                        className={styles.iconBtn}
+                        className="btn btn-sm btn-outline-primary mx-1"
                         title="ดูรายละเอียด"
                         type="button"
                         onClick={() => openDetail(row)}
@@ -647,7 +643,7 @@ export default function DeegarPage() {
                         🔍
                       </button>
                       <button
-                        className={styles.iconBtn}
+                        className="btn btn-sm btn-outline-primary mx-1"
                         title="แก้ไข"
                         type="button"
                         onClick={() => openEdit(row)}
@@ -659,7 +655,7 @@ export default function DeegarPage() {
                 ))}
                 {!data?.items?.length && (
                   <tr>
-                    <td colSpan={10} className={styles.emptyState}>
+                    <td colSpan={10} className="text-center text-secondary p-3">
                       {loading ? "กำลังโหลด..." : "ไม่พบข้อมูล"}
                     </td>
                   </tr>
@@ -668,57 +664,38 @@ export default function DeegarPage() {
             </table>
           </div>
 
-          {data && data.totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.max(page - 1, 1))}
-                disabled={page === 1 || loading}
-              >
-                &lt; ก่อนหน้า
-              </button>
-              {pageWindow.map((p) => (
-                <button
-                  key={p}
-                  className={`${styles.pageBtn} ${p === page ? styles.currentPage : ""}`}
-                  onClick={() => fetchData(p)}
-                  disabled={p === page || loading}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.min(page + 1, data.totalPages))}
-                disabled={page === data.totalPages || loading}
-              >
-                ถัดไป &gt;
-              </button>
-            </div>
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchData(p, appliedFilters)}
+              onPageSizeChange={setPageSize}
+            />
           )}
         </section>
       </main>
 
       {modalOpen && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">
                 {isEditMode ? `Update Deegar ${createForm.pnumber}` : "Create Deegar"}
               </h2>
-              <button className={styles.modalClose} onClick={() => setModalMode(null)} aria-label="Close">
-                ✕
-              </button>
+              <button className="btn-close" onClick={() => setModalMode(null)} aria-label="Close"></button>
             </div>
-            <div className={styles.modalBody}>
-              <p className={styles.modalHint}>
+            <div className="modal-body">
+              <p className="small text-secondary mb-2">
                 Fields with * are required. {modalLoading ? "กำลังโหลด..." : ""}
               </p>
-              <div className={styles.formGrid}>
+              <div className="row row-cols-1 row-cols-md-2 g-3">
                 <label>
                   Pnumber *
                   <input
-                    className={styles.input}
+                    className="form-control"
                     maxLength={PNUMBER_MAX_LENGTH}
                     minLength={PNUMBER_MAX_LENGTH}
                     required
@@ -732,32 +709,32 @@ export default function DeegarPage() {
                 </label>
                 <label>
                   Nodeegar *
-                  <input className={styles.input} value={createForm.nodeegar} onChange={onCreateChange("nodeegar")} />
+                  <input className="form-control" value={createForm.nodeegar} onChange={onCreateChange("nodeegar")} />
                 </label>
                 <label>
                   Accnumber *
-                  <input className={styles.input} value={createForm.accnumber} onChange={onCreateChange("accnumber")} />
+                  <input className="form-control" value={createForm.accnumber} onChange={onCreateChange("accnumber")} />
                 </label>
                 <label>
                   Accname *
-                  <input className={styles.input} value={createForm.accname} onChange={onCreateChange("accname")} />
+                  <input className="form-control" value={createForm.accname} onChange={onCreateChange("accname")} />
                 </label>
                 <label>
                   ภาษี
-                  <input className={styles.input} value={createForm.tax} onChange={onCreateChange("tax")} />
+                  <input className="form-control" value={createForm.tax} onChange={onCreateChange("tax")} />
                 </label>
                 <label>
                   ค่าปรับ
-                  <input className={styles.input} value={createForm.pay} onChange={onCreateChange("pay")} />
+                  <input className="form-control" value={createForm.pay} onChange={onCreateChange("pay")} />
                 </label>
                 <label>
                   Money *
-                  <input className={styles.input} value={createForm.money} onChange={onCreateChange("money")} />
+                  <input className="form-control" value={createForm.money} onChange={onCreateChange("money")} />
                 </label>
                 <label>
                   เลขที่เช็ค
                   <input
-                    className={styles.input}
+                    className="form-control"
                     maxLength={CHEQUE_MAX_LENGTH}
                     list="chequeOptions"
                     value={createForm.cheque}
@@ -768,36 +745,34 @@ export default function DeegarPage() {
                   />
                 </label>
               </div>
-              {formError && <div className={styles.error}>{formError}</div>}
-              <div className={styles.saveRow}>
-                <button className={styles.primaryBtn} onClick={submitCreate} disabled={formSaving || modalLoading}>
+              {formError && <div className="alert alert-danger py-2 px-3 m-2 small">{formError}</div>}
+              <div className="d-flex gap-2 mt-3">
+                <button className="btn btn-primary" onClick={submitCreate} disabled={formSaving || modalLoading}>
                   {formSaving ? "Saving..." : "Save"}
                 </button>
-                <button className={styles.secondaryBtn} type="button" onClick={() => setModalMode(null)}>
+                <button className="btn btn-outline-secondary" type="button" onClick={() => setModalMode(null)}>
                   Cancel
                 </button>
               </div>
             </div>
-          </div>
+          </div></div>
         </div>
       )}
 
       {detailOpen && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">
                 View Deegar {detail?.PNUMBER && detail?.NODEEGAR ? `${detail.PNUMBER}/${detail.NODEEGAR}` : ""}
               </h2>
-              <button className={styles.modalClose} onClick={() => setDetailOpen(false)} aria-label="Close">
-                ✕
-              </button>
+              <button className="btn-close" onClick={() => setDetailOpen(false)} aria-label="Close"></button>
             </div>
-            <div className={styles.modalBody}>
-              {detailLoading && <p className={styles.modalHint}>กำลังโหลด...</p>}
-              {detailError && <div className={styles.error}>{detailError}</div>}
+            <div className="modal-body">
+              {detailLoading && <p className="small text-secondary mb-2">กำลังโหลด...</p>}
+              {detailError && <div className="alert alert-danger py-2 px-3 m-2 small">{detailError}</div>}
               {detail && (
-                <table className={styles.detailTable}>
+                <table className="table table-sm table-bordered mb-0">
                   <tbody>
                     <tr>
                       <th>ID</th>
@@ -829,7 +804,7 @@ export default function DeegarPage() {
                     </tr>
                     <tr>
                       <th>Money</th>
-                      <td>{formatMoney(detail.MONEY)}</td>
+                      <td className="text-end text-nowrap">{formatMoney(detail.MONEY)}</td>
                     </tr>
                     <tr>
                       <th>Paydate</th>
@@ -843,7 +818,7 @@ export default function DeegarPage() {
                 </table>
               )}
             </div>
-          </div>
+          </div></div>
         </div>
       )}
 

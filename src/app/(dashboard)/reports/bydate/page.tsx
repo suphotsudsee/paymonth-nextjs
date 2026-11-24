@@ -2,9 +2,9 @@
 
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import styles from './page.module.css';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
+import { Pagination } from '@/components/Pagination';
 
 type Item = {
   ID: number;
@@ -63,6 +63,9 @@ export default function ReportsByDatePage() {
     field: 'pnumber',
     query: '',
   });
+  // ตัวกรองของการค้นหาครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า
+  // (ไม่ใช้ค่าที่พิมพ์ค้างในฟอร์มแต่ยังไม่กดค้นหา — Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
   const [chequeOptions, setChequeOptions] = useState<string[]>([]);
   const [pnumberOptions, setPnumberOptions] = useState<string[]>([]);
 
@@ -92,6 +95,7 @@ export default function ReportsByDatePage() {
         throw new Error(json.error || 'ไม่สามารถโหลดข้อมูลได้');
       }
       setData(json);
+      setAppliedFilters(currentFilters);
       setPage(targetPage);
       setPageSize(targetSize);
     } catch (err: any) {
@@ -113,14 +117,6 @@ export default function ReportsByDatePage() {
     return `${start}-${end}`;
   }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 3, total - 6));
-    const end = Math.min(total, start + 6);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const onFilterChange =
     (field: keyof typeof filters) =>
@@ -223,31 +219,31 @@ export default function ReportsByDatePage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/reports/bydate" />
 
-      <main className={styles.main}>
-        <section className={styles.card}>
-          <div className={styles.headRow}>
-            <div className={styles.title}>
-              <h1>สรุปตามวันที่</h1>
-              <p>ค้นตามช่วงวันที่ พร้อมตัวเลือกค้นหา</p>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
+            <div className="d-flex flex-column gap-1">
+              <h1 className="h5 mb-0">สรุปตามวันที่</h1>
+              <p className="small text-secondary mb-0">ค้นตามช่วงวันที่ พร้อมตัวเลือกค้นหา</p>
             </div>
-            <div className={styles.controls}>
-              <div className={styles.displayActions}>
-                <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <span className="small text-secondary fw-semibold">
                   {data ? `Displaying ${displayRange} of ${data.total} results.` : 'กำลังโหลด...'}
                 </span>
-                <div className={styles.actionButtons}>
+                <div className="d-flex flex-wrap align-items-center gap-2">
                   <button
                     type="submit"
                     form="bydate-filter-form"
-                    className={styles.primaryBtn}
+                    className="btn btn-primary"
                     disabled={loading}
                   >
                     {loading ? 'กำลังค้นหา...' : 'ค้นหา'}
                   </button>
-                  <button type="button" className={styles.secondaryBtn} onClick={handleReset} disabled={loading}>
+                  <button type="button" className="btn btn-outline-secondary" onClick={handleReset} disabled={loading}>
                     ล้างข้อมูล
                   </button>
                 </div>
@@ -255,29 +251,29 @@ export default function ReportsByDatePage() {
             </div>
           </div>
 
-          <form id="bydate-filter-form" className={styles.filterForm} onSubmit={handleSearch}>
-            <div className={styles.filtersRow}>
-              <label className={styles.filterField}>
+          <form id="bydate-filter-form" className="px-3 pt-3 pb-2 border-bottom bg-light" onSubmit={handleSearch}>
+            <div className="row g-2 align-items-end">
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>จากวันที่</span>
                 <input
                   type="date"
                   value={filters.startdate}
                   onChange={onFilterChange('startdate')}
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                 />
               </label>
-              <label className={styles.filterField}>
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>ถึงวันที่</span>
                 <input
                   type="date"
                   value={filters.enddate}
                   onChange={onFilterChange('enddate')}
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                 />
               </label>
-              <label className={styles.filterField}>
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>ค้นด้วย</span>
-                <select value={filters.field} onChange={onFilterChange('field')} className={styles.filterSelect}>
+                <select value={filters.field} onChange={onFilterChange('field')} className="form-select">
                   <option value="pnumber">PNUMBER</option>
                   <option value="idbank">IDBANK</option>
                   <option value="accnumber">ACCNUMBER</option>
@@ -286,12 +282,12 @@ export default function ReportsByDatePage() {
                   <option value="name">ชื่อ-นามสกุล</option>
                 </select>
               </label>
-              <label className={styles.filterField}>
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>คำค้น</span>
                 <input
                   value={filters.query}
                   onChange={onFilterChange('query')}
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                   placeholder="กรอกคำที่ต้องการค้น"
                   list={filters.field === 'cheque' ? 'chequeOptions' : filters.field === 'pnumber' ? 'pnumberOptions' : undefined}
                   onFocus={(e) => {
@@ -317,11 +313,11 @@ export default function ReportsByDatePage() {
             ))}
           </datalist>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>PNUMBER</th>
                   <th>NODEEGAR</th>
@@ -337,7 +333,7 @@ export default function ReportsByDatePage() {
               <tbody>
                 {loading && !data && (
                   <tr>
-                    <td colSpan={9} className={styles.loading}>
+                    <td colSpan={9} className="text-center text-primary fw-semibold p-3">
                       กำลังโหลดข้อมูล...
                     </td>
                   </tr>
@@ -352,12 +348,12 @@ export default function ReportsByDatePage() {
                     <td>{row.PAYNAME}</td>
                     <td>{formatDate(row.PAYDATE)}</td>
                     <td>{row.NAME}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.MONEY)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.MONEY)}</td>
                   </tr>
                 ))}
                 {data && data.items.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={9} className={styles.empty}>
+                    <td colSpan={9} className="text-center text-secondary p-3">
                       ไม่พบข้อมูล
                     </td>
                   </tr>
@@ -367,41 +363,24 @@ export default function ReportsByDatePage() {
           </div>
 
           {data && (
-            <div className={styles.metaRow}>
-              <div className={styles.totals}>
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 px-3 py-2 border-top bg-light small">
+              <div className="d-flex flex-wrap gap-3">
                 <span>
                   Total: <strong>{formatMoney(data.totalMoney)}</strong>
                 </span>
               </div>
-              {data.totalPages > 1 && (
-                <div className={styles.actionButtons}>
-                  <button
-                    className={styles.secondaryBtn}
-                    onClick={() => fetchData(Math.max(1, page - 1), pageSize)}
-                    disabled={page === 1 || loading}
-                  >
-                    &lt; Prev
-                  </button>
-                  {pageWindow.map((p) => (
-                    <button
-                      key={p}
-                      className={`${styles.secondaryBtn} ${p === page ? styles.primaryBtn : ''}`}
-                      onClick={() => fetchData(p, pageSize)}
-                      disabled={p === page || loading}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                  <button
-                    className={styles.secondaryBtn}
-                    onClick={() => fetchData(Math.min(page + 1, data.totalPages), pageSize)}
-                    disabled={page === data.totalPages || loading}
-                  >
-                    Next &gt;
-                  </button>
-                </div>
-              )}
             </div>
+          )}
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchData(p, pageSize, appliedFilters)}
+              onPageSizeChange={(n) => void fetchData(1, n, appliedFilters)}
+            />
           )}
         </section>
       </main>

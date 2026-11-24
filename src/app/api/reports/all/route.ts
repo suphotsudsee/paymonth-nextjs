@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 import { isStaff } from "@/lib/permissions";
 import { pickPeriodsForPage } from "@/lib/reportPaging";
+import { clampPageSize, parsePage } from '@/lib/pagination';
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,8 +16,8 @@ export async function GET(req: NextRequest) {
     const name = searchParams.get("name")?.trim() || undefined;
     const monththai = searchParams.get("monththai")?.trim() || undefined;
     const yearthai = searchParams.get("yearthai")?.trim() || undefined;
-    const page = Math.max(1, Number(searchParams.get("page") || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 10)));
+    const page = parsePage(searchParams.get("page"));
+    const pageSize = clampPageSize(searchParams.get("pageSize"), 10);
     const offset = (page - 1) * pageSize;
 
     // Use table aliases (s/o) up front so the same where-clause can be reused in all queries.

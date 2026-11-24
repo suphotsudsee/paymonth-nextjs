@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 import { isStaff } from "@/lib/permissions";
+import { clampPageSize, parsePage } from '@/lib/pagination';
 
 // GET /api/cpays
 // - Without pagination params: returns { items } for dropdowns.
@@ -31,8 +32,8 @@ export async function GET(req: NextRequest) {
     const idpay = searchParams.get("idpay")?.trim() || undefined;
     const payname = searchParams.get("payname")?.trim() || undefined;
     const paytype = searchParams.get("paytype")?.trim() || undefined;
-    const page = Math.max(1, Number(pageParam || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(pageSizeParam || 10)));
+    const page = parsePage(pageParam);
+    const pageSize = clampPageSize(pageSizeParam, 10);
     const offset = (page - 1) * pageSize;
 
     const filters: string[] = [];

@@ -6,7 +6,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
-import styles from "../../page.module.css";
 
 type BankRow = {
   id: bigint | number;
@@ -55,13 +54,13 @@ export default async function ManageBanksPage({
   const officer = await loadOfficer(cid);
   if (!officer) {
     return (
-      <div className={styles.page}>
+      <div className="d-flex flex-column flex-grow-1">
         <AppHeader activePath="/officers" />
-        <main className={styles.main}>
-          <div className={styles.sectionTitle}>
-            <h1>Officer not found</h1>
+        <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+          <div className="h6 fw-bold mb-2">
+            <h1 className="h4 mb-0">Officer not found</h1>
           </div>
-          <div style={{ padding: "20px", textAlign: "center", color: "red" }}>
+          <div className="alert alert-danger text-center m-3">
             Could not find officer with CID: {cid}
           </div>
         </main>
@@ -76,25 +75,25 @@ export default async function ManageBanksPage({
   });
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/officers" />
 
-      <main className={styles.main}>
-        <div className={styles.sectionTitle}>
-          <h1>บัญชีธนาคารสำหรับ {officer.NAME ?? officer.CID}</h1>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <div className="h6 fw-bold mb-2">
+          <h1 className="h4 mb-0">บัญชีธนาคารสำหรับ {officer.NAME ?? officer.CID}</h1>
         </div>
 
-        <div className={styles.tableCard}>
-          <div className={styles.tableHeadRow}>
+        <div className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <span>รายการบัญชี</span>
-            <span className={styles.resultText}>
+            <span className="small text-secondary fw-semibold">
               Displaying {banks.length > 0 ? 1 : 0}-{banks.length} of {banks.length} results.
             </span>
           </div>
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>ID</th>
                   <th>CID</th>
@@ -113,7 +112,7 @@ export default async function ManageBanksPage({
                 ))}
                 {banks.length === 0 && (
                   <tr>
-                    <td colSpan={4} className={styles.emptyState}>
+                    <td colSpan={4} className="text-center text-secondary p-3">
                       No banks found
                     </td>
                   </tr>

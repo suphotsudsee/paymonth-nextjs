@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 import { isStaff } from "@/lib/permissions";
+import { clampPageSize, parsePage } from '@/lib/pagination';
 
 // GET /api/cheques
 // Filters: cheque, chequename, accnumber, paydate
@@ -16,8 +17,8 @@ export async function GET(req: NextRequest) {
     const chequename = searchParams.get("chequename")?.trim() || undefined;
     const accnumber = searchParams.get("accnumber")?.trim() || undefined;
     const paydate = searchParams.get("paydate")?.trim() || undefined;
-    const page = Math.max(1, Number(searchParams.get("page") || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 10)));
+    const page = parsePage(searchParams.get("page"));
+    const pageSize = clampPageSize(searchParams.get("pageSize"), 10);
     const offset = (page - 1) * pageSize;
     const recent = searchParams.get("recent") === "1";
     const sortByParam = searchParams.get("sortBy");

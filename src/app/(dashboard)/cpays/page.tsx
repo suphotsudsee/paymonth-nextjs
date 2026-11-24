@@ -2,9 +2,9 @@
 
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import styles from "../cheques/page.module.css";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { Pagination, useReloadOnPageSizeChange } from "@/components/Pagination";
 
 type CpayRow = {
   IDPAY: string;
@@ -46,8 +46,11 @@ export default function CpaysPage() {
     payname: "",
     paytype: "",
   });
+  // ตัวกรองของการโหลดครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า (Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
 
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
+  useReloadOnPageSizeChange(pageSize, () => void fetchData(1, appliedFilters));
 
   const fetchData = async (
     targetPage: number,
@@ -75,6 +78,7 @@ export default function CpaysPage() {
         setData(null);
       } else {
         setData(json);
+        setAppliedFilters(currentFilters);
         setPage(targetPage);
       }
     } catch (err) {
@@ -99,16 +103,8 @@ export default function CpaysPage() {
     const start = (page - 1) * pageSize + 1;
     const end = Math.min(page * pageSize, data.total);
     return `${start}-${end}`;
-  }, [data, page]);
+  }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 2, total - 4));
-    const end = Math.min(total, start + 4);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const onFilterChange =
     (field: keyof typeof filters) =>
@@ -220,38 +216,38 @@ export default function CpaysPage() {
   const textOrDash = (value: string | null | undefined) => (value ? value : "-");
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/cpays" />
 
-      <main className={styles.main}>
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeadRow}>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <span>รหัสรายรับ-รายจ่าย</span>
-            <div className={styles.tableHeadActions}>
-              <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <span className="small text-secondary fw-semibold">
                 แสดง {displayRange} จาก {data?.total ?? 0} รายการ
               </span>
-              <button type="button" className={styles.createBtn} onClick={openCreate}>
+              <button type="button" className="btn btn-primary" onClick={openCreate}>
                 + เพิ่มรหัสรายรับ-รายจ่าย
               </button>
             </div>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>รหัส</th>
                   <th>ชื่อ</th>
                   <th>ประเภท</th>
                   <th>จัดการ</th>
                 </tr>
-                <tr className={styles.filterRow}>
+                <tr>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค้นหารหัส"
                       value={filters.idpay}
                       onChange={onFilterChange("idpay")}
@@ -259,7 +255,7 @@ export default function CpaysPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค้นหาชื่อ"
                       value={filters.payname}
                       onChange={onFilterChange("payname")}
@@ -267,7 +263,7 @@ export default function CpaysPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ประเภท (เช่น 1/2)"
                       value={filters.paytype}
                       onChange={onFilterChange("paytype")}
@@ -282,9 +278,9 @@ export default function CpaysPage() {
                     <td>{row.IDPAY}</td>
                     <td>{textOrDash(row.PAYNAME)}</td>
                     <td>{textOrDash(row.PAYTYPE)}</td>
-                    <td className={styles.actionsCell}>
+                    <td className="text-center text-nowrap">
                       <button
-                        className={styles.iconBtn}
+                        className="btn btn-sm btn-outline-primary mx-1"
                         type="button"
                         onClick={() => openDetail(row.IDPAY)}
                         title="ดูรายละเอียด"
@@ -292,7 +288,7 @@ export default function CpaysPage() {
                         🔍
                       </button>
                       <button
-                        className={styles.iconBtn}
+                        className="btn btn-sm btn-outline-primary mx-1"
                         type="button"
                         onClick={() => openEdit(row.IDPAY)}
                         title="แก้ไข"
@@ -304,7 +300,7 @@ export default function CpaysPage() {
                 ))}
                 {!data?.items?.length && (
                   <tr>
-                    <td colSpan={4} className={styles.emptyState}>
+                    <td colSpan={4} className="text-center text-secondary p-3">
                       {loading ? "กำลังโหลด..." : "ไม่พบข้อมูล"}
                     </td>
                   </tr>
@@ -313,92 +309,71 @@ export default function CpaysPage() {
             </table>
           </div>
 
-          {data && data.totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.max(page - 1, 1))}
-                disabled={page === 1 || loading}
-              >
-                &lt; ก่อนหน้า
-              </button>
-              {pageWindow.map((p) => (
-                <button
-                  key={p}
-                  className={`${styles.pageBtn} ${p === page ? styles.currentPage : ""}`}
-                  onClick={() => fetchData(p)}
-                  disabled={p === page || loading}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.min(page + 1, data.totalPages))}
-                disabled={page === data.totalPages || loading}
-              >
-                ถัดไป &gt;
-              </button>
-            </div>
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchData(p, appliedFilters)}
+              onPageSizeChange={setPageSize}
+            />
           )}
         </section>
       </main>
 
       {modalMode && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>{modalMode === "edit" ? `แก้ไขรหัส ${createForm.idpay || editIdpay || ""}` : "เพิ่มรหัสรายรับ-รายจ่าย"}</h2>
-              <button className={styles.modalClose} onClick={() => setModalMode(null)} aria-label="Close">
-                ✕
-              </button>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">{modalMode === "edit" ? `แก้ไขรหัส ${createForm.idpay || editIdpay || ""}` : "เพิ่มรหัสรายรับ-รายจ่าย"}</h2>
+              <button className="btn-close" onClick={() => setModalMode(null)} aria-label="Close"></button>
             </div>
-            <div className={styles.modalBody}>
-              <p className={styles.modalHint}>
+            <div className="modal-body">
+              <p className="small text-secondary mb-2">
                 ช่องที่มี * จำเป็นต้องกรอก {modalLoading ? "กำลังโหลด..." : ""}
               </p>
-              <div className={styles.formGrid}>
+              <div className="row row-cols-1 row-cols-md-2 g-3">
                 <label>
                   รหัส *
-                  <input className={styles.input} value={createForm.idpay} onChange={onCreateChange("idpay")} />
+                  <input className="form-control" value={createForm.idpay} onChange={onCreateChange("idpay")} />
                 </label>
                 <label>
                   ชื่อ *
-                  <input className={styles.input} value={createForm.payname} onChange={onCreateChange("payname")} />
+                  <input className="form-control" value={createForm.payname} onChange={onCreateChange("payname")} />
                 </label>
                 <label>
                   ประเภท
-                  <input className={styles.input} value={createForm.paytype} onChange={onCreateChange("paytype")} />
+                  <input className="form-control" value={createForm.paytype} onChange={onCreateChange("paytype")} />
                 </label>
               </div>
-              {formError && <div className={styles.error}>{formError}</div>}
-              <div className={styles.saveRow}>
-                <button className={styles.primaryBtn} onClick={submitForm} disabled={formSaving || modalLoading}>
+              {formError && <div className="alert alert-danger py-2 px-3 m-2 small">{formError}</div>}
+              <div className="d-flex gap-2 mt-3">
+                <button className="btn btn-primary" onClick={submitForm} disabled={formSaving || modalLoading}>
                   {formSaving ? "Saving..." : "Save"}
                 </button>
-                <button className={styles.secondaryBtn} type="button" onClick={() => setModalMode(null)}>
+                <button className="btn btn-outline-secondary" type="button" onClick={() => setModalMode(null)}>
                   Cancel
                 </button>
               </div>
             </div>
-          </div>
+          </div></div>
         </div>
       )}
 
       {detailOpen && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>{detail?.IDPAY ? `รายละเอียดรหัส ${detail.IDPAY}` : "รายละเอียดรหัสรายรับ-รายจ่าย"}</h2>
-              <button className={styles.modalClose} onClick={() => setDetailOpen(false)} aria-label="Close">
-                ✕
-              </button>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">{detail?.IDPAY ? `รายละเอียดรหัส ${detail.IDPAY}` : "รายละเอียดรหัสรายรับ-รายจ่าย"}</h2>
+              <button className="btn-close" onClick={() => setDetailOpen(false)} aria-label="Close"></button>
             </div>
-            <div className={styles.modalBody}>
-              {detailLoading && <p className={styles.modalHint}>กำลังโหลด...</p>}
-              {detailError && <div className={styles.error}>{detailError}</div>}
+            <div className="modal-body">
+              {detailLoading && <p className="small text-secondary mb-2">กำลังโหลด...</p>}
+              {detailError && <div className="alert alert-danger py-2 px-3 m-2 small">{detailError}</div>}
               {detail && (
-                <table className={styles.detailTable}>
+                <table className="table table-sm table-bordered mb-0">
                   <tbody>
                     <tr>
                       <th>รหัส</th>
@@ -416,7 +391,7 @@ export default function CpaysPage() {
                 </table>
               )}
             </div>
-          </div>
+          </div></div>
         </div>
       )}
 

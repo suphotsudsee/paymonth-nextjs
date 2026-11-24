@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties, type InputHTMLAttributes } from 'react';
+import { useEffect, useRef, useState, type InputHTMLAttributes } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
@@ -11,9 +11,9 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> & {
   concealKey?: unknown;
 };
 
-// ช่องรหัสผ่านพร้อมปุ่มรูปตา กดเพื่อแสดง/ซ่อนรหัสที่พิมพ์
+// ช่องรหัสผ่านพร้อมปุ่มรูปตา กดเพื่อแสดง/ซ่อนรหัสที่พิมพ์ (Bootstrap input-group — PRD ข้อ 11)
 // ซ่อนกลับเองทุกครั้งที่ส่งฟอร์ม (รวมครั้งที่ login ไม่ผ่านและฟอร์มยังเปิดอยู่) เพื่อไม่ให้รหัสค้างบนจอ
-export function PasswordInput({ style, concealKey, ...props }: Props) {
+export function PasswordInput({ className, concealKey, ...props }: Props) {
   const [visible, setVisible] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const label = visible ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน';
@@ -37,36 +37,24 @@ export function PasswordInput({ style, concealKey, ...props }: Props) {
   }, [concealKey]);
 
   return (
-    <span style={{ position: 'relative', display: 'block', width: '100%' }}>
+    <div className="input-group">
       <input
         {...props}
         ref={inputRef}
         type={visible ? 'text' : 'password'}
-        // เว้นที่ขวาให้ปุ่มตา: ไอคอน 18px + ระยะขอบ 8px ทั้งสองข้าง ≈ 36px
-        style={{ ...style, width: '100%', paddingRight: 36, boxSizing: 'border-box' } as CSSProperties}
+        className={['form-control', className].filter(Boolean).join(' ')}
       />
       <button
         type="button"
+        className="btn btn-outline-secondary d-flex align-items-center"
         onClick={() => setVisible((v) => !v)}
         aria-label={label}
         aria-pressed={visible}
         title={label}
-        style={{
-          position: 'absolute',
-          top: '50%',
-          right: 6,
-          transform: 'translateY(-50%)',
-          display: 'flex',
-          alignItems: 'center',
-          padding: 4,
-          border: 'none',
-          background: 'transparent',
-          color: '#555',
-          cursor: 'pointer',
-        }}
       >
+        {/* 18px = ขนาดไอคอนเดิม พอดีกับความสูงช่อง form-control */}
         {visible ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
       </button>
-    </span>
+    </div>
   );
 }

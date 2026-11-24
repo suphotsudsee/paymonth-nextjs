@@ -2,9 +2,9 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import styles from './page.module.css';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
+import { Pagination } from '@/components/Pagination';
 
 type Item = {
   ID: number;
@@ -38,11 +38,15 @@ export default function TaxDeptGroupPage() {
   const yearthai = search?.get('yearthai') || '';
   const station = search?.get('station') || '';
 
-  const fetchData = async () => {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const fetchData = async (targetPage = 1, targetSize = pageSize) => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
+      // เดิมไม่ส่ง page/pageSize → API ให้แค่ 10 แถวแรก (PRD 11.1)
+      const params = new URLSearchParams({ page: String(targetPage), pageSize: String(targetSize) });
       if (yearthai) params.set('yearthai', yearthai);
       if (station) params.set('station', station);
       const res = await fetch(`/api/reports/taxdept?${params.toString()}`, {
@@ -54,6 +58,8 @@ export default function TaxDeptGroupPage() {
         throw new Error(json.error || 'ไม่สามารถโหลดข้อมูลได้');
       }
       setData(json);
+      setPage(targetPage);
+      setPageSize(targetSize);
     } catch (err: any) {
       setError(err?.message || 'ไม่สามารถโหลดข้อมูลได้');
     } finally {
@@ -72,25 +78,25 @@ export default function TaxDeptGroupPage() {
   }, [data, yearthai]);
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/reports/taxdept" />
 
-      <main className={styles.main}>
-        <section className={styles.card}>
-          <div className={styles.headRow}>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <div>
-              <h1 className={styles.title}>หนังสือรับรองภาษีรายกลุ่ม</h1>
-              <p className={styles.subtitle}>
+              <h1 className="h5 fw-bold mb-0">หนังสือรับรองภาษีรายกลุ่ม</h1>
+              <p className="small text-secondary mb-0 mt-1">
                 ปีภาษี: {data?.items?.[0]?.YEARTHAI || yearthai || '-'} | สถานที่ปฏิบัติงาน: {station || '-'}
               </p>
             </div>
           </div>
 
-          {error && <div className={styles.subtitle}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>ลำดับที่</th>
                   <th>ชื่อ</th>
@@ -113,20 +119,20 @@ export default function TaxDeptGroupPage() {
                 {data?.items.map((row) => (
                   <tr key={row.ID}>
                     <td>{row.ID}</td>
-                    <td className={styles.rowName}>{row.NAME}</td>
+                    <td className="text-wrap">{row.NAME}</td>
                     <td>{row.CID}</td>
                     <td>--</td>
                     <td>--</td>
                     <td>{periodLabel}</td>
                     <td>เงินเดือนตกเบิก</td>
-                    <td className={styles.numberCell}>{formatMoney(row.SUMMONEY)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.SUMMONEY)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.TAX)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.SUMMONEY)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.SUMMONEY)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.TAX)}</td>
                   </tr>
                 ))}
                 {data && data.items.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={10} className={styles.subtitle}>
+                    <td colSpan={10} className="small text-secondary mb-0 mt-1">
                       ไม่พบข้อมูล
                     </td>
                   </tr>
@@ -136,10 +142,22 @@ export default function TaxDeptGroupPage() {
           </div>
 
           {data && (
-            <div className={styles.footerRow}>
+            <div className="d-flex flex-wrap justify-content-end gap-4 px-3 py-2 border-top bg-light fw-bold small">
               <span>รวมรายได้: {formatMoney(data.totalIncome)}</span>
               <span>ภาษี: {formatMoney(data.totalTax)}</span>
             </div>
+          )}
+
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchData(p, pageSize)}
+              onPageSizeChange={(n) => void fetchData(1, n)}
+            />
           )}
         </section>
       </main>

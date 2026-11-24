@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import styles from './page.module.css';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
 
@@ -104,23 +103,23 @@ export default function SummaryDeegarDetailPage() {
   }, [data]);
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/reports/summarydeegar" />
 
-      <main className={styles.main}>
-        <section className={styles.card}>
-          <div className={styles.headRow}>
-            <h1 className={styles.title}>หมายเลขบัญชีธนาคารที่ออกเช็ค : {data?.accountNumber || '-'}</h1>
-            <p className={styles.subTitle}>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
+            <h1 className="h5 fw-bold mb-0">หมายเลขบัญชีธนาคารที่ออกเช็ค : {data?.accountNumber || '-'}</h1>
+            <p className="small text-secondary mb-0 mt-1">
               เลขฎีกา: {pnumberDisplay} / ครั้งที่: {nodeegarDisplay} | เลขเช็ค: {data?.chequeNumber || '-'}
             </p>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>Number</th>
                   <th>ID</th>
@@ -140,7 +139,7 @@ export default function SummaryDeegarDetailPage() {
               <tbody>
                 {loading && !data && (
                   <tr>
-                    <td colSpan={13} className={styles.loading}>
+                    <td colSpan={13} className="text-center text-primary fw-semibold p-3">
                       กำลังโหลดข้อมูล...
                     </td>
                   </tr>
@@ -152,26 +151,26 @@ export default function SummaryDeegarDetailPage() {
                   const outcome2 = row.PAYTYPE !== '1' && row.PAYTYPE !== '2' ? row.MONEY : 0;
                   return (
                     <tr key={`${row.ID}-${idx}`}>
-                      <td className={styles.centerCell}>{idx + 1}</td>
-                      <td className={styles.centerCell}>{row.ID}</td>
-                      <td className={styles.centerCell}>{row.PNUMBER}</td>
-                      <td className={styles.centerCell}>{row.NODEEGAR}</td>
-                      <td className={styles.centerCell}>{row.NUM}</td>
-                      <td className={styles.centerCell}>{row.CID}</td>
-                      <td className={styles.centerCell}>{row.IDBANK}</td>
-                      <td className={styles.centerCell}>{row.CHEQUE}</td>
-                      <td className={styles.centerCell}>{formatDate(row.PAYDATE)}</td>
+                      <td className="text-center">{idx + 1}</td>
+                      <td className="text-center">{row.ID}</td>
+                      <td className="text-center">{row.PNUMBER}</td>
+                      <td className="text-center">{row.NODEEGAR}</td>
+                      <td className="text-center">{row.NUM}</td>
+                      <td className="text-center">{row.CID}</td>
+                      <td className="text-center">{row.IDBANK}</td>
+                      <td className="text-center">{row.CHEQUE}</td>
+                      <td className="text-center">{formatDate(row.PAYDATE)}</td>
                       <td>{row.NAME || '-'}</td>
-                      <td className={styles.numberCell}>{formatMoney(income)}</td>
-                      <td className={styles.numberCell}>{formatMoney(outcome1)}</td>
-                      <td className={styles.numberCell}>{formatMoney(outcome2)}</td>
+                      <td className="text-end text-nowrap">{formatMoney(income)}</td>
+                      <td className="text-end text-nowrap">{formatMoney(outcome1)}</td>
+                      <td className="text-end text-nowrap">{formatMoney(outcome2)}</td>
                     </tr>
                   );
                 })}
 
                 {data && data.items.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={13} className={styles.empty}>
+                    <td colSpan={13} className="text-center text-secondary p-3">
                       ไม่พบข้อมูล
                     </td>
                   </tr>
@@ -181,8 +180,8 @@ export default function SummaryDeegarDetailPage() {
           </div>
 
           {data && (
-            <div className={styles.metaRow}>
-              <div className={styles.totals}>
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 px-3 py-2 border-top bg-light small">
+              <div className="d-flex flex-wrap gap-3">
                 <span>
                   Total รับมา: <strong>{formatMoney(totals.income)}</strong>
                 </span>
@@ -193,8 +192,8 @@ export default function SummaryDeegarDetailPage() {
                   Total คืนเงินทดลองราชการ: <strong>{formatMoney(totals.outcome2)}</strong>
                 </span>
               </div>
-              <div className={styles.actions}>
-                <Link href={`/reports/summarydeegar`} className={styles.linkBtn}>
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <Link href={`/reports/summarydeegar`} className="btn btn-link p-0 fw-semibold">
                   กลับสรุปฎีกา
                 </Link>
 

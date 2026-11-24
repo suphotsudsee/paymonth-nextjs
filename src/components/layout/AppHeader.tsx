@@ -1,9 +1,8 @@
-﻿'use client';
+'use client';
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import styles from "./HeaderFooter.module.css";
+import { useEffect, useRef, useState } from "react";
 
 type NavItem = {
   label: string;
@@ -73,6 +72,10 @@ export function AppHeader({ activePath }: { activePath?: string }) {
   const [userLabel, setUserLabel] = useState<string | null>(null);
   const [userStatus, setUserStatus] = useState<string | null>(null);
   const [userCid, setUserCid] = useState<string | null>(null);
+  // Bootstrap navbar/dropdown คุมด้วย state (ไม่โหลด JS ของ Bootstrap — PRD ข้อ 11)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
   const isActive = (item: NavItem) => {
     if (!activePath || item.href === "#") return false;
     return activePath === item.href || activePath.startsWith(`${item.href}/`);
@@ -125,6 +128,23 @@ export function AppHeader({ activePath }: { activePath?: string }) {
     }
   }, []);
 
+  // คลิกนอกเมนู หรือกด Esc → ปิด dropdown
+  useEffect(() => {
+    if (!openDropdown) return;
+    const onPointer = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenDropdown(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenDropdown(null);
+    };
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [openDropdown]);
+
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
@@ -139,46 +159,80 @@ export function AppHeader({ activePath }: { activePath?: string }) {
     }
   };
 
+  const items = userStatus === "user" ? [] : navItems;
+
   return (
-    <header className={styles.topBar}>
-      <div className={styles.brand}>Salary Web Application</div>
-      <nav className={styles.nav}>
-        {(userStatus === "user" ? [] : navItems).map((item) =>
-          item.submenu ? (
-            <div key={item.label} className={styles.navItemDropdown}>
-              <Link
-                href={item.href}
-                className={`${styles.navItem} ${isActive(item) || item.submenu?.some((sub) => isSubActive(sub.href)) ? styles.active : ""
-                  }`}
-              >
-                {item.label}
-              </Link>
-              <div className={styles.dropdownMenu}>
-                {item.submenu.map((sub) => (
-                  <Link
-                    key={`${sub.href}-${sub.label}`}
-                    href={sub.href}
-                    className={`${styles.menuItem} ${isSubActive(sub.href) ? styles.menuItemActive : ""}`}
-                  >
-                    {sub.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`${styles.navItem} ${isActive(item) ? styles.active : ""}`}
+    <header className="d-print-none">
+      <nav ref={navRef} className="navbar navbar-expand-lg bg-primary shadow-sm" data-bs-theme="dark">
+        <div className="container-fluid">
+          <span className="navbar-brand fw-bold">Salary Web Application</span>
+          {items.length > 0 && (
+            <button
+              className="navbar-toggler"
+              type="button"
+              aria-controls="app-navbar"
+              aria-expanded={menuOpen}
+              aria-label="เปิด/ปิดเมนู"
+              onClick={() => setMenuOpen((v) => !v)}
             >
-              {item.label}
-            </Link>
-          ),
-        )}
+              <span className="navbar-toggler-icon" />
+            </button>
+          )}
+          <div id="app-navbar" className={`collapse navbar-collapse${menuOpen ? " show" : ""}`}>
+            <ul className="navbar-nav me-auto mb-2 mb-lg-0">
+              {items.map((item) =>
+                item.submenu ? (
+                  <li key={item.label} className="nav-item dropdown">
+                    <button
+                      type="button"
+                      className={`nav-link dropdown-toggle${
+                        isActive(item) || item.submenu?.some((sub) => isSubActive(sub.href)) ? " active fw-semibold" : ""
+                      }${openDropdown === item.label ? " show" : ""}`}
+                      aria-expanded={openDropdown === item.label}
+                      onClick={() => setOpenDropdown((cur) => (cur === item.label ? null : item.label))}
+                    >
+                      {item.label}
+                    </button>
+                    <ul className={`dropdown-menu${openDropdown === item.label ? " show" : ""}`} data-bs-theme="light">
+                      {item.submenu.map((sub) => (
+                        <li key={`${sub.href}-${sub.label}`}>
+                          <Link
+                            href={sub.href}
+                            className={`dropdown-item${isSubActive(sub.href) ? " active" : ""}`}
+                            onClick={() => {
+                              setOpenDropdown(null);
+                              setMenuOpen(false);
+                            }}
+                          >
+                            {sub.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ) : (
+                  <li key={item.label} className="nav-item">
+                    <Link
+                      href={item.href}
+                      className={`nav-link${isActive(item) ? " active fw-semibold" : ""}`}
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ),
+              )}
+            </ul>
+          </div>
+          <button
+            className={`btn btn-sm btn-outline-light${items.length > 0 ? " ms-lg-3 mt-2 mt-lg-0" : " ms-auto"}`}
+            onClick={handleLogout}
+            disabled={loggingOut}
+          >
+            {loggingOut ? "Logging out..." : `Logout${userLabel ? ` (${userLabel})` : ""}`}
+          </button>
+        </div>
       </nav>
-      <button className={styles.logout} onClick={handleLogout} disabled={loggingOut}>
-        {loggingOut ? "Logging out..." : `Logout${userLabel ? ` (${userLabel})` : ""}`}
-      </button>
     </header>
   );
 }

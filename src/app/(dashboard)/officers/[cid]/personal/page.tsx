@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { AppHeader } from "@/components/layout/AppHeader";
-import styles from "../../page.module.css";
+import { Pagination, useReloadOnPageSizeChange } from "@/components/Pagination";
 
 type OfficerInfo = {
   cid: string;
@@ -45,6 +45,8 @@ export default function OfficerPersonalPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [pageSize, setPageSize] = useState(10);
+  useReloadOnPageSizeChange(pageSize, () => void loadPage(1));
   const loadPage = async (targetPage = 1) => {
     if (!cid) {
       setError("Missing CID");
@@ -55,7 +57,7 @@ export default function OfficerPersonalPage() {
     try {
       const query = new URLSearchParams({
         page: String(targetPage),
-        pageSize: "10",
+        pageSize: String(pageSize),
       });
       const res = await fetch(`/api/officers/${cid}/personal?${query.toString()}`, {
         cache: "no-store",
@@ -86,56 +88,48 @@ export default function OfficerPersonalPage() {
     return `${start}-${end}`;
   }, [data]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(data.page - 2, total - 4));
-    const end = Math.min(total, start + 4);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data]);
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/officers" />
 
-      <main className={styles.main}>
-        <div className={styles.titleArea}>
-          <h1>สรุปเงินเดือนส่วนบุคคล</h1>
-          <p>รวมรายรับ รายจ่าย และคงเหลือรายเดือนของเจ้าหน้าที่</p>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <div className="mb-3">
+          <h1 className="h4 mb-0">สรุปเงินเดือนส่วนบุคคล</h1>
+          <p className="small text-secondary mb-0 mt-1">รวมรายรับ รายจ่าย และคงเหลือรายเดือนของเจ้าหน้าที่</p>
         </div>
 
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeadRow}>
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <div>
               {data?.officer && (
-                <div className={styles.paydirectHeader}>
-                  <div className={styles.paydirectName}>{data.officer.name ?? data.officer.cid}</div>
-                  <div className={styles.paydirectMetaRow}>
+                <div className="mb-3">
+                  <div className="fs-5 fw-bold">{data.officer.name ?? data.officer.cid}</div>
+                  <div className="d-flex flex-wrap gap-3 small text-secondary">
                     <span>{`CID: ${data.officer.cid}`}</span>
                     {data.officer.position && <span>{data.officer.position}</span>}
                   </div>
                   {data.officer.station && (
-                    <div className={styles.paydirectMetaRow}>
+                    <div className="d-flex flex-wrap gap-3 small text-secondary">
                       <span>{data.officer.station}</span>
                     </div>
                   )}
                 </div>
               )}
             </div>
-            <div className={styles.tableHeadActions}>
-              <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <span className="small text-secondary fw-semibold">
                 แสดงผล {displayRange} จาก {data?.total ?? 0} รายการ
               </span>
             </div>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.paydirectTableSection}>
-            <div className={styles.paydirectTableWrap}>
-              <table className={styles.paydirectTable}>
-                <thead>
+          <div className="border rounded overflow-hidden bg-white">
+            <div className="table-responsive">
+              <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+                <thead className="table-light">
                   <tr>
                     <th>เดือน</th>
                     <th>พ.ศ.</th>
@@ -147,7 +141,7 @@ export default function OfficerPersonalPage() {
                 <tbody>
                   {loading && (
                     <tr>
-                      <td colSpan={5} className={styles.emptyState}>
+                      <td colSpan={5} className="text-center text-secondary p-3">
                         กำลังโหลด...
                       </td>
                     </tr>
@@ -161,15 +155,15 @@ export default function OfficerPersonalPage() {
                         <tr key={`${item.YEARTHAI}-${item.MONTHTHAI}`}>
                           <td>{item.NAMEMONTH_TH ?? "-"}</td>
                           <td>{item.YEARTHAI}</td>
-                          <td>{formatMoney(income)}</td>
-                          <td>{formatMoney(outcome)}</td>
-                          <td>{formatMoney(balance)}</td>
+                          <td className="text-end text-nowrap">{formatMoney(income)}</td>
+                          <td className="text-end text-nowrap">{formatMoney(outcome)}</td>
+                          <td className="text-end text-nowrap">{formatMoney(balance)}</td>
                         </tr>
                       );
                     })}
                   {!loading && (!data || data.items.length === 0) && (
                     <tr>
-                      <td colSpan={5} className={styles.emptyState}>
+                      <td colSpan={5} className="text-center text-secondary p-3">
                         ไม่พบข้อมูล
                       </td>
                     </tr>
@@ -178,33 +172,16 @@ export default function OfficerPersonalPage() {
               </table>
             </div>
 
-            {data && data.totalPages > 1 && (
-              <div className={styles.pagination}>
-                <button
-                  className={styles.pageBtn}
-                  onClick={() => loadPage(Math.max(1, (data?.page ?? 1) - 1))}
-                  disabled={loading || (data?.page ?? 1) <= 1}
-                >
-                  &lt; Previous
-                </button>
-                {pageWindow.map((p) => (
-                  <button
-                    key={p}
-                    className={`${styles.pageBtn} ${p === data.page ? styles.currentPage : ""}`}
-                    onClick={() => loadPage(p)}
-                    disabled={loading}
-                  >
-                    {p}
-                  </button>
-                ))}
-                <button
-                  className={styles.pageBtn}
-                  onClick={() => loadPage(Math.min(data?.totalPages ?? 1, (data?.page ?? 1) + 1))}
-                  disabled={loading || (data?.page ?? 1) >= (data?.totalPages ?? 1)}
-                >
-                  Next &gt;
-                </button>
-              </div>
+            {data && (
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                total={data.total}
+                pageSize={pageSize}
+                disabled={loading}
+                onPageChange={(p) => loadPage(p)}
+                onPageSizeChange={setPageSize}
+              />
             )}
           </div>
         </section>

@@ -2,9 +2,9 @@
 
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import styles from './page.module.css';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
+import { Pagination } from '@/components/Pagination';
 
 type Item = {
   PAYDATE: string | null;
@@ -44,6 +44,9 @@ export default function ktbchequePage() {
   const [filters, setFilters] = useState({
     cheque: '',
   });
+  // ตัวกรองของการค้นหาครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า
+  // (ไม่ใช้ค่าที่พิมพ์ค้างในฟอร์มแต่ยังไม่กดค้นหา — Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
   const [chequeOptions, setChequeOptions] = useState<string[]>([]);
   const [chequeQuery, setChequeQuery] = useState('');
 
@@ -76,6 +79,7 @@ export default function ktbchequePage() {
         throw new Error(json.error || 'ไม่สามารถโหลดข้อมูลได้');
       }
       setData(json);
+      setAppliedFilters(currentFilters);
       setPage(targetPage);
       setPageSize(targetSize);
     } catch (err: any) {
@@ -92,14 +96,6 @@ export default function ktbchequePage() {
     return `${start}-${end}`;
   }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 3, total - 6));
-    const end = Math.min(total, start + 6);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const onChequeFilterChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -156,31 +152,31 @@ export default function ktbchequePage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/reports/ktbcheque" />
 
-      <main className={styles.main}>
-        <section className={styles.card}>
-          <div className={styles.headRow}>
-            <div className={styles.title}>
-              <h1>ส่งกรุงไทย (เช็ค)</h1>
-              <p>ค้นหาด้วยเลขที่เช็ค</p>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
+            <div className="d-flex flex-column gap-1">
+              <h1 className="h5 mb-0">ส่งกรุงไทย (เช็ค)</h1>
+              <p className="small text-secondary mb-0">ค้นหาด้วยเลขที่เช็ค</p>
             </div>
-            <div className={styles.controls}>
-              <div className={styles.displayActions}>
-                <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <span className="small text-secondary fw-semibold">
                   {data ? `Displaying ${displayRange} of ${data.total} results.` : 'ยังไม่ค้นหา'}
                 </span>
-                <div className={styles.actionButtons}>
+                <div className="d-flex flex-wrap align-items-center gap-2">
                   <button
                     type="submit"
                     form="ktbcheque-filter-form"
-                    className={styles.primaryBtn}
+                    className="btn btn-primary"
                     disabled={loading}
                   >
                     {loading ? 'กำลังค้นหา...' : 'ค้นหา'}
                   </button>
-                  <button type="button" className={styles.secondaryBtn} onClick={handleReset} disabled={loading}>
+                  <button type="button" className="btn btn-outline-secondary" onClick={handleReset} disabled={loading}>
                     ล้างข้อมูล
                   </button>
                 </div>
@@ -188,9 +184,9 @@ export default function ktbchequePage() {
             </div>
           </div>
 
-          <form id="ktbcheque-filter-form" className={styles.filterForm} onSubmit={handleSearch}>
-            <div className={styles.filtersRow}>
-              <label className={styles.filterField}>
+          <form id="ktbcheque-filter-form" className="px-3 pt-3 pb-2 border-bottom bg-light" onSubmit={handleSearch}>
+            <div className="row g-2 align-items-end">
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>เลขที่เช็ค</span>
                 <input
                   value={filters.cheque}
@@ -198,7 +194,7 @@ export default function ktbchequePage() {
                   onFocus={(e) => {
                     void loadChequeOptions(e.currentTarget.value);
                   }}
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                   list="chequeOptions"
                   placeholder=""
                 />
@@ -211,11 +207,11 @@ export default function ktbchequePage() {
             ))}
           </datalist>
 
-          {error && <div className={styles.resultText}>{error}</div>}
+          {error && <div className="small text-secondary fw-semibold">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>Receiving Bank Code</th>
                   <th>Receiving A/C No.</th>
@@ -231,7 +227,7 @@ export default function ktbchequePage() {
               <tbody>
                 {loading && !data && (
                   <tr>
-                    <td colSpan={9} className={styles.loading}>
+                    <td colSpan={9} className="text-center text-primary fw-semibold p-3">
                       กำลังโหลดข้อมูล...
                     </td>
                   </tr>
@@ -241,7 +237,7 @@ export default function ktbchequePage() {
                     <td>{row.IDBANK}</td>
                     <td>{row.ACCNAME}</td>
                     <td>{row.NAME}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.MONEY)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.MONEY)}</td>
                     <td>{row.CID}</td>
                     <td>{row.CHEQUE}</td>
                     <td>{`${row.PNUMBER || ''}${row.NODEEGAR ? '/' + row.NODEEGAR : ''}`}</td>
@@ -251,7 +247,7 @@ export default function ktbchequePage() {
                 ))}
                 {data && data.items.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={9} className={styles.empty}>
+                    <td colSpan={9} className="text-center text-secondary p-3">
                       ไม่พบข้อมูล
                     </td>
                   </tr>
@@ -261,16 +257,28 @@ export default function ktbchequePage() {
           </div>
 
           {data && (
-            <div className={styles.totalsRow}>
+            <div className="d-flex flex-wrap justify-content-end gap-4 px-3 py-2 border-top bg-light fw-bold small">
               <span>
                 รวมจำนวนเงิน <strong>{formatMoney(data.totalMoney ?? 0)}</strong>
               </span>
             </div>
           )}
+
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchData(p, pageSize, appliedFilters)}
+              onPageSizeChange={(n) => void fetchData(1, n, appliedFilters)}
+            />
+          )}
         </section>
 
         <a
-          className={styles.exportLink}
+          className="d-inline-block m-3 small link-primary"
           href={
             filters.cheque.trim()
               ? `/api/reports/ktbcheque/export?cheque=${encodeURIComponent(filters.cheque.trim())}`

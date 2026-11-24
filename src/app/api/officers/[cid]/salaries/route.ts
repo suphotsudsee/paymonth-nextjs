@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySession } from "@/lib/auth";
 import { canAccessCid } from "@/lib/permissions";
+import { clampPageSize, parsePage } from '@/lib/pagination';
 
 type SalaryRow = {
   ID: bigint;
@@ -40,8 +41,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cid:
     }
 
     const searchParams = new URL(req.url).searchParams;
-    const page = Math.max(1, Number(searchParams.get("page") || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 10)));
+    const page = parsePage(searchParams.get("page"));
+    const pageSize = clampPageSize(searchParams.get("pageSize"), 10);
     const offset = (page - 1) * pageSize;
 
     const idpay = searchParams.get("idpay")?.trim() || undefined;

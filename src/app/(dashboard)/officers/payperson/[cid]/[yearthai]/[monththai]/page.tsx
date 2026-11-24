@@ -4,7 +4,6 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
-import styles from "../../../../page.module.css";
 
 type SlipRow = {
   IDPAY: string;
@@ -82,66 +81,66 @@ export default function PaypersonSlipPage() {
   const officer = data?.officer;
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/officers" />
-      <main className={styles.main}>
-        <div className={styles.paypersonSlip}>
-          <div className={styles.paypersonSlipTitle}>สำนักงานสาธารณสุขจังหวัดอุบลราชธานี</div>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <div className="card shadow-sm p-3 mx-auto col-12 col-md-10 col-lg-7 col-xl-6">
+          <div className="fs-5 fw-bold mb-3">สำนักงานสาธารณสุขจังหวัดอุบลราชธานี</div>
 
-          {loading && <div className={styles.paypersonSlipLoading}>กำลังโหลด...</div>}
-          {error && <div className={styles.error}>{error}</div>}
+          {loading && <div className="p-3">กำลังโหลด...</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
           {data && officer && (
             <>
-              <div className={styles.paypersonSlipSubtitle}>
+              <div className="fw-semibold mb-2">
                 สรุปผลรายละเอียดการรับจ่ายเงิน<br />
                 ประจำเดือน {officer.monthName ?? officer.monththai} {officer.yearthai}
               </div>
-              <div className={styles.paypersonSlipMeta}>
+              <div className="mb-3">
                 ลำดับที่ {officer.cid} <br />
                 {officer.name ?? officer.cid}<br />
                 {officer.position ?? ""} {officer.station ?? ""}
               </div>
 
-              <div className={styles.paypersonBox}>
-                <div className={styles.paypersonBoxHeader}>รายรับ</div>
-                <div className={styles.paypersonBoxBody}>
-                  {data.income.length === 0 && <div className={styles.paypersonRow}>ไม่มีข้อมูลรายรับ</div>}
+              <div className="card border-success mb-3 overflow-hidden">
+                <div className="card-header text-bg-success fw-bold">รายรับ</div>
+                <div className="list-group list-group-flush">
+                  {data.income.length === 0 && <div className="list-group-item d-flex justify-content-between gap-2">ไม่มีข้อมูลรายรับ</div>}
                   {data.income.map((row, idx) => (
-                    <div key={`${row.IDPAY}-${idx}`} className={styles.paypersonRow}>
+                    <div key={`${row.IDPAY}-${idx}`} className="list-group-item d-flex justify-content-between gap-2">
                       <span>{row.PAYNAME ?? row.IDPAY}</span>
                       <span>{formatMoney(row.MONEY)} บาท</span>
                     </div>
                   ))}
-                  <div className={styles.paypersonRowTotal}>
+                  <div className="list-group-item list-group-item-success d-flex justify-content-between gap-2 fw-bold">
                     <span>รวมรับ</span>
                     <span>{formatMoney(data.totalIncome)} บาท</span>
                   </div>
                 </div>
               </div>
 
-              <div className={styles.paypersonBox}>
-                <div className={styles.paypersonBoxHeader}>รายจ่าย</div>
-                <div className={styles.paypersonBoxBody}>
-                  {data.outcome.length === 0 && <div className={styles.paypersonRow}>ไม่มีข้อมูลรายจ่าย</div>}
+              <div className="card border-success mb-3 overflow-hidden">
+                <div className="card-header text-bg-success fw-bold">รายจ่าย</div>
+                <div className="list-group list-group-flush">
+                  {data.outcome.length === 0 && <div className="list-group-item d-flex justify-content-between gap-2">ไม่มีข้อมูลรายจ่าย</div>}
                   {data.outcome.map((row, idx) => (
-                    <div key={`${row.IDPAY}-${idx}`} className={styles.paypersonRow}>
+                    <div key={`${row.IDPAY}-${idx}`} className="list-group-item d-flex justify-content-between gap-2">
                       <span>{row.PAYNAME ?? row.IDPAY}</span>
                       <span>{formatMoney(row.MONEY)} บาท</span>
                     </div>
                   ))}
-                  <div className={styles.paypersonRowTotal}>
+                  <div className="list-group-item list-group-item-success d-flex justify-content-between gap-2 fw-bold">
                     <span>รวมจ่าย</span>
                     <span>{formatMoney(data.totalOutcome)} บาท</span>
                   </div>
-                  <div className={styles.paypersonRowBalance}>
+                  <div className="list-group-item list-group-item-info d-flex justify-content-between gap-2 fw-bold">
                     <span>คงเหลือ</span>
                     <span>{formatMoney(data.balance)} บาท</span>
                   </div>
                 </div>
               </div>
 
-              <div className={styles.paypersonNote}>
+              <div className="fs-6 fw-bold text-secondary p-2 border-top">
                  โอนเข้าบัญชี {officer.bankName ?? "-"} เลขที่บัญชี {officer.bankAccount ?? "-"}
               </div>
             </>

@@ -2,9 +2,9 @@
 
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import styles from "../../officers/page.module.css";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { Pagination, useReloadOnPageSizeChange } from "@/components/Pagination";
 
 type UserOnlineRow = {
   id: number | null;
@@ -22,7 +22,6 @@ type ApiResult = {
   totalPages: number;
 };
 
-const pageSize = 20;
 
 const formatDateTime = (value: string | null) => {
   if (!value) return "-";
@@ -38,6 +37,9 @@ const formatDateTime = (value: string | null) => {
 export default function UserOnlineReportPage() {
   const [data, setData] = useState<ApiResult | null>(null);
   const [page, setPage] = useState(1);
+  // ค่าเดิม 20 ไม่อยู่ใน PAGE_SIZE_OPTIONS (5/10/15/50/100) ตัวเลือกใน select จึงแสดงค่านั้นไม่ได้ → ใช้ 15 ซึ่งใกล้ที่สุด (PRD 11.1)
+  const [pageSize, setPageSize] = useState(15);
+  useReloadOnPageSizeChange(pageSize, () => void fetchLogs(1, appliedFilters));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
@@ -47,6 +49,8 @@ export default function UserOnlineReportPage() {
     startDate: "",
     endDate: "",
   });
+  // ตัวกรองของการโหลดครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า (Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
 
   const fetchLogs = async (targetPage: number, currentFilters: typeof filters = filters) => {
     setLoading(true);
@@ -74,6 +78,7 @@ export default function UserOnlineReportPage() {
         setData(null);
       } else {
         setData(json);
+        setAppliedFilters(currentFilters);
         setPage(targetPage);
       }
     } catch (_err) {
@@ -103,16 +108,8 @@ export default function UserOnlineReportPage() {
     const start = (page - 1) * pageSize + 1;
     const end = Math.min(page * pageSize, data.total);
     return `${start}-${end}`;
-  }, [data, page]);
+  }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 2, total - 4));
-    const end = Math.min(total, start + 4);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const setFilterField =
     (field: keyof typeof filters) =>
@@ -120,29 +117,29 @@ export default function UserOnlineReportPage() {
       setFilters((prev) => ({ ...prev, [field]: e.target.value }));
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/tools/useronline" />
 
-      <main className={styles.main}>
-        <div className={styles.titleArea}>
-          <h1>รายงานการใช้งาน (useronline)</h1>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <div className="mb-3">
+          <h1 className="h4 mb-0">รายงานการใช้งาน (useronline)</h1>
         </div>
 
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeadRow}>
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <span>บันทึกการเข้าสู่ระบบ</span>
-            <div className={styles.tableHeadActions}>
-              <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <span className="small text-secondary fw-semibold">
                 Displaying {displayRange} of {data?.total ?? 0} records.
               </span>
             </div>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>#</th>
                   <th>ผู้ใช้</th>
@@ -150,18 +147,18 @@ export default function UserOnlineReportPage() {
                   <th>IP</th>
                   <th>วันที่/เวลา</th>
                 </tr>
-                <tr className={styles.filterRow}>
-                  <th className={styles.filterSelectPlaceholder}> </th>
+                <tr>
+                  <th> </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค้นหา username"
                       value={filters.username}
                       onChange={setFilterField("username")}
                     />
                   </th>
                   <th>
-                    <select className={styles.select} value={filters.logined} onChange={setFilterField("logined")}>
+                    <select className="form-select" value={filters.logined} onChange={setFilterField("logined")}>
                       <option value="">ทั้งหมด</option>
                       <option value="Y">สำเร็จ</option>
                       <option value="N">ไม่สำเร็จ</option>
@@ -169,23 +166,23 @@ export default function UserOnlineReportPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค้นหา IP"
                       value={filters.ipv4}
                       onChange={setFilterField("ipv4")}
                     />
                   </th>
                   <th>
-                    <div style={{ display: "grid", gap: 4 }}>
+                    <div className="vstack gap-1">
                       <input
-                        className={styles.filterInput}
+                        className="form-control form-control-sm"
                         type="date"
                         value={filters.startDate}
                         onChange={setFilterField("startDate")}
                         title="วันที่เริ่ม"
                       />
                       <input
-                        className={styles.filterInput}
+                        className="form-control form-control-sm"
                         type="date"
                         value={filters.endDate}
                         onChange={setFilterField("endDate")}
@@ -203,17 +200,17 @@ export default function UserOnlineReportPage() {
                 )}
                 {!loading && data?.items?.length === 0 && (
                   <tr>
-                    <td className={styles.emptyState} colSpan={5}>
+                    <td className="text-center text-secondary p-3" colSpan={5}>
                       ไม่พบข้อมูลการใช้งาน
                     </td>
                   </tr>
                 )}
                 {!loading &&
                   data?.items?.map((row, idx) => (
-                    <tr key={row.id ?? `${row.username}-${row.logindate}-${idx}`} className={idx % 2 === 1 ? styles.evenRow : undefined}>
+                    <tr key={row.id ?? `${row.username}-${row.logindate}-${idx}`}>
                       <td>{(page - 1) * pageSize + idx + 1}</td>
                       <td>{row.username || "-"}</td>
-                      <td style={{ textAlign: "center" }}>
+                      <td className="text-center">
                         {row.logined === "Y" ? "สำเร็จ" : row.logined === "N" ? "ไม่สำเร็จ" : "-"}
                       </td>
                       <td>{row.ipv4 || "-"}</td>
@@ -224,28 +221,17 @@ export default function UserOnlineReportPage() {
             </table>
           </div>
 
-          <div className={styles.pagination}>
-            <button className={styles.pageBtn} disabled={page <= 1 || loading} onClick={() => fetchLogs(page - 1, filters)}>
-              Prev
-            </button>
-            {pageWindow.map((p) => (
-              <button
-                key={p}
-                className={`${styles.pageBtn} ${p === page ? styles.currentPage : ""}`}
-                disabled={loading}
-                onClick={() => fetchLogs(p, filters)}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              className={styles.pageBtn}
-              disabled={!data || page >= (data?.totalPages ?? 1) || loading}
-              onClick={() => fetchLogs(page + 1, filters)}
-            >
-              Next
-            </button>
-          </div>
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchLogs(p, appliedFilters)}
+              onPageSizeChange={setPageSize}
+            />
+          )}
         </section>
       </main>
 

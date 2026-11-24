@@ -4,8 +4,22 @@
     {
       "name": "paymonth-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 9102
+    },
+    {
+      "name": "paymonth-prod",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "next",
+        "start",
+        "-p",
+        "9104"
+      ],
+      "port": 9104
     }
   ]
 }

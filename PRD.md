@@ -191,3 +191,59 @@
 - มีแถวขยะ `salary.YEARTHAI = 'YEAR'` — ทุกที่ที่หา "ปีล่าสุด" ต้องกรองเฉพาะตัวเลข 4 หลัก
 - รายงานทั้งหมด แบ่งหน้าตามงวดก่อน (`src/lib/reportPaging.ts`) ลำดับยังเป็น ปี desc, เดือน desc, ชื่อ asc
 
+
+## 11. หน้าจอใช้ Bootstrap 5 ทั้งเว็บ (TASK_BOARD #11)
+
+### เป้าหมาย
+หน้าตาทุกหน้าใน `src/app/**` และ `src/components/**` ใช้ Bootstrap 5.3 (npm `bootstrap`) อย่างเดียวกันทั้งเว็บ
+แทน CSS module ที่แต่ละหน้าเขียนเอง (เดิม 30 ไฟล์ ~6,000 บรรทัด ซ้ำกันเกือบทั้งหมด) **โดยไม่เปลี่ยน logic, API, สิทธิ์ หรือข้อความที่แสดง**
+
+### ข้อกำหนด
+- ติดตั้ง `bootstrap@5.3.x` import `bootstrap/dist/css/bootstrap.min.css` ครั้งเดียวใน `src/app/layout.tsx` ก่อน `globals.css`
+- **ไม่ใช้ Bootstrap JS** (bundle/Popper): navbar collapse, dropdown, modal ใช้ state ของ React + class `show`/`d-block` ของ Bootstrap
+  เหตุผล: หน้าเป็น client component ที่คุม modal ด้วย state อยู่แล้ว ถ้าใช้ JS ของ Bootstrap จะมีสองฝ่ายคุม DOM เดียวกัน และต้องโหลดฝั่ง client เพิ่ม
+- คอมโพเนนต์ที่ใช้: `navbar` (+ `navbar-expand-lg`, `dropdown-menu`), `container-fluid`, `card`, `table` (`table-bordered table-striped table-hover table-sm align-middle`, หัวตาราง `table-light`), `table-responsive`,
+  `form-control`/`form-select`/`form-label`, `input-group`, `btn` (`btn-primary` = ค้นหา/บันทึก/เพิ่ม, `btn-outline-secondary` = ยกเลิก/ล้าง/ปุ่มรอง), ปุ่มแบ่งหน้า `btn btn-sm` (หน้าปัจจุบัน `btn-primary` อื่นๆ `btn-outline-primary` — ไม่ใช้ `.page-link` เพราะปุ่มหน้าปัจจุบัน `disabled` อยู่แล้ว และ `.page-link` ไม่มีสไตล์ `:disabled`), `modal` (`modal d-block` + `modal-dialog` + `modal-content`), `alert-danger` สำหรับ error, `badge` สำหรับทิศทางเรียง
+- ธีม: สีหลัก Bootstrap default (`primary`), แถบเมนูบนสีเข้ม `bg-primary` + `data-bs-theme="dark"`, พื้นหลังหน้า `bg-body-tertiary`; บังคับโหมดสว่าง (`data-bs-theme="light"` ที่ `<html>`) เหมือนเดิมที่พื้นหลังสว่างเสมอ
+- ไอคอน: **คง `lucide-react`** (ใช้อยู่แล้ว, import ทีละไอคอน, ไม่ต้องโหลดฟอนต์ไอคอนทั้งชุด) ไม่เพิ่ม bootstrap-icons; ปุ่มที่ใช้อีโมจิ (🔍 ✏️ 🗑) คงไว้
+- Responsive: เมนูบนพับเป็นปุ่ม hamburger ที่ < 992px (`navbar-expand-lg`); แถวตัวกรองใช้ grid `row g-2` + `col-12 col-sm-6 col-lg-*`; modal เต็มจอบนมือถือ (`modal-fullscreen-sm-down`)
+- CSS ที่ยังเขียนเอง ให้เหลือเฉพาะสิ่งที่ Bootstrap ไม่มี: ความสูงแท่งกราฟ (`/charts/inout`), รูปแบบสลิปตอนพิมพ์ (`@media print`), ความกว้างขั้นต่ำของตารางรายงานกว้าง
+- `PasswordInput` ใช้ `input-group` + ปุ่ม `btn btn-outline-secondary` ข้างช่อง; พฤติกรรมเดิมทั้งหมด (เริ่มซ่อน, `type="button"`, `aria-label`/`aria-pressed`, ซ่อนกลับเมื่อ form submit/reset และเมื่อ `concealKey` เปลี่ยน) ต้องคงไว้ — เทสต์ `tests/password-input.test.mjs`
+
+### Edge cases
+- **ตารางรายงานกว้าง** (12+ คอลัมน์, ภาษี, สรุปฎีกา): ห่อด้วย `table-responsive` ให้เลื่อนแนวนอนในกรอบ ไม่ให้ทั้งหน้าเลื่อน; ตัวเลขเงินชิดขวา `text-end text-nowrap`
+- **หน้าสลิป/พิมพ์** (`/officers/paydirect/[payid]`, payperson): เมนู/ปุ่ม/footer ต้องไม่ออกตอนพิมพ์ (`d-print-none`), สลิปกว้างคงที่ไม่ยืดตามจอ
+- **export Excel/KTB**: ลิงก์/ปุ่มดาวน์โหลดยังชี้ API เดิม เปลี่ยนแค่ class
+- **ผู้ใช้ทั่วไป (status user)**: เมนูยังว่างเหมือนเดิม (แสดงแค่ชื่อระบบ + ปุ่ม Logout) — ห้ามเปลี่ยนเงื่อนไขซ่อนเมนู
+- **modal ซ้อน/ยาว**: เนื้อหา modal ยาวเกินจอต้องเลื่อนได้ (`.modal` มี `overflow-y:auto`)
+- **ปุ่ม disabled ระหว่างโหลด**: คง `disabled={loading}` เดิม Bootstrap แสดงจางให้เอง
+- **ภาษาไทย**: ฟอนต์ระบบของ Bootstrap (system-ui) แสดงไทยได้ ไม่โหลดฟอนต์ภายนอก
+
+### 11.1 แบ่งหน้ามาตรฐานทุกหน้า (TASK_BOARD #12)
+- ทุกหน้าที่แสดงรายการแบบแบ่งหน้าใช้คอมโพเนนต์เดียว `src/components/Pagination.tsx`: Bootstrap `.pagination` (`page-item`/`page-link`) มีปุ่ม หน้าแรก « / ก่อนหน้า ‹ / เลขหน้ารอบหน้าปัจจุบัน ±2 พร้อม … และหน้าแรก-หน้าสุดท้าย / ถัดไป › / หน้าสุดท้าย », ข้อความ "รายการที่ a–b จาก N" และ select **"แสดง [5|10|15|50|100] รายการต่อหน้า"**
+- เปลี่ยนจำนวนต่อหน้า → กลับไปหน้า 1 และโหลดใหม่ด้วยตัวกรองเดิม
+- ค่าเริ่มต้นต่อหน้า: คงค่าเดิมของหน้าถ้าอยู่ในตัวเลือก (10 หรือ 50); ค่าเดิมที่ไม่อยู่ในตัวเลือกใช้ตัวเลือกที่ใกล้ที่สุด (useronline 20 → 15, taxtitle 90 → 100)
+- API ที่เคยจำกัด 50 แถวต่อหน้า เพิ่มเป็น 100 (`MAX_PAGE_SIZE` ใน `src/lib/pagination.ts`) เพื่อให้ตัวเลือก 100 ได้จริง; API ที่จำกัดสูงกว่านี้อยู่แล้ว (export KTB/ใบสำคัญจ่าย 5000, taxtitle/taxtmonth 200, salaries/cheques 1000) คงเดิม
+- Edge cases
+  - ไม่มีข้อมูล (total 0): ไม่แสดงปุ่มหน้า แต่ยังแสดงตัวเลือกจำนวนต่อหน้า
+  - หน้าเดียว: ปุ่มก่อนหน้า/ถัดไปเป็น disabled
+  - ระหว่างโหลด: ปุ่มและ select disabled (กันกดซ้ำ)
+  - ค่า pageSize แปลก/เกินจาก URL หรือ client อื่น: API ตัดให้อยู่ใน 1..100 (หรือเพดานเดิมที่สูงกว่า)
+  - **ค้นหาฎีกา (`/reports/deegars`) และค้นหาเช็ค (`/reports/cheques`)**: เดิมขอ 1000 แถวแล้วรวมยอดฝั่งเบราว์เซอร์ แต่ API ฎีกาตัดเหลือ 50 แถว → ยอดรวมผิดเมื่อผลค้นหาเกิน 50 แถว; ทำเป็นแบ่งหน้าและให้ API ส่ง **ยอดรวมของผลค้นหาทั้งหมด** (`totals`) มาด้วย ใช้แสดงแถว Total แทนการรวมเฉพาะแถวที่โหลด
+  - **หนังสือรับรองภาษีรายกลุ่ม (`/reports/taxdept/group`)**: เดิมไม่ส่ง pageSize จึงได้แค่ 10 แถวแรก → ใช้ตัวแบ่งหน้าเดียวกัน
+  - หน้าส่งกรุงไทย (ฎีกา/เช็ค) และสรุปภาษี (กลุ่ม): เดิมโหลด 50 แถวแรกโดยไม่มีปุ่มไปหน้าถัดไป → เพิ่มตัวแบ่งหน้า (ปุ่ม export Excel ยังส่งออกทั้งหมดตามเดิม)
+
+### 11.2 ตัวเลขจำนวนเงินชิดขวาทุกหน้า (TASK_BOARD #13)
+- ช่องตาราง (`td`/`th`) ที่แสดงจำนวนเงิน (ผ่าน `formatMoney`/`formatNumber`/`formatBaht`/`toLocaleString`) ใช้ `text-end text-nowrap` — ตัวเลขชิดขวาให้หลักตรงกัน และไม่ตัดบรรทัดกลางตัวเลข
+- รวมแถวรวม (tfoot) และตารางรายละเอียดใน modal; หัวคอลัมน์คงจัดกลางตามเดิม
+- เดิมหลายหน้าจัดกลาง (`text-center`) หรือชิดซ้าย (ไม่มี class) — เทสต์ `tests/bootstrap-ui.test.mjs` กันไม่ให้กลับไปเป็นแบบเดิม
+
+### 10.2 ประวัติจ่ายตรงรายคนช้า (`/officers/[cid]/paydirect`) — TASK_BOARD #14
+- อาการ: เปิดหน้า HTML มาเร็ว (TTFB ~10 ms) แต่รอข้อมูล ~0.5 s บนเครื่อง local ทุกครั้ง — เวลาทั้งหมดอยู่ที่ `GET /api/officers/[cid]/paydirect`
+- ต้นเหตุ (EXPLAIN บน DB local): `paydirect` มี 564,977 แถว index มีแค่ PK `ID` และ unique `key (A, B, C)` = ปี, เดือน, CID — ค้นด้วย CID อย่างเดียวใช้ index ไม่ได้ จึงอ่านทั้งตาราง 564,977 แถว (`type=index`) ทั้งใน query รายการและ query นับจำนวน (2 รอบต่อการเปิดหน้า) ทั้งที่คนหนึ่งมีแค่ ~145 แถว
+  ตาราง/การ join อื่น (officer, station, cmonth) เป็น `const`/`eq_ref` อยู่แล้ว
+- ผลกระทบ: ทุกที่ที่กรอง paydirect ด้วย CID — หน้าประวัติจ่ายตรงรายคน, "My PayDirect" ของผู้ใช้ทั่วไป (`buildPaydirectAccessClause` ใช้ `paydirect.C = ?`) และสลิป
+- แก้: เพิ่ม index `idx_paydirect_cid (C, A, B)` ด้วย `prisma/sql/2026-11-25_paydirect_cid_index.sql` + `@@index` ใน `prisma/schema.prisma` — ไม่แก้ query/ผลลัพธ์
+  (C ขึ้นก่อนเพื่อค้นตามคน, A, B ต่อท้ายให้ GROUP BY ปี/เดือน อ่านจาก index ได้)
+- Edge cases: ตาราง MyISAM ล็อกระหว่างสร้าง index → รันช่วงไม่มีคนนำเข้าข้อมูล; script รันซ้ำได้ (`IF NOT EXISTS`); การนำเข้า paydirect (`INSERT IGNORE`) ช้าลงเล็กน้อยเพราะต้องอัปเดต index เพิ่ม 1 ตัว
+- **ต้องรัน SQL บน DB ของ server** (เหมือนงาน #10) ไม่งั้นบน server ยังช้าเหมือนเดิม

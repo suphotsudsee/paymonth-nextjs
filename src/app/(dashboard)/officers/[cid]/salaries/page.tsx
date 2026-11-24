@@ -3,9 +3,9 @@
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import styles from "../../../deegars/page.module.css";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { Pagination, useReloadOnPageSizeChange } from "@/components/Pagination";
 
 const BANGKOK_TIMEZONE = "Asia/Bangkok";
 
@@ -81,6 +81,8 @@ export default function OfficerSalariesPage() {
     monththai: "",
     yearthai: "",
   });
+  // ตัวกรองของการโหลดครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า (Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
   const [payModal, setPayModal] = useState(false);
   const [payForm, setPayForm] = useState({
     cid: "",
@@ -106,6 +108,8 @@ export default function OfficerSalariesPage() {
   const [payBanks, setPayBanks] = useState<BankRow[]>([]);
   const [payBanksLoading, setPayBanksLoading] = useState(false);
 
+  const [pageSize, setPageSize] = useState(10);
+  useReloadOnPageSizeChange(pageSize, () => void fetchData(1, appliedFilters));
   const fetchData = async (
     targetPage: number,
     currentFilters: typeof filters = filters,
@@ -116,7 +120,7 @@ export default function OfficerSalariesPage() {
     try {
       const search = new URLSearchParams({
         page: String(targetPage),
-        pageSize: "10",
+        pageSize: String(pageSize),
       });
       if (currentFilters.payname.trim()) search.set("payname", currentFilters.payname.trim());
       if (currentFilters.idpay.trim()) search.set("idpay", currentFilters.idpay.trim());
@@ -135,6 +139,7 @@ export default function OfficerSalariesPage() {
         setData(null);
       } else {
         setData(json);
+        setAppliedFilters(currentFilters);
         setPage(targetPage);
       }
     } catch (err) {
@@ -378,14 +383,6 @@ export default function OfficerSalariesPage() {
     return `${start}-${end}`;
   }, [data, page]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 2, total - 4));
-    const end = Math.min(total, start + 4);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const onFilterChange =
     (field: keyof typeof filters) =>
@@ -453,28 +450,28 @@ export default function OfficerSalariesPage() {
         ];
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/officers" />
 
-      <main className={styles.main}>
-        <div className={styles.titleArea}>
-          <h1>รายการรับ-จ่าย</h1>
-          <p>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <div className="mb-3">
+          <h1 className="h4 mb-0">รายการรับ-จ่าย</h1>
+          <p className="small text-secondary mb-0 mt-1">
             ข้อมูลจาก salary สำหรับ {data?.officer?.name ?? "ไม่ระบุชื่อ"} ({cid})
             {data?.officer?.station ? ` | ${data.officer.station}` : ""}
           </p>
         </div>
 
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeadRow}>
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <span>ประวัติรับ-จ่ายเงิน</span>
-            <div className={styles.tableHeadActions}>
-              <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <span className="small text-secondary fw-semibold">
                 แสดง {displayRange} จากทั้งหมด {data?.total ?? 0} รายการ
               </span>
               <button
                 type="button"
-                className={styles.createBtn}
+                className="btn btn-primary"
                 onClick={openPayModal}
                 disabled={loading || !cid}
               >
@@ -483,11 +480,11 @@ export default function OfficerSalariesPage() {
             </div>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>รหัสรับ-จ่าย</th>
                   <th>รายละเอียด</th>
@@ -501,10 +498,10 @@ export default function OfficerSalariesPage() {
                   <th>อัปเดตล่าสุด</th>
                   <th>เครื่องมือ</th>
                 </tr>
-                <tr className={styles.filterRow}>
+                <tr>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="เช่น 10001"
                       value={filters.idpay}
                       onChange={onFilterChange("idpay")}
@@ -512,7 +509,7 @@ export default function OfficerSalariesPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="Search detail"
                       value={filters.payname}
                       onChange={onFilterChange("payname")}
@@ -520,7 +517,7 @@ export default function OfficerSalariesPage() {
                   </th>
                   <th>
                     <select
-                      className={styles.filterInput}
+                      className="form-select form-select-sm"
                       value={filters.monththai}
                       onChange={onFilterChange("monththai")}
                     >
@@ -541,7 +538,7 @@ export default function OfficerSalariesPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="เช่น 2568"
                       value={filters.yearthai}
                       onChange={onFilterChange("yearthai")}
@@ -549,7 +546,7 @@ export default function OfficerSalariesPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="เลข Pnumber"
                       value={filters.pnumber}
                       onChange={onFilterChange("pnumber")}
@@ -557,7 +554,7 @@ export default function OfficerSalariesPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ชุดฎีกา"
                       value={filters.nodeegar}
                       onChange={onFilterChange("nodeegar")}
@@ -575,9 +572,9 @@ export default function OfficerSalariesPage() {
                   <tr key={`${row.ID}-${idx}`}>
                     <td>{row.IDPAY}</td>
                     <td>
-                      <div style={{ display: "grid", gap: 2 }}>
+                      <div className="vstack gap-0">
                         <strong>{row.PAYNAME ?? "-"}</strong>
-                        <span style={{ color: "#4b5563", fontSize: "12px" }}>
+                        <span className="text-secondary small">
                           {row.PAYTYPE === "1" ? "รายรับ" : "รายจ่าย"}
                         </span>
                       </div>
@@ -587,12 +584,12 @@ export default function OfficerSalariesPage() {
                     <td>{row.PNUMBER}</td>
                     <td>{row.NODEEGAR}</td>
                     <td>{row.NUM}</td>
-                    <td className={styles.moneyCell}>{formatMoney(row.MONEY)}</td>
+                    <td className="text-end text-nowrap fw-semibold">{formatMoney(row.MONEY)}</td>
                     <td>
                       {row.IDBANK ? (
-                        <div style={{ display: "grid", gap: 2 }}>
+                        <div className="vstack gap-0">
                           <strong>{row.IDBANK}</strong>
-                          <span style={{ color: "#4b5563", fontSize: "12px" }}>
+                          <span className="text-secondary small">
                             {row.NAMEBANK ?? "-"}
                           </span>
                         </div>
@@ -601,11 +598,11 @@ export default function OfficerSalariesPage() {
                       )}
                     </td>
                     <td>{formatDate(row.DUPDATE)}</td>
-                    <td className={styles.toolsCell}>
-                      <div className={styles.actionsCell}>
+                    <td className="text-center text-nowrap">
+                      <div className="text-center text-nowrap">
                         <button
                           type="button"
-                          className={styles.iconBtn}
+                          className="btn btn-sm btn-outline-primary mx-1"
                           title="ดูรายละเอียด"
                           onClick={() => alert(`ดูรายละเอียดรหัส ${row.IDPAY}`)}
                         >
@@ -613,7 +610,7 @@ export default function OfficerSalariesPage() {
                         </button>
                         <button
                           type="button"
-                          className={styles.iconBtn}
+                          className="btn btn-sm btn-outline-primary mx-1"
                           title="แก้ไข"
                           onClick={() => openPayEditModal(row)}
                         >
@@ -625,7 +622,7 @@ export default function OfficerSalariesPage() {
                 ))}
                 {!data?.items?.length && (
                   <tr>
-                    <td colSpan={10} className={styles.emptyState}>
+                    <td colSpan={10} className="text-center text-secondary p-3">
                       {loading ? "กำลังโหลด..." : "ไม่พบข้อมูล"}
                     </td>
                   </tr>
@@ -634,33 +631,16 @@ export default function OfficerSalariesPage() {
             </table>
           </div>
 
-          {data && data.totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.max(page - 1, 1))}
-                disabled={page === 1 || loading}
-              >
-                &lt; ก่อนหน้า
-              </button>
-              {pageWindow.map((p) => (
-                <button
-                  key={p}
-                  className={`${styles.pageBtn} ${p === page ? styles.currentPage : ""}`}
-                  onClick={() => fetchData(p)}
-                  disabled={p === page || loading}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.min(page + 1, data.totalPages))}
-                disabled={page === data.totalPages || loading}
-              >
-                ถัดไป &gt;
-              </button>
-            </div>
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchData(p, appliedFilters)}
+              onPageSizeChange={setPageSize}
+            />
           )}
         </section>
       </main>
@@ -668,34 +648,32 @@ export default function OfficerSalariesPage() {
       <AppFooter />
 
       {payModal && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>{editingSalaryId ? "แก้ไขรายการรับ-จ่าย" : "เพิ่มรายการรับ-จ่าย"} {payForm.name ? `: ${payForm.name}` : ""}</h2>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">{editingSalaryId ? "แก้ไขรายการรับ-จ่าย" : "เพิ่มรายการรับ-จ่าย"} {payForm.name ? `: ${payForm.name}` : ""}</h2>
               <button
-                className={styles.modalClose}
+                className="btn-close"
                 onClick={() => {
                   setPayModal(false);
                   setEditingSalaryId(null);
                 }}
                 aria-label="Close"
-              >
-                ✕
-              </button>
+              ></button>
             </div>
-            <div className={styles.modalBody}>
-              <p className={styles.modalHint}>
+            <div className="modal-body">
+              <p className="small text-secondary mb-2">
                 Fields with * are required. {payOptionsLoading ? "กำลังโหลดตัวเลือก..." : ""}
               </p>
-              <div className={styles.formGrid}>
+              <div className="row row-cols-1 row-cols-md-2 g-3">
                 <label>
                   Cid *
-                  <input className={styles.input} value={payForm.cid} readOnly />
+                  <input className="form-control" value={payForm.cid} readOnly />
                 </label>
                 <label>
                   บัญชีธนาคาร *
                   <select
-                    className={styles.input}
+                    className="form-select"
                     value={payForm.bankId}
                     onChange={(e) => setPayForm((f) => ({ ...f, bankId: e.target.value }))}
                     disabled={payBanksLoading || payBanks.length === 0}
@@ -710,7 +688,7 @@ export default function OfficerSalariesPage() {
                     ))}
                   </select>
                   {!payBanksLoading && payBanks.length === 0 && (
-                    <div style={{ fontSize: "0.85rem", color: "#6b7280", marginTop: 4 }}>
+                    <div className="small text-secondary mt-1">
                       ไม่พบบัญชีธนาคารสำหรับเจ้าหน้าที่รายนี้ กรุณาเพิ่มบัญชีก่อน
                     </div>
                   )}
@@ -718,7 +696,7 @@ export default function OfficerSalariesPage() {
                 <label>
                   Monththai *
                   <select
-                    className={styles.input}
+                    className="form-select"
                     value={payForm.monththai}
                     onChange={(e) => setPayForm((f) => ({ ...f, monththai: e.target.value }))}
                   >
@@ -732,7 +710,7 @@ export default function OfficerSalariesPage() {
                 <label>
                   Yearthai *
                   <input
-                    className={styles.input}
+                    className="form-control"
                     value={payForm.yearthai}
                     onChange={(e) => setPayForm((f) => ({ ...f, yearthai: e.target.value }))}
                   />
@@ -740,7 +718,7 @@ export default function OfficerSalariesPage() {
                 <label>
                   Pnumber
                   <input
-                    className={styles.input}
+                    className="form-control"
                     list="pnumberOptions"
                     placeholder="ค้นหา Pnumber"
                     value={payForm.pnumber}
@@ -770,7 +748,7 @@ export default function OfficerSalariesPage() {
                 <label>
                   Nodeegar *
                   <input
-                    className={styles.input}
+                    className="form-control"
                     value={payForm.nodeegar}
                     onChange={(e) => setPayForm((f) => ({ ...f, nodeegar: e.target.value }))}
                   />
@@ -778,7 +756,7 @@ export default function OfficerSalariesPage() {
                 <label>
                   จำนวนใบสำคัญ *
                   <input
-                    className={styles.input}
+                    className="form-control"
                     value={payForm.num}
                     onChange={(e) => setPayForm((f) => ({ ...f, num: e.target.value }))}
                   />
@@ -786,7 +764,7 @@ export default function OfficerSalariesPage() {
                 <label>
                   Ipay *
                   <select
-                    className={styles.input}
+                    className="form-select"
                     value={payForm.idpay}
                     onChange={(e) => setPayForm((f) => ({ ...f, idpay: e.target.value }))}
                   >
@@ -801,7 +779,7 @@ export default function OfficerSalariesPage() {
                 <label>
                   Money *
                   <input
-                    className={styles.input}
+                    className="form-control"
                     type="number"
                     step="0.01"
                     value={payForm.money}
@@ -809,14 +787,14 @@ export default function OfficerSalariesPage() {
                   />
                 </label>
               </div>
-              {payError && <div className={styles.error}>{payError}</div>}
-              <div className={styles.saveRow}>
-                <button className={styles.primaryBtn} onClick={handlePaySave} disabled={paySaving}>
+              {payError && <div className="alert alert-danger py-2 px-3 m-2 small">{payError}</div>}
+              <div className="d-flex gap-2 mt-3">
+                <button className="btn btn-primary" onClick={handlePaySave} disabled={paySaving}>
                   {paySaving ? "Saving..." : editingSalaryId ? "Update" : "Save"}
                 </button>
                 {editingSalaryId && (
                   <button
-                    className={styles.secondaryBtn}
+                    className="btn btn-outline-secondary"
                     type="button"
                     onClick={handlePayDelete}
                     disabled={payDeleting || paySaving}
@@ -825,7 +803,7 @@ export default function OfficerSalariesPage() {
                   </button>
                 )}
                 <button
-                  className={styles.secondaryBtn}
+                  className="btn btn-outline-secondary"
                   type="button"
                   onClick={() => {
                     setPayModal(false);
@@ -836,7 +814,7 @@ export default function OfficerSalariesPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </div></div>
         </div>
       )}
     </div>

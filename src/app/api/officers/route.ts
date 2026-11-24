@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
 import { isStaff } from '@/lib/permissions';
+import { clampPageSize, parsePage } from '@/lib/pagination';
 
 const hashPassword = (raw: string) => crypto.createHash('sha1').update(raw).digest('hex');
 
@@ -88,8 +89,8 @@ export async function GET(req: NextRequest) {
     if (!isStaff(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
-    const page = Math.max(1, Number(searchParams.get('page') || 1));
-    const pageSize = Math.min(50, Math.max(1, Number(searchParams.get('pageSize') || 10)));
+    const page = parsePage(searchParams.get('page'));
+    const pageSize = clampPageSize(searchParams.get('pageSize'), 10);
     const offset = (page - 1) * pageSize;
 
     const cid = searchParams.get('cid')?.trim();

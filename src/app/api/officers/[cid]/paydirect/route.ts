@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAppSessionFromRequest } from "@/lib/session";
 import { buildOfficerAccessClause, buildPaydirectAccessClause } from "@/lib/paydirectAccess";
+import { clampPageSize, parsePage } from '@/lib/pagination';
 
 type PaydirectRow = {
   NAMESTATION: string | null;
@@ -33,8 +34,8 @@ export async function GET(
   }
 
   const searchParams = new URL(req.url).searchParams;
-  const page = Math.max(1, Number(searchParams.get("page") || 1));
-  const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 10)));
+  const page = parsePage(searchParams.get("page"));
+  const pageSize = clampPageSize(searchParams.get("pageSize"), 10);
   const offset = (page - 1) * pageSize;
 
   if (session.role === "EDITOR" && !session.orgId) {

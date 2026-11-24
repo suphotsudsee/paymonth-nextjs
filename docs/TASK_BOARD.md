@@ -16,6 +16,10 @@
 | 8 | ตั้ง DB local (MariaDB 10.11 Docker) จาก dump `test-paymonth.sql` + smoke test ของงาน #1–#4 กับข้อมูลจริง | เสร็จ | ดู "หลักฐาน: งาน #8" ด้านล่าง; คู่มือ `docs/LOCAL_DEV.md` |
 | 9 | ช่องรหัสผ่านมีปุ่มรูปตา (แสดง/ซ่อน) ในหน้า login และฟอร์มจัดการผู้ใช้ ซ่อนกลับเองเมื่อส่งฟอร์ม | เสร็จ (โค้ด ยังไม่ commit) | ดู "หลักฐาน: งาน #9" ด้านล่าง |
 | 10 | เมนูรายงานเร็วขึ้น: index 5 ตัว + แก้ query (ผลเท่าเดิม) | เสร็จ (โค้ด ยังไม่ commit) — **ต้องรัน `prisma/sql/2026-11-24_report_indexes.sql` บน DB server** | ดู "หลักฐาน: งาน #10" ด้านล่าง |
+| 11 | หน้าจอทั้งเว็บใช้ Bootstrap 5.3 (PRD ข้อ 11): 11a ติดตั้ง+root layout+globals · 11b login+PasswordInput (`input-group`) · 11c AppHeader (navbar+dropdown+collapse มือถือ)/AppFooter · 11d รายงาน `/reports/*` · 11e ทะเบียน deegars/cheques/regisdeegars/stations/cpays · 11f officers/* + สลิป/พิมพ์ · 11g tools/users/useronline/import + charts · 11h ลบ CSS module ที่ไม่ใช้, `npm test` + `next build` + ตรวจในเบราว์เซอร์ จอกว้าง/มือถือ | เสร็จ (โค้ด ยังไม่ commit) — ตรวจกับข้อมูลจริงแล้ว เหลือสั่งพิมพ์สลิป A4 ด้วยมือ | ดู "หลักฐาน: งาน #11" ด้านล่าง |
+| 12 | แบ่งหน้ามาตรฐานทุกหน้า + เลือกจำนวนต่อหน้า 5/10/15/50/100 (PRD 11.1): 12a `src/lib/pagination.ts` + `Pagination.tsx` + เทสต์ · 12b API เพดาน 50 → 100 · 12c หน้าทะเบียน/รหัส/ผู้ใช้ · 12d หน้ารายงาน (รวมส่งกรุงไทย, taxtmonth, taxdept/group ที่เดิมไม่มีปุ่มเปลี่ยนหน้า) · 12e ค้นหาฎีกา/เช็ค แบ่งหน้า + ยอดรวมทั้งผลค้นหาจาก API · 12f หน้ารายคน officers/[cid]/* · 12g tsc/test/build + ตรวจในเบราว์เซอร์ | เสร็จ (โค้ด ยังไม่ commit) | ดู "หลักฐาน: งาน #12" ด้านล่าง |
+| 13 | ตัวเลขจำนวนเงินชิดขวาทุกหน้า (PRD 11.2) | เสร็จ (โค้ด ยังไม่ commit) | ดู "หลักฐาน: งาน #13" ด้านล่าง |
+| 14 | ประวัติจ่ายตรงรายคนช้า: index `paydirect (C, A, B)` (PRD 10.2) | เสร็จ (โค้ด ยังไม่ commit) — **ต้องรัน `prisma/sql/2026-11-25_paydirect_cid_index.sql` บน DB server** | ดู "หลักฐาน: งาน #14" ด้านล่าง |
 
 ## หลักฐาน: งาน #1 — ลบ route ThaiID login ที่ข้ามการตรวจตัวตน
 
@@ -509,3 +513,503 @@ working tree (new)   isStaff: false  hasAdminAccess: false  canAccessCid(other):
 - ORDER BY ที่มีค่าซ้ำ + LIMIT ใน bydate/payvouchers ทำให้แถวสลับตำแหน่งระหว่างหน้าได้ (มีมาก่อน) — แก้โดยเพิ่ม salary.ID ท้าย ORDER BY ถ้าต้องการ
 - DB local ใช้ร่วมกับแชตอื่น (docker): ตอนนี้มี index ใหม่แล้ว
 
+
+## หลักฐาน: งาน #11 — หน้าจอทั้งเว็บใช้ Bootstrap 5.3
+
+### สิ่งที่เปลี่ยน
+- `bootstrap@^5.3.9` (npm) import `bootstrap.min.css` ใน `src/app/layout.tsx` ก่อน `globals.css`; `<html lang="th" data-bs-theme="light">`; **ไม่ใช้ JS ของ Bootstrap**
+- `globals.css` เหลือ 4 กฎ: ความกว้างขั้นต่ำตารางใน `.table-responsive` บนจอ ≤ 720px, หัวตารางไม่ตัดบรรทัด, พื้นหลังมืดของ `.modal.d-block`, พื้นขาวตอนพิมพ์
+- 11b login: card + form-control + `form-check`, ThaiID เป็น `btn`; `PasswordInput` = `input-group` + `btn btn-outline-secondary` (logic เดิมทุกบรรทัด, ไม่ใช้ inline style แล้ว)
+- 11c `AppHeader`: `navbar navbar-expand-lg bg-primary` + `dropdown-menu` คุมด้วย state (คลิกนอก/กด Esc ปิด, กดลิงก์แล้วปิดเมนูมือถือ), เงื่อนไข status `user` ซ่อนเมนูเหมือนเดิม; header/footer `d-print-none`
+- 11d–11g ทุกหน้าใน `src/app/(dashboard)` แปลง `styles.X` → class ของ Bootstrap ด้วยสคริปต์ที่ใช้ตารางแปลงชุดเดียว (ชื่อ class เดิมซ้ำกันทุกหน้า เช่น `tableCard`→`card`, `table`→`table table-bordered table-striped table-hover table-sm`, `tableWrapper`→`table-responsive`, `primaryBtn`→`btn btn-primary`, `modalOverlay/modal`→`modal d-block` + `modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down` + `modal-content`, ปุ่มปิด modal → `btn-close`, `error`→`alert alert-danger`, ตัวกรอง→`row g-2` + `col-12 col-sm-6 col-lg-3`) แล้วไล่แก้ inline style ที่เหลือด้วยมือ (`/paydirect`, `/salaries/[cid]`, import-paydirect, หัวข้อ `<h1>` → `h4`)
+- ลบ CSS module 19 ไฟล์ (+ `HeaderFooter.module.css`) เหลือ 2 ไฟล์ที่ Bootstrap ทำแทนไม่ได้: แท่งกราฟ `/charts/inout` (ความสูงตามข้อมูล) และสลิป A4 + ลายน้ำ + `@media print` ของ `/officers/paydirect/[payid]`
+- `/logo` เดิมเขียน class ของ Tailwind (ไม่ได้ติดตั้ง) → เปลี่ยนเป็น Bootstrap
+- เทสต์ใหม่ `tests/bootstrap-ui.test.mjs`: import CSS ใน root layout ก่อน globals, CSS module เหลือแค่ 2 ไฟล์ที่อนุญาต, ไม่มีการโหลด JS ของ Bootstrap/`data-bs-toggle`, PasswordInput ใช้ `input-group`, เงื่อนไขซ่อนเมนูของ status user ไม่เปลี่ยน
+- ไม่แตะ API, middleware, สิทธิ์, query; ข้อความที่แสดงเหมือนเดิม (เปลี่ยนแค่ class/markup ห่อ)
+
+### เทสต์ — `npm test` (output จริง)
+```
+✔ bootstrap is a dependency and its CSS is imported in the root layout before globals.css
+✔ only the chart bars and the printable A4 slip keep a CSS module
+✔ Bootstrap JS is not loaded (React state drives navbar/dropdown/modal)
+✔ PasswordInput uses a Bootstrap input-group with the eye button
+✔ header hides the menu for status user exactly as before
+✔ starts hidden: type is password until the eye is clicked
+✔ form submit and reset hide the password again
+✔ concealKey change hides the password
+✔ login form uses PasswordInput inside a <form> (submit listener applies)
+ℹ tests 53
+ℹ pass 51
+ℹ fail 0
+ℹ skipped 2      <- 2 เทสต์ที่ต่อ DB local ข้ามเพราะ Docker ปิดอยู่ ("database not reachable")
+```
+`npx tsc --noEmit` ผ่าน; `npx eslint src` = 267 ปัญหา **เท่ากับก่อนแก้** (เทียบ JSON ต่อไฟล์/ต่อ rule กับ commit 81b1385 — ไม่มีปัญหาใหม่)
+
+### Build — `npx next build` (Next 16.0.7 Turbopack)
+```
+✓ Compiled successfully in 2.3s
+✓ Generating static pages using 27 workers (68/68)
+```
+
+### ตรวจในเบราว์เซอร์ — production build (`next start -p 9105`)
+ใช้พอร์ต 9105 แทน 9104 เพราะ 9104 มี `next start` ของงานก่อนค้างอยู่ (ไม่ได้ปิดของคนอื่น) และเปิดผ่าน `127.0.0.1` เพราะ cookie ของ `localhost` มี session httpOnly ของผู้ใช้จริงจากการทดสอบครั้งก่อนค้างอยู่;
+session = JWT ทดสอบ (status admin, CID 0000000000000) เซ็นด้วย AUTH_SECRET ของเครื่อง; **DB local ปิดอยู่ (Docker Desktop ไม่ได้รัน)** ทุกตารางจึงว่าง/ขึ้น alert "Failed to load"
+- ไล่ 32 หน้า (iframe กว้าง 1280px และ 390px): ทุกหน้าใน dashboard มี `.navbar`, `.card`, `table.table` (ยกเว้นกราฟ/import/หน้าเลือกสลิปที่ไม่มีตาราง), **ไม่มีหน้าไหนเลื่อนแนวนอนทั้งหน้า (scrollWidth − innerWidth = 0 ทุกหน้า ทั้งสองความกว้าง)**, ไม่เหลือตารางที่ไม่มี class `.table`
+  - `/officers/paydirect` และ `/paydirect` ไม่มีเมนูบน — เหมือนเดิม (หน้าเดิมไม่ได้ใส่ `AppHeader`)
+  - `/officers/[cid]/banks` เป็น server component ที่ query DB ตรง → error เพราะ DB ปิด (ไม่เกี่ยวกับงานนี้)
+- login: `input-group` + ปุ่มตา: ก่อนกด `type=password, aria-label="แสดงรหัสผ่าน", aria-pressed=false` → กดแล้ว `text / ซ่อนรหัสผ่าน / true` → form reset แล้วกลับเป็น `password`
+- `/tools/users` บนมือถือ (375×812): modal เต็มจอ (`modal-fullscreen-sm-down`), ช่องรหัสผ่านมีปุ่มตา, กดตาแล้ว `text` → กด Save → `password` (concealKey)
+- เมนูบน: จอกว้างกด "ทะเบียนรหัส" แล้ว dropdown เปิด; มือถือกด hamburger แล้วเมนูกาง, กด "รายงาน" แล้วเห็นรายการย่อย 11 รายการ
+- `/cheques`: ปุ่ม "+ เพิ่มทะเบียนเช็ค" เปิด modal "Create Cheque" ฟอร์ม 2 คอลัมน์, ปุ่ม `btn-close`, Save/Cancel
+
+### ยังเหลือ / ข้อสังเกต
+- **ยังไม่ได้ดูหน้าที่มีข้อมูลจริง** (ตารางยาว, ตัวเลขเงิน, สลิป `/officers/paydirect/[payid]` และหน้าพิมพ์) เพราะ DB local ปิดอยู่ — เปิด Docker แล้วดูซ้ำ โดยเฉพาะสลิป A4 ตอนสั่งพิมพ์
+- ระหว่างงานนี้ `npx next build` เขียนทับ `.next` ที่ `next start -p 9104` ตัวเก่าใช้อยู่ → ตัวนั้นควร restart ก่อนใช้ต่อ
+- `npm install` ครั้งนี้รัน `prisma generate` ไม่สำเร็จ (EPERM: dev server 9102 ล็อกไฟล์ query engine) — client ที่ generate ไว้เดิมยังอยู่ครบ ไม่กระทบ
+
+### Codex (cross_review) — diff รวม ~470k ตัวอักษร เกินเพดาน 60k ของสคริปต์ จึงตรวจทีละก้อน 10 ก้อน
+ทำโดยตั้ง working tree = HEAD + ก้อน 1..k แล้วรัน `python scripts/cross_review.py` ทีละก้อน (baseline ขยับเมื่อผ่าน) จัดก้อนให้ทุกสภาพ compile ได้ (ลบ CSS module ที่ใช้ร่วมหลังแปลงทุกหน้าที่ใช้แล้ว); ก้อนสุดท้ายตรงกับไฟล์สุดท้ายทุกไบต์
+1. infra + login + header/footer + PRD — รอบแรก CHANGES_REQUESTED: `tests/bootstrap-ui.test.mjs` จะล้มถ้ายังลบ CSS module ไม่ครบ (ถูก เพราะก้อนนี้ยังไม่ลบ) → ย้ายเทสต์ไปก้อนสุดท้าย → APPROVED
+2. รายงาน A (ทั้งหมด, ค้นหาฎีกา/เช็ค, ส่งกรุงไทยฎีกา) — APPROVED
+3. รายงาน B (ktbcheque, bydate, taxdept, taxdept/group, summarydeegar รายฎีกา) — APPROVED
+4. รายงาน C (summarydeegar, taxtitle, taxtmonth) — APPROVED
+5. payvouchers, charts, cheques, cpays — APPROVED
+6. stations + ลบ cheques css, regisdeegars — APPROVED
+7. deegars + officers/[cid]/salaries + ลบ deegars css — APPROVED
+8. officers, tools/users — รอบแรก CHANGES_REQUESTED: ปุ่ม `btn-close` ใน modal ผู้ใช้ไม่มีชื่อสำหรับ screen reader (เดิมมีตัวอักษร ×) → เพิ่ม `aria-label="ปิด"` (ปุ่มปิดอื่นทุกตัวมี `aria-label="Close"` อยู่แล้ว) → APPROVED
+9. useronline, import-paydirect, officers/[cid]/*, payperson — APPROVED
+10. ลบ officers css, สลิป [payid], /paydirect, /salaries/[cid], TASK_BOARD, เทสต์ bootstrap-ui — APPROVED
+
+หลังแก้ (output จริง, รันหลังไฟล์กลับเป็นสภาพสุดท้าย)
+```
+$ npx tsc --noEmit -p .
+tsc exit 0
+
+$ npm test
+✔ checker rejects handler exports it cannot inspect (1.5449ms)
+✔ non-public routes only declare handlers as export async function (4.2989ms)
+✔ checker flags an unguarded handler next to a guarded one (0.5071ms)
+✔ every handler of every non-public API route checks role or ownership before DB access (4.5161ms)
+✔ PUBLIC list has no stale entries (0.4891ms)
+✔ verifySession is always awaited (3.6464ms)
+✔ user management and login log are admin-only (0.765ms)
+✔ password column is never selected back to the browser (0.9617ms)
+✔ thaiid-login bypass route does not exist (13.6921ms)
+✔ only approved routes issue a session cookie (37.6149ms)
+✔ missing or blank secret is rejected (2.2932ms)
+✔ the old hardcoded fallback is rejected even if set explicitly (0.1899ms)
+✔ secrets shorter than 32 bytes are rejected (0.2836ms)
+✔ a random 32-byte hex secret is accepted and encoded as UTF-8 bytes (0.7078ms)
+✔ error message never echoes the secret value (0.4755ms)
+✔ auth.ts has no fallback and validates the key before any auth path (1.5769ms)
+✔ NextAuth config is lazy and validates AUTH_SECRET first (1.5796ms)
+✔ package copy of authSecret.ts matches the app (1.2918ms)
+✔ bootstrap is a dependency and its CSS is imported in the root layout before globals.css (2.0696ms)
+✔ only the chart bars and the printable A4 slip keep a CSS module (0.9821ms)
+✔ Bootstrap JS is not loaded (React state drives navbar/dropdown/modal) (28.424ms)
+✔ PasswordInput uses a Bootstrap input-group with the eye button (0.826ms)
+✔ header hides the menu for status user exactly as before (0.9036ms)
+✔ every useronline INSERT hard-codes NULL for password (1.591ms)
+✔ login audit no longer carries the password at all (1.2898ms)
+✔ no other code writes to useronline (43.1144ms)
+✔ login log API and page do not expose a password field (0.5547ms)
+✔ starts hidden: type is password until the eye is clicked (0.7615ms)
+✔ eye button never submits the form (0.1602ms)
+✔ form submit and reset hide the password again (0.1682ms)
+✔ concealKey change hides the password (0.2022ms)
+✔ login form uses PasswordInput inside a <form> (submit listener applies) (0.9073ms)
+✔ user form (no <form>) bumps concealKey on every save attempt (0.3815ms)
+✔ limited user: only own CID (0.8135ms)
+✔ ordinary users and unknown statuses are limited at every accessLevel (fail closed) (0.6733ms)
+✔ admin/manager are ADMIN, editor is EDITOR, whatever the accessLevel (1.2123ms)
+✔ no role check anywhere grants access from accessLevel (1.3789ms)
+✔ limited user without a CID in session gets nothing (0.1401ms)
+✔ staff roles keep access to any CID (0.1304ms)
+✔ no session or empty target CID is denied (0.0878ms)
+✔ per-officer routes check CID ownership (0.6763ms)
+✔ bigintToJson keeps exact values (0.9819ms)
+✔ paydirect report serializes ID through bigintToJson (0.6083ms)
+✔ latest-salary/regisdeegar joins go through keyJoin with a runtime data check (1.5887ms)
+✔ keyJoin: fast form only when keys are trimmed, otherwise the original TRIM-both-sides form (1.7222ms)
+✔ every writer of salary/regisdeegar trims PNUMBER (and NODEEGAR) before saving (0.6564ms)
+✔ index script only checks data (no writes) and creates the report indexes (1.1311ms)
+✔ tax reports default to the latest numeric year (junk YEARTHAI='YEAR' row) (0.4825ms)
+﹣ old vs new join give the same matches for whitespace variants (live DB, temporary tables) (2049.48ms) # database not reachable
+✔ pickPeriodsForPage picks exactly the periods covering the page (0.2733ms)
+﹣ reports/all: new per-period paging returns the same rows as the old global sort (live DB) (2017.0889ms) # database not reachable
+✔ count queries started early always have a rejection handler (0.5511ms)
+✔ reports/all runs totals in parallel with the per-period counts (0.1803ms)
+ℹ tests 53
+ℹ suites 0
+ℹ pass 51
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 2
+ℹ todo 0
+ℹ duration_ms 4229.1987
+npm test exit 0
+```
+2 เทสต์ที่ข้าม (`﹣`) ต่อ DB local จริง — ข้ามเพราะ Docker/DB ปิด ("database not reachable") ไม่เกี่ยวกับงานนี้ (เป็นเทสต์ query รายงานของงาน #10)
+
+### ตรวจซ้ำกับข้อมูลจริง (DB local เปิดแล้ว, `next start -p 9104` build ใหม่, 127.0.0.1 + JWT ทดสอบ status admin)
+หน้าที่ดู (จอกว้าง): officers, deegars, regisdeegars, reports (ทั้งหมด), summarydeegar + รายฎีกา, taxdept, taxtmonth (ปี 2568 ทุกหน่วย — ตาราง 14 คอลัมน์เลื่อนแนวนอนในกรอบการ์ด), payvouchers, tools/users, tools/useronline, charts/inout, officers/[cid]/salaries, personal, สลิปรายเดือน payperson, สลิปจ่ายตรง A4 `/officers/paydirect/[payid]`
+มือถือ 375px: officers (ตารางเลื่อนในกรอบ, ปุ่มเลขหน้าขึ้นบรรทัดใหม่), สลิปรายเดือน, สลิป A4 (`scrollWidth − innerWidth = 0`)
+
+พบและแก้ (สาเหตุ: CSS module เดิมบางหน้าใช้ชื่อ class เดียวกันแต่ความหมายต่างกัน หรือได้สไตล์จาก selector แบบกลุ่ม ซึ่งตารางแปลงชุดเดียวไม่ครอบคลุม — ไล่เทียบนิยามทุกชื่อที่ซ้ำกันข้ามไฟล์แล้ว ที่เหลือต่างแค่ขนาดตัวอักษร/padding)
+1. รายชื่อเจ้าหน้าที่: ปุ่ม "รายการรับ-จ่ายเงิน/ส่วนบุคคล/จ่ายตรง" ตัดเป็น 2–3 บรรทัด แถวสูงมาก → `btn btn-sm btn-primary text-nowrap`
+2. สลิปรายเดือน: แถว "รวมรับ/รวมจ่าย/คงเหลือ" ตัวเลขชิดข้อความ ไม่มี padding (เดิมได้ layout จาก `.paypersonRow, .paypersonRowTotal, .paypersonRowBalance {…}`) → `list-group-item … d-flex justify-content-between`, คงเหลือใช้ `list-group-item-info`
+3. แถบล่างของ bydate, taxdept, taxtitle, summarydeegar, summarydeegar รายฎีกา: `metaRow` ในหน้าพวกนี้คือแถบสรุปยอด/เลขหน้า (ไม่ใช่แถวป้าย-ค่าของสลิป) → `d-flex justify-content-between … border-top bg-light`
+4. หัวข้อ `<h1>` ของ summarydeegar รายฎีกา และ taxdept/group ใหญ่เกิน (เดิม `title` ใส่ที่ h1 เอง) → `h5 fw-bold mb-0`; error ของ taxdept/group แสดงเป็นตัวอักษรเทา → `alert alert-danger`
+
+ไม่ใช่ผลจากงานนี้ (พฤติกรรมเดิม): taxtmonth/payvouchers ต้องกรอกปีหรือเงื่อนไขก่อนจึงจะค้น ("2569" เป็นแค่ placeholder); ป้ายตัวเลขบนกราฟ inout ทับกันเมื่อยอดยาว (CSS แท่งกราฟคงเดิม)
+ยังไม่ได้ตรวจ: สั่งพิมพ์จริง (Ctrl+P) ของสลิป A4 — browser pane สั่ง print preview ไม่ได้
+
+หลังแก้: `npx tsc --noEmit` exit 0, `next build` ✓ Compiled successfully (68/68)
+```
+$ npm test
+ℹ tests 53
+ℹ pass 53
+ℹ fail 0
+ℹ skipped 0
+npm test exit 0
+```
+(DB เปิดแล้ว เทสต์ที่ต่อ DB 2 ตัวจึงรันด้วย)
+
+## หลักฐาน: งาน #12 — แบ่งหน้ามาตรฐานทุกหน้า + เลือก 5/10/15/50/100 ต่อหน้า
+
+### สิ่งที่เปลี่ยน
+- ใหม่ `src/lib/pagination.ts`: `PAGE_SIZE_OPTIONS` [5,10,15,50,100], `MAX_PAGE_SIZE` 100, `clampPageSize()`, `pageItems()` (หน้าแรก/สุดท้าย + ปัจจุบัน ±2 + …), `pageRange()`
+- ใหม่ `src/components/Pagination.tsx`: Bootstrap `.pagination` (« ‹ เลขหน้า … › »), "แสดง [n] รายการต่อหน้า · รายการที่ a–b จาก N", disabled ระหว่างโหลด, « » ซ่อนบนจอ < 576px; `useReloadOnPageSizeChange()` โหลดหน้า 1 ใหม่เมื่อเปลี่ยนจำนวนต่อหน้า (เทียบค่าก่อนหน้า จึงไม่โหลดซ้ำตอน mount)
+- 25 หน้าใช้ `<Pagination>` แทนปุ่มเลขหน้าที่เขียนเองทุกหน้า (เดิม 5–10 ปุ่ม, หน้า officers แสดงได้แค่ 10 หน้าแรก)
+- API 12 ตัวที่ตัด pageSize ที่ 50 → `clampPageSize(…, 10)` เพดาน 100: cheques, cpays, deegars, officers, officers/[cid]/{paydirect,personal,salaries}, regisdeegars, reports/all, salaries/deegars, stations, users; เพดานที่สูงกว่าเดิมคงไว้
+- หน้าที่เดิม "ไปหน้าถัดไปไม่ได้": ส่งกรุงไทย (ฎีกา/เช็ค), สรุปภาษี (กลุ่ม) — เพิ่มตัวแบ่งหน้า; หนังสือรับรองภาษีรายกลุ่ม — เดิมไม่ส่ง pageSize ได้แค่ 10 แถวแรก
+- ค้นหาฎีกา/ค้นหาเช็ค: แบ่งหน้า + API ส่ง `totals` = ยอดรวมทั้งผลค้นหา (SUM ใน query นับจำนวนเดิม ไม่เพิ่ม query); `/api/salaries/cheques` รองรับ `page` (เดิมคืน page 1 เสมอ) ผู้เรียกที่ไม่ส่ง pageSize ยังได้ 1000 แถวเหมือนเดิม; เลขลำดับในตารางนับต่อเนื่องข้ามหน้า
+- ค่าเริ่มต้นต่อหน้า: เดิม 10 → 10, เดิม 50 → 50, useronline 20 → 15, taxtitle 90 → 100, ค้นหาฎีกา/เช็ค → 50
+- เทสต์ใหม่ `tests/pagination.test.mjs`: ตัวเลือก/เพดาน, clampPageSize (ค่าขยะ/ติดลบ/เกิน/ทศนิยม), pageItems (ต้น/กลาง/ท้าย/gap หน้าเดียว/หน้าเกินช่วง), pageRange, ทุกหน้าที่มี totalPages ต้องใช้ `<Pagination>` และไม่มี `pageWindow`, ไม่มี API ไหนเหลือ `Math.min(50,`
+
+### เทสต์ (output จริง)
+```
+$ npx tsc --noEmit -p .
+tsc exit 0
+
+$ npm test
+✔ checker rejects handler exports it cannot inspect (1.7013ms)
+✔ non-public routes only declare handlers as export async function (4.5836ms)
+✔ checker flags an unguarded handler next to a guarded one (0.5311ms)
+✔ every handler of every non-public API route checks role or ownership before DB access (3.8066ms)
+✔ PUBLIC list has no stale entries (0.4281ms)
+✔ verifySession is always awaited (3.517ms)
+✔ user management and login log are admin-only (0.6307ms)
+✔ password column is never selected back to the browser (0.8806ms)
+✔ thaiid-login bypass route does not exist (12.4039ms)
+✔ only approved routes issue a session cookie (19.3822ms)
+✔ missing or blank secret is rejected (1.8537ms)
+✔ the old hardcoded fallback is rejected even if set explicitly (0.2704ms)
+✔ secrets shorter than 32 bytes are rejected (0.2921ms)
+✔ a random 32-byte hex secret is accepted and encoded as UTF-8 bytes (1.0045ms)
+✔ error message never echoes the secret value (0.3311ms)
+✔ auth.ts has no fallback and validates the key before any auth path (2.0362ms)
+✔ NextAuth config is lazy and validates AUTH_SECRET first (1.6473ms)
+✔ package copy of authSecret.ts matches the app (1.3996ms)
+✔ bootstrap is a dependency and its CSS is imported in the root layout before globals.css (2.0134ms)
+✔ only the chart bars and the printable A4 slip keep a CSS module (0.9667ms)
+✔ Bootstrap JS is not loaded (React state drives navbar/dropdown/modal) (17.0629ms)
+✔ PasswordInput uses a Bootstrap input-group with the eye button (0.5306ms)
+✔ header hides the menu for status user exactly as before (0.5216ms)
+✔ every useronline INSERT hard-codes NULL for password (1.4363ms)
+✔ login audit no longer carries the password at all (1.2284ms)
+✔ no other code writes to useronline (20.8648ms)
+✔ login log API and page do not expose a password field (0.519ms)
+✔ page size options are exactly 5/10/15/50/100 and the API cap is the largest (1.4322ms)
+✔ clampPageSize keeps 1..max and falls back on junk (0.2043ms)
+✔ pageItems shows first/last, current ±2 and gaps (0.2391ms)
+✔ pageRange (0.1822ms)
+✔ every paged list page uses the shared <Pagination> and no hand-made page buttons remain (12.8576ms)
+✔ APIs that capped page size at 50 now allow MAX_PAGE_SIZE (100) (8.371ms)
+✔ starts hidden: type is password until the eye is clicked (0.7977ms)
+✔ eye button never submits the form (0.1632ms)
+✔ form submit and reset hide the password again (0.1681ms)
+✔ concealKey change hides the password (0.2011ms)
+✔ login form uses PasswordInput inside a <form> (submit listener applies) (0.4604ms)
+✔ user form (no <form>) bumps concealKey on every save attempt (0.5191ms)
+✔ limited user: only own CID (0.9212ms)
+✔ ordinary users and unknown statuses are limited at every accessLevel (fail closed) (0.6304ms)
+✔ admin/manager are ADMIN, editor is EDITOR, whatever the accessLevel (0.966ms)
+✔ no role check anywhere grants access from accessLevel (1.7332ms)
+✔ limited user without a CID in session gets nothing (0.1571ms)
+✔ staff roles keep access to any CID (0.1279ms)
+✔ no session or empty target CID is denied (0.0794ms)
+✔ per-officer routes check CID ownership (0.801ms)
+✔ bigintToJson keeps exact values (0.9332ms)
+✔ paydirect report serializes ID through bigintToJson (0.5032ms)
+✔ latest-salary/regisdeegar joins go through keyJoin with a runtime data check (1.4842ms)
+✔ keyJoin: fast form only when keys are trimmed, otherwise the original TRIM-both-sides form (1.5136ms)
+✔ every writer of salary/regisdeegar trims PNUMBER (and NODEEGAR) before saving (1.12ms)
+✔ index script only checks data (no writes) and creates the report indexes (11.8533ms)
+✔ tax reports default to the latest numeric year (junk YEARTHAI='YEAR' row) (0.4258ms)
+✔ old vs new join give the same matches for whitespace variants (live DB, temporary tables) (77.6549ms)
+✔ pickPeriodsForPage picks exactly the periods covering the page (0.2772ms)
+✔ reports/all: new per-period paging returns the same rows as the old global sort (live DB) (11992.8945ms)
+✔ count queries started early always have a rejection handler (0.6883ms)
+✔ reports/all runs totals in parallel with the per-period counts (0.2035ms)
+ℹ tests 59
+ℹ suites 0
+ℹ pass 59
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12260.8639
+npm test exit 0
+```
+eslint: 262 ปัญหา (ก่อนงาน #11 = 267) ไม่มีปัญหาใหม่ต่อไฟล์/ต่อ rule; `next build` ✓ Compiled successfully (68/68)
+
+### ตรวจในเบราว์เซอร์ (`next start -p 9104`, DB local ข้อมูลจริง, JWT ทดสอบ admin)
+- /officers: เริ่ม 10 แถว "รายการที่ 1–10 จาก 12,476" → เลือก 100 = 100 แถว (เดิม API ตัดที่ 50) → หน้าสุดท้าย = หน้า 125 มี 76 แถว "12,401–12,476" ปุ่ม › » disabled → ‹ = หน้า 124 → เลือก 5 = กลับหน้า 1, 2,496 หน้า
+- เลือก 100 แล้วกดหน้าถัดไป ได้ 100 แถว "101–200" ใน: deegars, cheques, regisdeegars, stations, reports, tools/users, tools/useronline (เริ่ม 15), reports/summarydeegar; ข้อมูลน้อยกว่า 100 แสดงครบ: cpays 79, taxdept 97, taxtitle 97 (เริ่ม 100)
+- หนังสือรับรองภาษีรายกลุ่ม ปี 2568: 178 แถว (เดิมเห็นแค่ 10) → 100 + หน้า 2 = 78 แถว
+- officers/[cid]/paydirect (คนที่มี 128 รายการ): เลือก 5 → "1–5 จาก 128" → ถัดไป "6–10"
+- ค้นหาฎีกา P680000017 (57 แถว, เดิมเห็นแค่ 50 และยอดรวมขาด): หน้า 1 = 50 แถว, หน้า 2 = 7 แถว ลำดับ 51–57, Total 268,523,947.00 ทุกหน้า = ผลรวมทั้ง 57 แถวจาก API (ตรวจด้วย fetch pageSize 100)
+- ค้นหาเช็ค 31310248649 (121 แถว): `totals.money` 3,722,702.85 = ผลรวม 121 แถวจากการเรียกแบบเดิม (ไม่ส่ง pageSize → 1000)
+- ส่งกรุงไทย(เช็ค) 31310248649: 50 แถว 3 หน้า → หน้าสุดท้าย "101–102 จาก 102" (เดิมไปหน้า 2 ไม่ได้)
+- API ที่หน้าต้องกรอกเงื่อนไขก่อน: payvouchers page 3 size 15 = 15 แถว, bydate page 2 size 100 = 100 แถว, taxtmonth size 5 ✓
+- มือถือ 375px: แถบเลขหน้าอยู่บรรทัดเดียว (สูง 31px, ไม่เลื่อนแนวนอน) ที่หน้า 3, 5, 7 ของ 4,396 หน้า — รอบแรก « » ทำให้ขึ้นบรรทัดใหม่ จึงซ่อน « » บนจอ < 576px
+
+### Codex (diff ~117k > เพดาน 60k จึงตรวจเป็นก้อนตามแนวตั้ง: core+ค้นหา+officers / ทะเบียน+รายงาน / TASK_BOARD+เทสต์)
+- รอบแรกแบ่งตามชั้น (lib+API ก่อน หน้าเว็บทีหลัง) → CHANGES_REQUESTED เพราะก้อนแรกมีโครงแต่ยังไม่มีหน้าใช้ → เปลี่ยนเป็นแบ่งตามแนวตั้ง (หน้า + API ของมันอยู่ก้อนเดียวกัน)
+- ก้อน 1 รอบแรก CHANGES_REQUESTED 3 ข้อ แก้ทั้งหมด:
+  1. `ORDER BY` ของ `/api/salaries/cheques` และ `/api/salaries/deegars` ไม่ unique → แบ่งหน้าด้วย OFFSET แถวอาจหาย/ซ้ำข้ามหน้า → ต่อท้าย `deegar.ID, salary.ID` / `deegar.ID, bank.id`
+     ตรวจแล้ว: ดึงเช็ค 31310248649 ทีละ 5 แถวจนครบ = 121 แถว ไม่ซ้ำ และเป็นชุดเดียวกับการเรียกครั้งเดียว 1000 แถว; ฎีกา P680000017 ทีละ 5 = 57 แถวไม่ซ้ำ
+  2. เปลี่ยนหน้าใช้ค่าที่พิมพ์ค้างในฟอร์ม (ยังไม่กดค้นหา) → เก็บ `appliedFilters` = ตัวกรองของการค้นหาที่สำเร็จล่าสุด ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า — แก้ทุกหน้าที่ค้นหาด้วยปุ่ม (11 หน้า: reports ทั้งหมด, bydate, ค้นหาฎีกา/เช็ค, ktb ฎีกา/เช็ค, payvouchers, summarydeegar, taxdept, taxtitle, taxtmonth); หน้าที่ค้นหาอัตโนมัติเมื่อพิมพ์ (ทะเบียน/ผู้ใช้) ตัวกรองในฟอร์มคือตัวที่ใช้อยู่แล้ว
+     ตรวจแล้ว: ค้นหาฎีกา P680000017 → พิมพ์ P61 ไม่กดค้นหา → กดถัดไป = ยังเป็น P680000017 แถว 51–57; เปลี่ยนเป็น 15 ต่อหน้า = P680000017 แถว 1–15; สรุปภาษี(ฝ่าย) ค้น 2568 → พิมพ์ 2560 → ถัดไป = "11–20 จาก 178" (ชุด 2568)
+  3. ค้นหาฎีกา/เช็ค ซ่อนตัวเลือกจำนวนต่อหน้าเมื่อผลเป็น 0 → แสดง `<Pagination>` ทุกครั้งที่มีผลค้นหา (component จัดการกรณี 0 แถวเอง)
+- หลังแก้: `npx tsc --noEmit` exit 0, `npm test` 59 pass / 0 fail, `next build` ✓
+- ก้อน 1 รอบสอง CHANGES_REQUESTED 2 ข้อ แก้ทั้งหมด:
+  1. รายการรับ-จ่ายรายคน (`officers/[cid]/salaries`) เปลี่ยนจำนวนต่อหน้าใช้ `filters` ในฟอร์ม → ใช้ `appliedFilters` เหมือนหน้ารายงาน
+     (หน้านี้และหน้าทะเบียน/ผู้ใช้ค้นหาอัตโนมัติหลังพิมพ์ 250ms ค่าในฟอร์มจึงเป็นค่าที่ใช้อยู่แล้วเกือบตลอด แต่แก้ให้ชัดในหน้าที่ถูกชี้)
+  2. `page=Infinity` ผ่านตัวแปลงเดิมแล้วได้ OFFSET อนันต์ → `parsePage()` ใน `src/lib/pagination.ts` (จำนวนเต็มปลอดภัย ≥ 1 ไม่งั้น 1) ใช้ใน API ทั้ง 14 ตัวที่งานนี้แก้
+     ตรวจแล้ว (`next start` 9104): salaries/cheques `page=Infinity` → 200 page 1, salaries/deegars `page=abc` → 200 page 1, officers `page=Infinity` → 200, users `page=-3&pageSize=100` → 200 page 1 100 แถว, cheques `page=1e400&pageSize=500` → 200 page 1 100 แถว (เพดาน), deegars `page=2&pageSize=15` → page 2 15 แถว
+```
+✔ parsePage gives a safe integer >= 1 (no NaN/Infinity OFFSET) (0.1592ms)
+ℹ tests 60
+ℹ pass 60
+ℹ fail 0
+ℹ skipped 0
+npm test exit 0
+```
+- ก้อน 1 รอบสาม CHANGES_REQUESTED เพราะการแบ่งก้อน (PRD บรรยายหน้าที่อยู่ก้อนถัดไป, หลักฐานอยู่คนละก้อนกับโค้ด) → ย้าย PRD ไปก้อนที่ทำหน้าครบ และ TASK_BOARD ไปก้อนแรก; เพิ่มหลักฐานที่ถูกขอ:
+  - โหลดครั้งแรกไม่ซ้ำ: เปิด /officers (production build) มี request `/api/officers?page=1&pageSize=10` ครั้งเดียว; เปลี่ยนเป็น 50 ต่อหน้า → `?page=1&pageSize=50` ครั้งเดียว (นับจาก `performance.getEntriesByType('resource')`)
+  - ผลว่าง: ค้นหาฎีกา "ZZZ-NOT-EXIST" → แถว "ไม่พบข้อมูล", ตัวเลือกจำนวนต่อหน้ายังแสดง "รายการที่ 0–0 จาก 0", ไม่มีปุ่มเลขหน้า
+  - เปลี่ยนจำนวนต่อหน้ากลับหน้า 1 และคงตัวกรองที่ค้นแล้ว + ยอดรวมข้ามหลายหน้า: ดูรอบแรกข้อ 2 (P680000017 → 15 ต่อหน้า = แถว 1–15 ของ P680000017) และ "ตรวจในเบราว์เซอร์" (Total 268,523,947.00 เท่ากันทั้งหน้า 1 และ 2 = ผลรวม 57 แถว)
+  - ยังไม่มีเทสต์ DOM (โปรเจกต์ไม่มี jsdom/React testing library) พฤติกรรมฝั่งเบราว์เซอร์จึงตรวจด้วย browser pane ตามรายการข้างบน; ตรรกะที่แยกได้ (`pageItems`, `pageRange`, `clampPageSize`, `parsePage`) มี unit test
+- ก้อน 1 รอบสี่ CHANGES_REQUESTED: หน้าเกินหน้าสุดท้าย (ข้อมูลถูกลบระหว่างเปลี่ยนหน้า) `pageRange(3, 10, 15)` แสดง "15–15" ทั้งที่ไม่มีแถว → `pageRange` คืน 0–0 เมื่อ from > total (เทสต์ใหม่) และ `<Pagination>` เรียก `onPageChange(totalPages)` เมื่อ page > totalPages (ไม่ทำระหว่างโหลด)
+- ก้อน 1 รอบห้า CHANGES_REQUESTED: การแก้หน้าเกินช่วงยิงซ้ำไม่จบถ้าโหลดหน้าแก้ไม่สำเร็จ (Attack the Premise: เป็นรอบที่ 2 ของจุดนี้ จึงลดเหลือกลไกเล็กที่สุดที่ทดสอบได้) → `pageCorrection()` ใน `src/lib/pagination.ts` ลองครั้งเดียวต่อคู่ (page, totalPages) จำคู่ที่ลองแล้วใน ref; เทสต์ครอบกรณีโหลดแก้ไม่สำเร็จแล้ว disabled สลับ → ไม่ยิงซ้ำ
+- ก้อน 1 รอบหก APPROVED
+- ก้อน 2 รอบแรก CHANGES_REQUESTED: (1) หน้าค้นหาอัตโนมัติ (cheques, cpays, deegars, officers) เปลี่ยนจำนวนต่อหน้าใช้ `filters` ในฟอร์ม → ใช้ `appliedFilters` แบบเดียวกับหน้าอื่น ครบทั้ง 8 หน้าที่ค้นหาอัตโนมัติ (รวม regisdeegars, stations, tools/users, tools/useronline);
+  (2) ผู้ตรวจไม่เห็นโค้ด `Pagination`/`clampPageSize`/`parsePage` ในก้อนนี้ — อยู่ในก้อน 1 ที่ APPROVED แล้ว (`src/components/Pagination.tsx`, `src/lib/pagination.ts`) และมี unit test ใน `tests/pagination.test.mjs`
+- ก้อน 2 รอบสอง CHANGES_REQUESTED: ขอ output ของเทสต์รอบปัจจุบัน + หลักฐานว่าเปลี่ยนจำนวนต่อหน้าแล้วกลับหน้า 1 และคงตัวกรอง → แนบด้านล่าง (รันบนสภาพไฟล์สุดท้ายหลังแก้ appliedFilters ทั้ง 8 หน้า และเปลี่ยนชื่อ component `KtbDeegarPage`)
+
+#### เทสต์รอบปัจจุบัน (output จริง)
+```
+$ npx tsc --noEmit -p .
+tsc exit 0
+
+$ npm test
+✔ checker rejects handler exports it cannot inspect (1.4469ms)
+✔ non-public routes only declare handlers as export async function (5.2454ms)
+✔ checker flags an unguarded handler next to a guarded one (0.5517ms)
+✔ every handler of every non-public API route checks role or ownership before DB access (4.1996ms)
+✔ PUBLIC list has no stale entries (0.3922ms)
+✔ verifySession is always awaited (3.6354ms)
+✔ user management and login log are admin-only (0.6152ms)
+✔ password column is never selected back to the browser (0.8636ms)
+✔ thaiid-login bypass route does not exist (17.0194ms)
+✔ only approved routes issue a session cookie (18.3527ms)
+✔ missing or blank secret is rejected (0.9956ms)
+✔ the old hardcoded fallback is rejected even if set explicitly (0.155ms)
+✔ secrets shorter than 32 bytes are rejected (0.1783ms)
+✔ a random 32-byte hex secret is accepted and encoded as UTF-8 bytes (0.6233ms)
+✔ error message never echoes the secret value (0.2435ms)
+✔ auth.ts has no fallback and validates the key before any auth path (2.1335ms)
+✔ NextAuth config is lazy and validates AUTH_SECRET first (1.2293ms)
+✔ package copy of authSecret.ts matches the app (1.8747ms)
+✔ bootstrap is a dependency and its CSS is imported in the root layout before globals.css (1.126ms)
+✔ only the chart bars and the printable A4 slip keep a CSS module (0.6634ms)
+✔ Bootstrap JS is not loaded (React state drives navbar/dropdown/modal) (9.7149ms)
+✔ PasswordInput uses a Bootstrap input-group with the eye button (0.308ms)
+✔ header hides the menu for status user exactly as before (0.2848ms)
+✔ every useronline INSERT hard-codes NULL for password (1.5128ms)
+✔ login audit no longer carries the password at all (1.0635ms)
+✔ no other code writes to useronline (19.2553ms)
+✔ login log API and page do not expose a password field (0.5592ms)
+✔ page size options are exactly 5/10/15/50/100 and the API cap is the largest (1.0183ms)
+✔ clampPageSize keeps 1..max and falls back on junk (0.137ms)
+✔ parsePage gives a safe integer >= 1 (no NaN/Infinity OFFSET) (0.1351ms)
+✔ pageItems shows first/last, current ±2 and gaps (0.1988ms)
+✔ pageRange (0.1657ms)
+✔ pageCorrection jumps to the last page once and never loops on a failed fetch (0.1202ms)
+✔ every paged list page uses the shared <Pagination> and no hand-made page buttons remain (12.5566ms)
+✔ APIs that capped page size at 50 now allow MAX_PAGE_SIZE (100) (9.5319ms)
+✔ starts hidden: type is password until the eye is clicked (0.7396ms)
+✔ eye button never submits the form (0.1489ms)
+✔ form submit and reset hide the password again (0.1638ms)
+✔ concealKey change hides the password (0.187ms)
+✔ login form uses PasswordInput inside a <form> (submit listener applies) (0.3808ms)
+✔ user form (no <form>) bumps concealKey on every save attempt (0.3515ms)
+✔ limited user: only own CID (0.6829ms)
+✔ ordinary users and unknown statuses are limited at every accessLevel (fail closed) (0.574ms)
+✔ admin/manager are ADMIN, editor is EDITOR, whatever the accessLevel (0.8524ms)
+✔ no role check anywhere grants access from accessLevel (1.0529ms)
+✔ limited user without a CID in session gets nothing (0.1174ms)
+✔ staff roles keep access to any CID (0.0991ms)
+✔ no session or empty target CID is denied (0.0611ms)
+✔ per-officer routes check CID ownership (0.5522ms)
+✔ bigintToJson keeps exact values (0.7096ms)
+✔ paydirect report serializes ID through bigintToJson (0.4677ms)
+✔ latest-salary/regisdeegar joins go through keyJoin with a runtime data check (1.3205ms)
+✔ keyJoin: fast form only when keys are trimmed, otherwise the original TRIM-both-sides form (1.4875ms)
+✔ every writer of salary/regisdeegar trims PNUMBER (and NODEEGAR) before saving (0.675ms)
+✔ index script only checks data (no writes) and creates the report indexes (0.4154ms)
+✔ tax reports default to the latest numeric year (junk YEARTHAI='YEAR' row) (0.4438ms)
+✔ old vs new join give the same matches for whitespace variants (live DB, temporary tables) (57.6841ms)
+✔ pickPeriodsForPage picks exactly the periods covering the page (0.3483ms)
+✔ reports/all: new per-period paging returns the same rows as the old global sort (live DB) (11798.8447ms)
+✔ count queries started early always have a rejection handler (0.7486ms)
+✔ reports/all runs totals in parallel with the per-period counts (0.2607ms)
+ℹ tests 61
+ℹ suites 0
+ℹ pass 61
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12012.9107
+npm test exit 0
+```
+eslint ทั้ง `src`: 255 ปัญหา (ก่อนงาน #11 = 267) ไม่มีปัญหาใหม่ต่อไฟล์/ต่อ rule — `react-hooks/rules-of-hooks` 9 ข้อใน ktbdeegar หายเพราะชื่อ component เดิมขึ้นต้นตัวเล็ก (`ktbdeegarPage`) แก้เป็น `KtbDeegarPage`
+`npx next build`: ✓ Compiled successfully, ✓ Generating static pages (68/68)
+
+#### หน้าทะเบียนเช็ค (ค้นหาอัตโนมัติ) หลังแก้ appliedFilters — `next start -p 9104` ข้อมูลจริง
+| ขั้น | ผล |
+|------|----|
+| เปิดหน้า | รายการที่ 1–10 จาก 24,638 |
+| พิมพ์ตัวกรองเลขเช็ค `3131` (รอ 250ms ค้นหาเอง) | รายการที่ 1–10 จาก 8,920 |
+| เลือก 100 ต่อหน้า | รายการที่ 1–100 จาก 8,920, 100 แถว (กลับหน้า 1, ตัวกรองคงอยู่) |
+| กดหน้าถัดไป | รายการที่ 101–200 จาก 8,920, 100 แถว, แถวแรก 31310072270 (ยังเป็นผลกรอง 3131) |
+หน้าค้นหาด้วยปุ่ม (ทดสอบไว้ข้างบน): ค้นหาฎีกา P680000017 → พิมพ์ P61 ไม่กดค้นหา → เลือก 15 ต่อหน้า = รายการที่ 1–15 ของ P680000017; สรุปภาษี(ฝ่าย) ค้น 2568 → พิมพ์ 2560 → ถัดไป = 11–20 จาก 178 (ชุด 2568)
+- ก้อน 2 รอบสาม APPROVED
+- ก้อน 3 รอบแรก CHANGES_REQUESTED: ค่าเริ่มต้น useronline 20 → 15 ไม่มีคำอธิบาย → ใส่คอมเมนต์ที่ตัวแปร: 20 ไม่อยู่ใน `PAGE_SIZE_OPTIONS` select จึงแสดงไม่ได้ ใช้ตัวเลือกที่ใกล้ที่สุดตาม PRD 11.1 (ทำแบบเดียวกันที่ taxtitle 90 → 100)
+- ก้อน 3 รอบสอง CHANGES_REQUESTED: ขอหลักฐานของหน้าในก้อนนี้ (stations, tools/users, tools/useronline, reports ทั้งหมด, bydate, ส่งกรุงไทย) ครบทุกจำนวนต่อหน้า + คงตัวกรอง + เพดาน API → แนบด้านล่าง
+
+#### หลักฐานหน้าในก้อน 3 (`next start -p 9104`, ข้อมูลจริง, สภาพไฟล์สุดท้าย)
+เลือกจำนวนต่อหน้าทีละค่า แล้วกดหน้าถัดไป (จำนวนแถวในตาราง / ข้อความช่วงรายการ):
+| หน้า | เริ่ม | 5 | 10 | 15 | 50 | 100 | ถัดไป |
+|------|------|---|----|----|----|-----|-------|
+| /stations | 10: 1–10 จาก 254 | 5 | 10 | 15 | 50 | 100 | 100: 101–200 |
+| /tools/users | 10: 1–10 จาก 12,140 | 5 | 10 | 15 | 50 | 100 | 100: 101–200 |
+| /tools/useronline | 15: 1–15 จาก 34,488 | 5 | 10 | 15 | 50 | 100 | 100: 101–200 |
+| /reports (ทั้งหมด) | 10: 1–10 จาก 111,215 | 5 | 10 | 15 | 50 | 100 | 100: 101–200 |
+(ทุกค่าจำนวนแถวตรงกับที่เลือก และช่วงรายการเริ่มที่ 1 หลังเปลี่ยนจำนวนต่อหน้า)
+
+คงตัวกรองที่ค้นแล้ว: /reports ค้นปี 2560 → "1–10 จาก 5,393" → พิมพ์ 2568 ไม่กดค้นหา → เลือก 15 = "1–15 จาก 5,393" ปีในตารางยังเป็น 2560 → ถัดไป "16–30 จาก 5,393" ปี 2560
+
+API (หน้าต้องกรอกเงื่อนไขก่อน) page=2 กับทุกจำนวนต่อหน้า:
+- `/api/reports/bydate?startdate=2025-01-01&enddate=2025-12-31`: 5→5 แถว (2,119 หน้า), 10→10 (1,060), 15→15 (707), 50→50 (212), 100→100 (106)
+- `/api/reports/ktbcheque?cheque=31310248649` (102 แถว): 5→5 (21 หน้า), 10→10 (11), 15→15 (7), 50→50 (3), 100→2 แถว (หน้า 2 ของ 2)
+- `/api/reports/ktbdeegar?pnumber=P680000017&nodeegar=1` size 5 → 5 แถว จาก 47 (10 หน้า)
+เพดาน API: stations / users / useronline / reports/all — `pageSize=100` → 100 แถว, `pageSize=500` → ตัดเหลือ 100, `page=Infinity` → 200 page 1 (useronline ไม่ได้แก้ในงานนี้ ตอบ `page: null` แต่ได้หน้าแรก — บันทึกไว้เป็นงานต่อ)
+
+```
+$ npx tsc --noEmit -p .
+tsc exit 0
+
+$ npm test
+✔ login log API and page do not expose a password field (0.9396ms)
+(node:31984) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/fullstack/paymonth-nextjs/src/lib/pagination.ts is not specified and it doesn't parse as CommonJS.
+✔ page size options are exactly 5/10/15/50/100 and the API cap is the largest (1.1102ms)
+✔ pageItems shows first/last, current ±2 and gaps (0.1973ms)
+✔ pageRange (0.1671ms)
+✔ pageCorrection jumps to the last page once and never loops on a failed fetch (0.1291ms)
+✔ every paged list page uses the shared <Pagination> and no hand-made page buttons remain (30.4481ms)
+✔ APIs that capped page size at 50 now allow MAX_PAGE_SIZE (100) (23.207ms)
+✔ pickPeriodsForPage picks exactly the periods covering the page (0.2942ms)
+ℹ tests 61
+ℹ pass 61
+ℹ fail 0
+ℹ skipped 0
+npm test exit 0
+```
+
+## หลักฐาน: งาน #13 — ตัวเลขจำนวนเงินชิดขวาทุกหน้า
+
+### สิ่งที่เปลี่ยน
+- 77 ช่อง (`td`/`th`) ใน 19 หน้า ที่แสดงจำนวนเงินแต่จัดกลาง (`text-center`) หรือชิดซ้าย (ไม่มี class) → `text-end text-nowrap`:
+  deegars 3, regisdeegars 6, reports (ทั้งหมด + modal) 4, bydate 1, ktbcheque 1, ktbdeegar 1, payvouchers 1, summarydeegar 3, summarydeegar รายฎีกา 3, taxdept 2, taxdept/group 3, taxtitle 7, taxtmonth 26 (13 คอลัมน์ + แถวรวม 13), officers/paydirect 3, officers/[cid]/{paydirect,payperson,personal} 3+3+3, /paydirect 1, /salaries/[cid] 3
+- ไม่แตะหัวคอลัมน์ ข้อความ หรือการจัดรูปแบบตัวเลข
+- เทสต์ใหม่ใน `tests/bootstrap-ui.test.mjs`: ทุก `td`/`th` ที่ขึ้นต้นด้วย formatMoney/formatNumber/formatBaht/toLocaleString ต้องมี `text-end` (พบ ≥ 77 ช่อง)
+
+### เทสต์ (output จริง)
+```
+$ npx tsc --noEmit -p .
+tsc exit 0
+
+$ npm test
+✔ money cells are right-aligned on every page (text-end) (4.5708ms)
+ℹ tests 62
+ℹ pass 62
+ℹ fail 0
+ℹ skipped 0
+npm test exit 0
+```
+`next build` ✓ Compiled successfully (68/68)
+
+### ตรวจในเบราว์เซอร์ (`next start -p 9104`, ข้อมูลจริง) — นับช่องที่ข้อความเป็นจำนวนเงิน `1,234.56` แล้วดู `getComputedStyle().textAlign`
+| หน้า | ช่องจำนวนเงิน | ไม่ชิดขวา |
+|------|------|------|
+| /deegars | 10 | 0 |
+| /regisdeegars | 30 | 0 |
+| /reports | 20 | 0 |
+| /reports/summarydeegar (ภาพที่ผู้ใช้ส่งมา) | 30 | 0 |
+| /reports/taxdept | 20 | 0 |
+| /reports/taxtitle | 679 | 0 |
+| /reports/taxdept/group?yearthai=2568 | 30 | 0 |
+| /officers/[cid]/salaries, personal, payperson | 3, 9, 9 | 0 |
+| /officers/paydirect/[payid] (สลิป A4) | 23 | 0 |
+/officers/[cid]/paydirect แถวแรก: เดือน/ปี ชิดซ้าย, 33,990.00 / 17,193.72 / 16,796.28 ชิดขวา; /deegars ภาษี/ค่าปรับ (แสดง "0") และ Money ชิดขวา
+
+## หลักฐาน: งาน #14 — ประวัติจ่ายตรงรายคนช้า
+
+### สมมติฐาน → ตรวจ (ก่อนแก้)
+หน้า `/officers/[cid]/paydirect` ได้ HTML เร็ว แต่รอข้อมูลจาก `GET /api/officers/[cid]/paydirect`; สงสัยว่า query ค้น `paydirect` ด้วย CID ใช้ index ไม่ได้
+- ตาราง `paydirect` 564,977 แถว, index: `PRIMARY (ID)`, `key (A, B, C)` เท่านั้น; CID ที่ผู้ใช้แจ้งว่าช้า มี 145 แถว
+- EXPLAIN query รายการ (ก่อน): `paydirect type=index key=key rows=564977 Using where; Using index` → อ่านทั้ง index ทุกครั้ง และ query นับจำนวนก็เหมือนกัน
+- เวลาจริง (`next start -p 9104`, DB local, fetch 5 ครั้ง): **390, 439, 438, 438, 431 ms**; เปิดทั้งหน้า: TTFB 9 ms, API 493 ms → เวลารอเกือบทั้งหมดอยู่ที่ query นี้
+
+### แก้
+- `prisma/sql/2026-11-25_paydirect_cid_index.sql`: `CREATE INDEX IF NOT EXISTS idx_paydirect_cid ON paydirect (C, A, B)` (ไม่แก้ข้อมูล รันซ้ำได้) — สร้างบน DB local ใช้ 2.8 วินาที
+- `prisma/schema.prisma`: `@@index([C, A, B], map: "idx_paydirect_cid")`
+- ไม่แก้ query/API/หน้าเว็บ — ผลลัพธ์เหมือนเดิม
+- เทสต์ `tests/paydirect-index.test.mjs`: script สร้าง index (C, A, B) อย่างเดียว ไม่มีคำสั่งแก้ข้อมูล, schema ประกาศ index เดียวกัน, API ยังกรองด้วย `paydirect.C`
+
+### หลังแก้ (วัดแบบเดิม)
+- EXPLAIN: `paydirect type=ref key=idx_paydirect_cid rows=121 Using where; Using index` (ทั้ง query รายการและนับจำนวน)
+- เวลา API 5 ครั้ง: **17, 9, 8, 9, 8 ms** (เดิม ~430 ms); total 145 / 10 แถว เท่าเดิม; page 3 size 50 = 45 แถว 9 ms; อีกคน (128 รายการ) 9 ms
+- เปิดทั้งหน้า: TTFB 10 ms, ข้อมูลมาครบที่ 34 ms (เดิม ~520 ms) — ตาราง 10 แถว "รายการที่ 1–10 จาก 145"
+
+```
+$ npx tsc --noEmit -p .
+tsc exit 0
+
+$ npm test
+✔ SQL script only adds idx_paydirect_cid (C, A, B), re-runnable, no data changes (1.1639ms)
+✔ per-person paydirect API filters by paydirect.C (the column the index starts with) (0.2889ms)
+✔ paydirect report serializes ID through bigintToJson (0.4503ms)
+ℹ tests 65
+ℹ pass 65
+ℹ fail 0
+ℹ skipped 0
+npm test exit 0
+```
+
+### สิ่งที่คนต้องทำ
+- **รัน `prisma/sql/2026-11-25_paydirect_cid_index.sql` บน DB ของ server** (ช่วงไม่มีคนนำเข้าข้อมูลจ่ายตรง เพราะ MyISAM ล็อกตารางระหว่างสร้าง index) — ถ้าไม่รัน หน้าบน server ยังช้าเหมือนเดิม

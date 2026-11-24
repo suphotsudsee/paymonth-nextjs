@@ -45,36 +45,36 @@ export default function PaydirectPage() {
   };
 
   return (
-    <main style={{ padding: '1rem', display: 'grid', gap: '1rem' }}>
-      <h1>Paydirect Report</h1>
-      <form onSubmit={onSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <input placeholder="Year (A)" value={filters.xyear} onChange={onChange('xyear')} style={{ padding: '0.5rem' }} />
+    <main className="container-fluid py-3 vstack gap-3">
+      <h1 className="h4 mb-0">Paydirect Report</h1>
+      <form onSubmit={onSearch} className="d-flex flex-wrap gap-2">
+        <input placeholder="Year (A)" value={filters.xyear} onChange={onChange('xyear')} className="form-control w-auto" />
         <input
           placeholder="Month (B)"
           value={filters.xmonth}
           onChange={onChange('xmonth')}
-          style={{ padding: '0.5rem' }}
+          className="form-control w-auto"
         />
         <input
           placeholder="Department contains"
           value={filters.xtype_pis}
           onChange={onChange('xtype_pis')}
-          style={{ padding: '0.5rem' }}
+          className="form-control w-auto"
         />
         <input
           placeholder="Station contains"
           value={filters.nameprn}
           onChange={onChange('nameprn')}
-          style={{ padding: '0.5rem' }}
+          className="form-control w-auto"
         />
-        <button type="submit" disabled={loading} style={{ padding: '0.5rem 0.75rem' }}>
+        <button type="submit" disabled={loading} className="btn btn-primary">
           {loading ? 'Loading…' : 'Search'}
         </button>
       </form>
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse', minWidth: 900 }}>
-          <thead style={{ textAlign: 'center' }}>
+      {error && <div className="alert alert-danger py-2 mb-0">{error}</div>}
+      <div className="table-responsive">
+        <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+          <thead className="table-light text-center">
             <tr>
               <th>Year(A)</th>
               <th>Month(B)</th>
@@ -93,13 +93,13 @@ export default function PaydirectPage() {
                 <td>{r.C}</td>
                 <td>{r.NAMESTATION}</td>
                 <td>{r.DEPART}</td>
-                <td>{Number(r.SALARY || 0).toLocaleString()}</td>
+                <td className="text-end text-nowrap">{Number(r.SALARY || 0).toLocaleString()}</td>
                 <td>{r.SUBJECT}</td>
               </tr>
             ))}
             {!items.length && (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '0.75rem' }}>
+                <td colSpan={7} className="text-center text-secondary p-3">
                   No data
                 </td>
               </tr>

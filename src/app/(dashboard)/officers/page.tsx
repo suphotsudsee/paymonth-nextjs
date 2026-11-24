@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import styles from "./page.module.css";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { AlignCenter } from "lucide-react";
+import { Pagination, useReloadOnPageSizeChange } from "@/components/Pagination";
 
 type OfficerRow = {
   CID: string;
@@ -109,6 +109,8 @@ export default function OfficersPage() {
     name: "",
     station: "",
   });
+  // ตัวกรองของการโหลดครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า (Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
 
   const [payModal, setPayModal] = useState(false);
   const [payForm, setPayForm] = useState({
@@ -172,7 +174,8 @@ export default function OfficersPage() {
     return String(value);
   };
 
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
+  useReloadOnPageSizeChange(pageSize, () => void load(1, appliedFilters));
 
   const load = async (
     targetPage: number,
@@ -203,6 +206,7 @@ export default function OfficersPage() {
         setData(null);
       } else {
         setData(json);
+        setAppliedFilters(currentFilters);
         setPage(targetPage);
       }
     } catch (err) {
@@ -658,7 +662,7 @@ export default function OfficersPage() {
     const start = (page - 1) * pageSize + 1;
     const end = Math.min(page * pageSize, data.total);
     return `${start}-${end}`;
-  }, [data, page]);
+  }, [data, page, pageSize]);
   const monthChoices: MonthOption[] =
     monthOptions.length > 0
       ? monthOptions
@@ -678,20 +682,20 @@ export default function OfficersPage() {
         ];
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/officers" />
 
-      <main className={styles.main}>
-        <div className={styles.content}>
-          <section className={styles.tableCard}>
-            <div className={styles.tableHeadRow}>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <div>
+          <section className="card shadow-sm mb-3 overflow-hidden">
+            <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
               <span>รายชื่อเจ้าหน้าที่</span>
-              <div className={styles.tableHeadActions}>
-                <span className={styles.resultText}>
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <span className="small text-secondary fw-semibold">
                   Displaying {displayRange} of {data?.total ?? 0} results.
                 </span>
                 <button
-                  className={styles.createBtn}
+                  className="btn btn-primary"
                   type="button"
                   onClick={openCreateModal}
                 >
@@ -700,26 +704,26 @@ export default function OfficersPage() {
               </div>
             </div>
 
-            {error && <div className={styles.error}>{error}</div>}
+            {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-            <div className={styles.tableWrapper}>
-              <table className={styles.table}>
-                <thead>
-                  <tr className={styles.headerRow}>
+            <div className="table-responsive">
+              <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+                <thead className="table-light">
+                  <tr className="text-center">
                     <th>เลขบัตรประชาชน</th>
                     <th>สหกรณ์</th>
                     <th>ชื่อ-นามสกุล</th>
                     <th>ปฏิบัติงานที่</th>
-                    <th className={styles.toolsCol}>เครื่องมือ</th>
-                    <th className={styles.payCol}>รายการรับ-จ่าย</th>
+                    <th className="text-center text-nowrap">เครื่องมือ</th>
+                    <th className="text-center">รายการรับ-จ่าย</th>
                    
-                    <th className={styles.payCol}>ส่วนบุคคล</th>
-                    <th className={styles.payCol}>จ่ายตรง</th>
+                    <th className="text-center">ส่วนบุคคล</th>
+                    <th className="text-center">จ่ายตรง</th>
                   </tr>
-                  <tr className={styles.filterRow}>
+                  <tr>
                     <th>
                       <input
-                        className={styles.filterInput}
+                        className="form-control form-control-sm"
                         value={filters.cid}
                         onChange={(e) =>
                           setFilters((f) => ({ ...f, cid: e.target.value }))
@@ -729,7 +733,7 @@ export default function OfficersPage() {
                     </th>
                     <th>
                       <input
-                        className={styles.filterInput}
+                        className="form-control form-control-sm"
                         value={filters.coop}
                         onChange={(e) =>
                           setFilters((f) => ({ ...f, coop: e.target.value }))
@@ -739,7 +743,7 @@ export default function OfficersPage() {
                     </th>
                     <th>
                       <input
-                        className={styles.filterInput}
+                        className="form-control form-control-sm"
                         value={filters.name}
                         onChange={(e) =>
                           setFilters((f) => ({ ...f, name: e.target.value }))
@@ -749,7 +753,7 @@ export default function OfficersPage() {
                     </th>
                     <th>
                       <input
-                        className={styles.filterInput}
+                        className="form-control form-control-sm"
                         value={filters.station}
                         onChange={(e) =>
                           setFilters((f) => ({ ...f, station: e.target.value }))
@@ -766,19 +770,16 @@ export default function OfficersPage() {
                 </thead>
                 <tbody>
                   {data?.items?.map((row, idx) => (
-                    <tr
-                      key={`${row.CID}-${idx}`}
-                      className={idx % 2 === 0 ? styles.evenRow : ""}
-                    >
+                    <tr key={`${row.CID}-${idx}`}>
                       <td>{row.CID}</td>
                       <td>{row.IDCOOP ?? "-"}</td>
                       <td>{row.NAME ?? "-"}</td>
                       <td>{row.NAMESTATION ?? row.LPOS ?? "-"}</td>
-                      <td className={styles.actionsCell}>
+                      <td className="text-center text-nowrap">
                         {actionIcons.map((icon, iconIdx) => (
                           <button
                             key={icon.label}
-                            className={styles.iconBtn}
+                            className="btn btn-sm btn-outline-primary mx-1"
                             type="button"
                             aria-label={icon.label}
                             title={icon.label}
@@ -805,10 +806,10 @@ export default function OfficersPage() {
                           </button>
                         ))}
                       </td>
-                      <td className={styles.payCell}>
+                      <td className="text-center">
                         <button
                           type="button"
-                          className={styles.createBtn}
+                          className="btn btn-sm btn-primary text-nowrap"
                           onClick={() => openSalaryList(row)}
                           disabled={loading}
                         >
@@ -816,20 +817,20 @@ export default function OfficersPage() {
                         </button>
                       </td>
        
-                      <td className={styles.payCell}>
+                      <td className="text-center">
                         <button
                           type="button"
-                          className={styles.createBtn}
+                          className="btn btn-sm btn-primary text-nowrap"
                           onClick={() => openPersonal(row)}
                           disabled={loading}
                         >
                           ส่วนบุคคล
                         </button>
                       </td>                         
-                      <td className={styles.payCell}>
+                      <td className="text-center">
                         <button
                           type="button"
-                          className={styles.createBtn}
+                          className="btn btn-sm btn-primary text-nowrap"
                           onClick={() => openPayDirect(row)}
                           disabled={loading}
                         >
@@ -841,7 +842,7 @@ export default function OfficersPage() {
 
                   {!data?.items?.length && (
                     <tr>
-                      <td colSpan={6} className={styles.emptyState}>
+                      <td colSpan={6} className="text-center text-secondary p-3">
                         {loading ? "กำลังโหลดข้อมูล..." : "ไม่มีข้อมูล"}
                       </td>
                     </tr>
@@ -850,41 +851,16 @@ export default function OfficersPage() {
               </table>
             </div>
 
-            {data && data.totalPages > 1 && (
-              <div className={styles.pagination}>
-                <span>ไปหน้า:</span>
-                <button
-                  className={styles.pageBtn}
-                  onClick={() => load(Math.max(page - 1, 1))}
-                  disabled={page === 1 || loading}
-                >
-                  &lt; Previous
-                </button>
-                {Array.from({ length: Math.min(data.totalPages, 10) }).map(
-                  (_, idx) => {
-                    const p = idx + 1;
-                    return (
-                      <button
-                        key={p}
-                        className={`${styles.pageBtn} ${
-                          p === page ? styles.currentPage : ""
-                        }`}
-                        onClick={() => load(p)}
-                        disabled={p === page || loading}
-                      >
-                        {p}
-                      </button>
-                    );
-                  },
-                )}
-                <button
-                  className={styles.pageBtn}
-                  onClick={() => load(Math.min(page + 1, data.totalPages))}
-                  disabled={page === data.totalPages || loading}
-                >
-                  Next &gt;
-                </button>
-              </div>
+            {data && (
+              <Pagination
+                page={page}
+                totalPages={data.totalPages}
+                total={data.total}
+                pageSize={pageSize}
+                disabled={loading}
+                onPageChange={(p) => load(p, appliedFilters)}
+                onPageSizeChange={setPageSize}
+              />
             )}
           </section>
 
@@ -894,10 +870,10 @@ export default function OfficersPage() {
       <AppFooter />
 
       {modalMode && (detail || modalMode === "create") && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">
                 {modalMode === "view"
                   ? "View Officer"
                   : modalMode === "edit"
@@ -906,7 +882,7 @@ export default function OfficersPage() {
                 {detail?.NAME || form?.NAME || ""} {detail?.CID || form?.CID || ""}
               </h2>
               <button
-                className={styles.modalClose}
+                className="btn-close"
                 onClick={() => {
                   setModalMode(null);
                   setDetail(null);
@@ -914,65 +890,63 @@ export default function OfficersPage() {
                   setDetailError(null);
                 }}
                 aria-label="Close"
-              >
-                ✕
-              </button>
+              ></button>
             </div>
-            {detailLoading && <div className={styles.modalBody}>กำลังโหลด...</div>}
+            {detailLoading && <div className="modal-body">กำลังโหลด...</div>}
             {detailError && (
-              <div className={styles.modalBody} style={{ color: "#b91c1c" }}>
+              <div className="modal-body text-danger">
                 {detailError}
               </div>
             )}
             {!detailLoading && !detailError && modalMode === "view" && detail && (
-              <div className={styles.modalBody}>
-                <div className={styles.detailRow}>
-                  <span>CID</span>
-                  <strong>{detail.CID}</strong>
+              <div className="modal-body">
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">CID</span>
+                  <strong className="col">{detail.CID}</strong>
                 </div>
-                <div className={styles.detailRow}>
-                  <span>Idcoop</span>
-                  <strong>{detail.IDCOOP ?? "-"}</strong>
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">Idcoop</span>
+                  <strong className="col">{detail.IDCOOP ?? "-"}</strong>
                 </div>
-                <div className={styles.detailRow}>
-                  <span>Idman</span>
-                  <strong>{detail.IDMAN ?? "-"}</strong>
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">Idman</span>
+                  <strong className="col">{detail.IDMAN ?? "-"}</strong>
                 </div>
-                <div className={styles.detailRow}>
-                  <span>No</span>
-                  <strong>{detail.NO ?? "-"}</strong>
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">No</span>
+                  <strong className="col">{detail.NO ?? "-"}</strong>
                 </div>
-                <div className={styles.detailRow}>
-                  <span>Code</span>
-                  <strong>{detail.CODE ?? "-"}</strong>
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">Code</span>
+                  <strong className="col">{detail.CODE ?? "-"}</strong>
                 </div>
-                <div className={styles.detailRow}>
-                  <span>Name</span>
-                  <strong>{detail.NAME ?? "-"}</strong>
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">Name</span>
+                  <strong className="col">{detail.NAME ?? "-"}</strong>
                 </div>
-                <div className={styles.detailRow}>
-                  <span>Sex</span>
-                  <strong>{formatSex(detail.SEX)}</strong>
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">Sex</span>
+                  <strong className="col">{formatSex(detail.SEX)}</strong>
                 </div>
-                <div className={styles.detailRow}>
-                  <span>Lpos</span>
-                  <strong>{detail.LPOS ?? "-"}</strong>
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">Lpos</span>
+                  <strong className="col">{detail.LPOS ?? "-"}</strong>
                 </div>
-                <div className={styles.detailRow}>
-                  <span>Station</span>
-                  <strong>{detail.NAMESTATION ?? "-"}</strong>
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">Station</span>
+                  <strong className="col">{detail.NAMESTATION ?? "-"}</strong>
                 </div>
-                <div className={styles.detailRow}>
-                  <span>Dupdate</span>
-                  <strong>{detail.DUPDATE ?? "-"}</strong>
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">Dupdate</span>
+                  <strong className="col">{detail.DUPDATE ?? "-"}</strong>
                 </div>
-                <div className={styles.detailRow}>
-                  <span>Mobile</span>
-                  <strong>{detail.MOBILE ?? "-"}</strong>
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">Mobile</span>
+                  <strong className="col">{detail.MOBILE ?? "-"}</strong>
                 </div>
-                <div className={styles.detailRow}>
-                  <span>Email</span>
-                  <strong>{detail.EMAIL ?? "-"}</strong>
+                <div className="row mx-0 py-2 border-bottom small">
+                  <span className="col-5 col-sm-4 text-secondary">Email</span>
+                  <strong className="col">{detail.EMAIL ?? "-"}</strong>
                 </div>
               </div>
             )}
@@ -980,12 +954,12 @@ export default function OfficersPage() {
               !detailError &&
               (modalMode === "edit" || modalMode === "create") &&
               form && (
-              <div className={styles.modalBody}>
-                <div className={styles.formGrid}>
+              <div className="modal-body">
+                <div className="row row-cols-1 row-cols-md-2 g-3">
                   <label>
                     CID *
                     <input
-                      className={styles.input}
+                      className="form-control"
                       value={form.CID}
                       disabled={modalMode !== "create"}
                       onChange={(e) =>
@@ -996,7 +970,7 @@ export default function OfficersPage() {
                   <label>
                     Idcoop
                     <input
-                      className={styles.input}
+                      className="form-control"
                       value={form.IDCOOP ?? ""}
                       onChange={(e) =>
                         setForm((f) => (f ? { ...f, IDCOOP: e.target.value } : f))
@@ -1006,7 +980,7 @@ export default function OfficersPage() {
                   <label>
                     Idman
                     <input
-                      className={styles.input}
+                      className="form-control"
                       value={form.IDMAN ?? ""}
                       onChange={(e) =>
                         setForm((f) => (f ? { ...f, IDMAN: e.target.value } : f))
@@ -1016,7 +990,7 @@ export default function OfficersPage() {
                   <label>
                     No
                     <input
-                      className={styles.input}
+                      className="form-control"
                       value={form.NO ?? ""}
                       onChange={(e) =>
                         setForm((f) => (f ? { ...f, NO: e.target.value } : f))
@@ -1026,7 +1000,7 @@ export default function OfficersPage() {
                   <label>
                     Code
                     <select
-                      className={styles.select}
+                      className="form-select"
                       value={form.CODE ?? ""}
                       onChange={(e) => {
                         const code = e.target.value;
@@ -1053,7 +1027,7 @@ export default function OfficersPage() {
                   <label>
                     Name
                     <input
-                      className={styles.input}
+                      className="form-control"
                       value={form.NAME ?? ""}
                       onChange={(e) =>
                         setForm((f) => (f ? { ...f, NAME: e.target.value } : f))
@@ -1063,7 +1037,7 @@ export default function OfficersPage() {
                                     <label>
                     Sex
                     <select
-                      className={styles.select}
+                      className="form-select"
                       value={form.SEX ?? ""}
                       onChange={(e) =>
                         setForm((f) => (f ? { ...f, SEX: e.target.value } : f))
@@ -1077,7 +1051,7 @@ export default function OfficersPage() {
                   <label>
                     Lpos
                     <input
-                      className={styles.input}
+                      className="form-control"
                       value={form.LPOS ?? ""}
                       onChange={(e) =>
                         setForm((f) => (f ? { ...f, LPOS: e.target.value } : f))
@@ -1087,7 +1061,7 @@ export default function OfficersPage() {
                   <label>
                     Dupdate
                     <input
-                      className={styles.input}
+                      className="form-control"
                       value={form.DUPDATE ?? ""}
                       onChange={(e) =>
                         setForm((f) => (f ? { ...f, DUPDATE: e.target.value } : f))
@@ -1097,7 +1071,7 @@ export default function OfficersPage() {
                   <label>
                     Mobile
                     <input
-                      className={styles.input}
+                      className="form-control"
                       value={form.MOBILE ?? ""}
                       onChange={(e) =>
                         setForm((f) => (f ? { ...f, MOBILE: e.target.value } : f))
@@ -1107,7 +1081,7 @@ export default function OfficersPage() {
                   <label>
                     Email
                     <input
-                      className={styles.input}
+                      className="form-control"
                       value={form.EMAIL ?? ""}
                       onChange={(e) =>
                         setForm((f) => (f ? { ...f, EMAIL: e.target.value } : f))
@@ -1115,16 +1089,16 @@ export default function OfficersPage() {
                     />
                   </label>
                 </div>
-                <div className={styles.saveRow}>
+                <div className="d-flex gap-2 mt-3">
                   <button
-                    className={styles.primaryBtn}
+                    className="btn btn-primary"
                     onClick={handleSave}
                     disabled={saveLoading}
                   >
                     {saveLoading ? "Saving..." : "Save"}
                   </button>
                   <button
-                    className={styles.secondaryBtn}
+                    className="btn btn-outline-secondary"
                     onClick={() => setModalMode(null)}
                     type="button"
                   >
@@ -1133,42 +1107,40 @@ export default function OfficersPage() {
                 </div>
               </div>
             )}
-          </div>
+          </div></div>
         </div>
       )}
 
       {bankModal && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">
                 Manage Banks {bankOfficer.name ? bankOfficer.name : ""}{" "}
                 {bankOfficer.cid}
               </h2>
               <button
-                className={styles.modalClose}
+                className="btn-close"
                 onClick={() => {
                   setBankModal(false);
                   setBankError(null);
                 }}
                 aria-label="Close"
-              >
-                ✕
-              </button>
+              ></button>
             </div>
-            <div className={styles.modalBody}>
+            <div className="modal-body">
               {bankError && (
-                <div style={{ color: "#b91c1c", marginBottom: 8 }}>{bankError}</div>
+                <div className="alert alert-danger py-2 mb-2 small">{bankError}</div>
               )}
-              <div className={styles.bankFormGrid}>
+              <div className="row row-cols-1 row-cols-md-3 g-2 mt-1">
                 <label>
                   CID
-                  <input className={styles.input} value={bankForm.cid} disabled />
+                  <input className="form-control" value={bankForm.cid} disabled />
                 </label>
                 <label>
                   Idbank
                   <input
-                    className={styles.input}
+                    className="form-control"
                     value={bankForm.idbank}
                     onChange={(e) =>
                       setBankForm((f) => ({ ...f, idbank: e.target.value }))
@@ -1178,7 +1150,7 @@ export default function OfficersPage() {
                 <label>
                   Namebank
                   <input
-                    className={styles.input}
+                    className="form-control"
                     value={bankForm.namebank}
                     onChange={(e) =>
                       setBankForm((f) => ({ ...f, namebank: e.target.value }))
@@ -1186,16 +1158,16 @@ export default function OfficersPage() {
                   />
                 </label>
               </div>
-              <div className={styles.saveRow}>
+              <div className="d-flex gap-2 mt-3">
                 <button
-                  className={styles.primaryBtn}
+                  className="btn btn-primary"
                   onClick={saveBank}
                   disabled={bankSaving}
                 >
                   {bankSaving ? "Saving..." : "Save"}
                 </button>
                 <button
-                  className={styles.secondaryBtn}
+                  className="btn btn-outline-secondary"
                   type="button"
                   onClick={() =>
                     setBankForm({ id: undefined, cid: bankOfficer.cid, idbank: "", namebank: "" })
@@ -1205,15 +1177,15 @@ export default function OfficersPage() {
                 </button>
               </div>
 
-              <div className={styles.bankTableWrap}>
-                <div className={styles.tableTop}>
-                  <span className={styles.tableTitle}>บัญชีธนาคาร</span>
-                  <span className={styles.results}>
+              <div className="table-responsive mt-3 border rounded">
+                <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
+                  <span className="fw-bold">บัญชีธนาคาร</span>
+                  <span className="small text-secondary">
                     Displaying {banks.length} result{banks.length === 1 ? "" : "s"}.
                   </span>
                 </div>
-                <table className={styles.bankTable}>
-                  <thead>
+                <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+                  <thead className="table-light">
                     <tr>
                       <th>ID</th>
                       <th>Cid</th>
@@ -1225,14 +1197,14 @@ export default function OfficersPage() {
                   <tbody>
                     {bankLoading && (
                       <tr>
-                        <td colSpan={5} className={styles.emptyState}>
+                        <td colSpan={5} className="text-center text-secondary p-3">
                           กำลังโหลด...
                         </td>
                       </tr>
                     )}
                     {!bankLoading && banks.length === 0 && (
                       <tr>
-                        <td colSpan={5} className={styles.emptyState}>
+                        <td colSpan={5} className="text-center text-secondary p-3">
                           ยังไม่มีบัญชีธนาคาร
                         </td>
                       </tr>
@@ -1243,9 +1215,9 @@ export default function OfficersPage() {
                         <td>{b.CID}</td>
                         <td>{b.IDBANK}</td>
                         <td>{b.NAMEBANK ?? "-"}</td>
-                        <td className={styles.actionsCell}>
+                        <td className="text-center text-nowrap">
                           <button
-                            className={styles.iconBtn}
+                            className="btn btn-sm btn-outline-primary mx-1"
                             onClick={() =>
                               setBankForm({
                                 id: b.id,
@@ -1261,7 +1233,7 @@ export default function OfficersPage() {
                             ✏️
                           </button>
                           <button
-                            className={styles.iconBtn}
+                            className="btn btn-sm btn-outline-primary mx-1"
                             onClick={() => deleteBank(b.id)}
                             type="button"
                             aria-label="ลบบัญชี"
@@ -1277,7 +1249,7 @@ export default function OfficersPage() {
                 </table>
               </div>
             </div>
-          </div>
+          </div></div>
         </div>
       )}
     </div>

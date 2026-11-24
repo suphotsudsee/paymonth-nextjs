@@ -2,9 +2,9 @@
 
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import styles from './page.module.css';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
+import { Pagination } from '@/components/Pagination';
 
 type Item = {
   ID: number;
@@ -41,13 +41,17 @@ export default function ReportsTaxTitlePage() {
   const [data, setData] = useState<ApiResult | null>(null);
   const departs = ['ข้าราชการ', 'พนักงานกระทรวง', 'พนักงานราชการ', 'ลูกจ้าง'];
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(90);
+  // ค่าเดิม 90 ไม่อยู่ใน PAGE_SIZE_OPTIONS (5/10/15/50/100) → ใช้ 100 ซึ่งใกล้ที่สุด (PRD 11.1)
+  const [pageSize, setPageSize] = useState(100);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     yearthai: '',
     depart: '',
   });
+  // ตัวกรองของการค้นหาครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า
+  // (ไม่ใช้ค่าที่พิมพ์ค้างในฟอร์มแต่ยังไม่กดค้นหา — Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
 
   const fetchData = async (
     targetPage: number,
@@ -73,6 +77,7 @@ export default function ReportsTaxTitlePage() {
         throw new Error(json.error || 'ไม่สามารถโหลดข้อมูลได้');
       }
       setData(json);
+      setAppliedFilters(currentFilters);
       setPage(targetPage);
       setPageSize(targetSize);
       if (!currentFilters.yearthai && json.items?.length) {
@@ -97,14 +102,6 @@ export default function ReportsTaxTitlePage() {
     return `${start}-${end}`;
   }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 3, total - 6));
-    const end = Math.min(total, start + 6);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const onFilterChange =
     (field: keyof typeof filters) =>
@@ -126,31 +123,31 @@ export default function ReportsTaxTitlePage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/reports/taxtitle" />
 
-      <main className={styles.main}>
-        <section className={styles.card}>
-          <div className={styles.headRow}>
-            <div className={styles.title}>
-              <h1>สรุปภาษี (ตำแหน่ง)</h1>
-              <p>รวมเงินได้และภาษี แยกตามตำแหน่ง</p>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
+            <div className="d-flex flex-column gap-1">
+              <h1 className="h5 mb-0">สรุปภาษี (ตำแหน่ง)</h1>
+              <p className="small text-secondary mb-0">รวมเงินได้และภาษี แยกตามตำแหน่ง</p>
             </div>
-            <div className={styles.controls}>
-              <div className={styles.displayActions}>
-                <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <span className="small text-secondary fw-semibold">
                   {data ? `Displaying ${displayRange} of ${data.total} results.` : 'กำลังโหลด...'}
                 </span>
-                <div className={styles.actionButtons}>
+                <div className="d-flex flex-wrap align-items-center gap-2">
                   <button
                     type="submit"
                     form="taxtitle-filter-form"
-                    className={styles.primaryBtn}
+                    className="btn btn-primary"
                     disabled={loading}
                   >
                     {loading ? 'กำลังค้นหา...' : 'ค้นหา'}
                   </button>
-                  <button type="button" className={styles.secondaryBtn} onClick={handleReset} disabled={loading}>
+                  <button type="button" className="btn btn-outline-secondary" onClick={handleReset} disabled={loading}>
                     ล้างข้อมูล
                   </button>
                 </div>
@@ -158,21 +155,21 @@ export default function ReportsTaxTitlePage() {
             </div>
           </div>
 
-          <form id="taxtitle-filter-form" className={styles.filterForm} onSubmit={handleSearch}>
-            <div className={styles.filtersRow}>
-              <label className={styles.filterField}>
+          <form id="taxtitle-filter-form" className="px-3 pt-3 pb-2 border-bottom bg-light" onSubmit={handleSearch}>
+            <div className="row g-2 align-items-end">
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>ปีภาษี (พ.ศ.)</span>
                 <input
                   type="text"
                   value={filters.yearthai}
                   onChange={onFilterChange('yearthai')}
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                   placeholder="เช่น 2568"
                 />
               </label>
-              <label className={styles.filterField}>
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>ตำแหน่ง</span>
-                <select value={filters.depart} onChange={onFilterChange('depart')} className={styles.filterSelect}>
+                <select value={filters.depart} onChange={onFilterChange('depart')} className="form-select">
                   <option value="">ตำแหน่ง</option>
                   {departs.map((d) => (
                     <option key={d} value={d}>
@@ -184,11 +181,11 @@ export default function ReportsTaxTitlePage() {
             </div>
           </form>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>ID</th>
                   <th>CID</th>
@@ -208,7 +205,7 @@ export default function ReportsTaxTitlePage() {
               <tbody>
                 {loading && !data && (
                   <tr>
-                    <td colSpan={13} className={styles.loading}>
+                    <td colSpan={13} className="text-center text-primary fw-semibold p-3">
                       กำลังโหลดข้อมูล...
                     </td>
                   </tr>
@@ -221,18 +218,18 @@ export default function ReportsTaxTitlePage() {
                     <td>{row.DEPART}</td>
                     <td>{row.NAMESTATION}</td>
                     <td>{row.YEARTHAI}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.x10001)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.x10002)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.x10004)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.x10005)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.x10010)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.SUMMONEY)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.TAX)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.x10001)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.x10002)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.x10004)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.x10005)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.x10010)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.SUMMONEY)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.TAX)}</td>
                   </tr>
                 ))}
                 {data && data.items.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={13} className={styles.empty}>
+                    <td colSpan={13} className="text-center text-secondary p-3">
                       ไม่พบข้อมูล
                     </td>
                   </tr>
@@ -242,8 +239,8 @@ export default function ReportsTaxTitlePage() {
           </div>
 
           {data && (
-            <div className={styles.metaRow}>
-              <div className={styles.totals}>
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 px-3 py-2 border-top bg-light small">
+              <div className="d-flex flex-wrap gap-3">
                 <span>
                   Total รวมเงินได้: <strong>{formatMoney(data.totalIncome)}</strong>
                 </span>
@@ -251,35 +248,18 @@ export default function ReportsTaxTitlePage() {
                   Total ภาษี: <strong>{formatMoney(data.totalTax)}</strong>
                 </span>
               </div>
-              {data.totalPages > 1 && (
-                <div className={styles.actionButtons}>
-                  <button
-                    className={styles.secondaryBtn}
-                    onClick={() => fetchData(Math.max(1, page - 1), pageSize)}
-                    disabled={page === 1 || loading}
-                  >
-                    &lt; Prev
-                  </button>
-                  {pageWindow.map((p) => (
-                    <button
-                      key={p}
-                      className={`${styles.secondaryBtn} ${p === page ? styles.primaryBtn : ''}`}
-                      onClick={() => fetchData(p, pageSize)}
-                      disabled={p === page || loading}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                  <button
-                    className={styles.secondaryBtn}
-                    onClick={() => fetchData(Math.min(page + 1, data.totalPages), pageSize)}
-                    disabled={page === data.totalPages || loading}
-                  >
-                    Next &gt;
-                  </button>
-                </div>
-              )}
             </div>
+          )}
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchData(p, pageSize, appliedFilters)}
+              onPageSizeChange={(n) => void fetchData(1, n, appliedFilters)}
+            />
           )}
         </section>
       </main>

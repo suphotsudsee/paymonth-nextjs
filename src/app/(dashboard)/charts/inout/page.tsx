@@ -63,35 +63,35 @@ export default function InOutChartPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/charts/inout" />
 
-      <main className={styles.main}>
-        <section className={styles.card}>
-          <div className={styles.header}>
-            <div className={styles.title}>
-              <h1>รายรับรายจ่าย</h1>
-              <p>ข้อมูลปีภาษี: {data?.yearthai || year}</p>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 p-3">
+          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div className="d-flex flex-column gap-1">
+              <h1 className="h5 mb-0">รายรับรายจ่าย</h1>
+              <p className="small text-secondary mb-0">ข้อมูลปีภาษี: {data?.yearthai || year}</p>
             </div>
-            <form className={styles.controls} onSubmit={handleSearch}>
+            <form className="d-flex flex-wrap align-items-center gap-2" onSubmit={handleSearch}>
               <input
-                className={styles.input}
+                className="form-control w-auto"
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
                 placeholder="2557"
               />
-              <button className={styles.button} type="submit" disabled={loading}>
+              <button className="btn btn-primary" type="submit" disabled={loading}>
                 {loading ? 'กำลังโหลด...' : 'ค้นหา'}
               </button>
             </form>
           </div>
 
-          {error && <div className={styles.title}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 mt-2 mb-0 small">{error}</div>}
 
-          <div className={styles.chart}>
+          <div className="mt-3 pb-3">
             <div className={styles.bars}>
               {data?.items.map((item) => (
-                <div key={item.month} className={styles.barGroup}>
+                <div key={item.month} className="d-flex flex-column align-items-center gap-1">
                   <div className={`${styles.bar} ${styles.incomeBar}`} style={{ height: scaleHeight(item.income) }}>
                     <span className={styles.barLabel} style={{ color: '#2c7be5' }}>
                       {formatMoney(item.income)}
@@ -102,18 +102,18 @@ export default function InOutChartPage() {
                       {formatMoney(item.outcome)}
                     </span>
                   </div>
-                  <div className={styles.month}>{item.month}</div>
+                  <div className="small text-center">{item.month}</div>
                 </div>
               ))}
               {!data?.items?.length && !loading && <div>ไม่มีข้อมูล</div>}
             </div>
 
-            <div className={styles.legend}>
-              <div className={styles.legendItem}>
+            <div className="d-flex flex-wrap gap-3 align-items-center mt-3">
+              <div className="d-flex gap-2 align-items-center small">
                 <span className={styles.legendSwatch} style={{ background: '#2c7be5' }} />
                 <span>รายรับ</span>
               </div>
-              <div className={styles.legendItem}>
+              <div className="d-flex gap-2 align-items-center small">
                 <span className={styles.legendSwatch} style={{ background: '#e600a8' }} />
                 <span>รายจ่าย</span>
               </div>

@@ -158,6 +158,7 @@ model paydirect {
   CA           String? @db.VarChar(255)
 
   @@unique([A, B, C], map: "key")
+  @@index([C, A, B], map: "idx_paydirect_cid") // TASK_BOARD #14: ค้นตาม CID ไม่ต้องอ่านทั้งตาราง
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.

@@ -161,41 +161,41 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
 
   return (
     <div className={styles.page}>
-      <div className={styles.a4}> 
+      <div className={styles.a4}>
       <div className={styles.slip}>
-        <header className={styles.header}>
+        <header className="text-center fw-bold mb-3">
           <div>ใบรับรองการจ่ายเงินเดือนและเงินอื่น</div>
           <div>
             ประจำเดือน {monthLabel} ปี พ.ศ. {yearLabel}
           </div>
         </header>
 
-        <section className={styles.meta}>
-          <div className={styles.metaRow}>
-            <span>ชื่อ-นามสกุล</span>
-            <span className={styles.metaValue}>{fullName}</span>
+        <section className="mb-3">
+          <div className="row g-2 align-items-center mb-1">
+            <span className="col-4">ชื่อ-นามสกุล</span>
+            <span className="col border-bottom py-1">{fullName}</span>
           </div>
-          <div className={styles.metaRow}>
-            <span>หน่วยงาน</span>
-            <span className={styles.metaValue}>{detail.NAMESTATION ?? detail.DEPART ?? "-"}</span>
+          <div className="row g-2 align-items-center mb-1">
+            <span className="col-4">หน่วยงาน</span>
+            <span className="col border-bottom py-1">{detail.NAMESTATION ?? detail.DEPART ?? "-"}</span>
           </div>
-          <div className={styles.metaRow}>
-            <span>จังหวัด</span>
-            <span className={styles.metaValue}>{province}</span>
+          <div className="row g-2 align-items-center mb-1">
+            <span className="col-4">จังหวัด</span>
+            <span className="col border-bottom py-1">{province}</span>
           </div>
-          <div className={styles.metaRow}>
-            <span>โอนเงินเข้า</span>
-            <span className={styles.metaValue}>{namebank}</span>
+          <div className="row g-2 align-items-center mb-1">
+            <span className="col-4">โอนเงินเข้า</span>
+            <span className="col border-bottom py-1">{namebank}</span>
           </div>
-          <div className={styles.metaRow}>
-            <span>เลขที่บัญชี</span>
-            <span className={styles.metaValue}>{numberbank}</span>
+          <div className="row g-2 align-items-center mb-1">
+            <span className="col-4">เลขที่บัญชี</span>
+            <span className="col border-bottom py-1">{numberbank}</span>
           </div>
         </section>
 
-        <section className={styles.tableSection}>
-          <table className={styles.moneyTable}>
-            <thead>
+        <section className="my-3">
+          <table className="table table-bordered table-sm align-middle mb-0 small">
+            <thead className="table-light">
               <tr>
                 <th>ลำดับ</th>
                 <th>รายการ</th>
@@ -204,7 +204,7 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
             </thead>
             <tbody>
               <tr>
-                <td colSpan={3} className={styles.groupTitle}>
+                <td colSpan={3} className="table-light fw-semibold text-start">
                   รายรับ
                 </td>
               </tr>
@@ -212,16 +212,16 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
                 <tr key={row.label}>
                   <td>{idx + 1}.</td>
                   <td>{row.label}</td>
-                  <td className={styles.amount}>{formatBaht(row.amount)}</td>
+                  <td className="text-end text-nowrap">{formatBaht(row.amount)}</td>
                 </tr>
               ))}
-              <tr className={styles.totalRow}>
+              <tr className="fw-bold table-light">
                 <td colSpan={2}>รวม</td>
-                <td className={styles.amount}>{formatBaht(totalIncome)}</td>
+                <td className="text-end text-nowrap">{formatBaht(totalIncome)}</td>
               </tr>
 
               <tr>
-                <td colSpan={3} className={styles.groupTitle}>
+                <td colSpan={3} className="table-light fw-semibold text-start">
                   รายจ่าย
                 </td>
               </tr>
@@ -229,25 +229,25 @@ export default async function PaydirectSlipPage({ params }: { params: Promise<{ 
                 <tr key={row.label}>
                   <td>{idx + 1}.</td>
                   <td>{row.label}</td>
-                  <td className={styles.amount}>{formatBaht(row.amount)}</td>
+                  <td className="text-end text-nowrap">{formatBaht(row.amount)}</td>
                 </tr>
               ))}
-              <tr className={styles.totalRow}>
+              <tr className="fw-bold table-light">
                 <td colSpan={2}>รวม</td>
-                <td className={styles.amount}>{formatBaht(totalOutcome)}</td>
+                <td className="text-end text-nowrap">{formatBaht(totalOutcome)}</td>
               </tr>
 
-              <tr className={styles.netRow}>
-                <td colSpan={2} className={styles.netLabel}>
+              <tr className="fw-bolder table-primary">
+                <td colSpan={2} className="text-center">
                   เงินสุทธิ
                 </td>
-                <td className={styles.amount}>{formatBaht(netBalance)}</td>
+                <td className="text-end text-nowrap">{formatBaht(netBalance)}</td>
               </tr>
             </tbody>
           </table>
         </section>
 
-        <section className={styles.footer}>
+        <section className="text-center mt-3 small">
           <div>ลงชื่อ.............................................. ผู้ทำหน้าที่จ่ายเงิน</div>
           <div>{today}</div>
           <div>วัน เดือน ปี ที่ออกหนังสือรับรอง</div>

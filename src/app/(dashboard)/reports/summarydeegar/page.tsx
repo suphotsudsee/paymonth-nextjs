@@ -2,9 +2,9 @@
 
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import styles from './page.module.css';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
+import { Pagination } from '@/components/Pagination';
 
 type SummaryRow = {
   PNUMBER: string;
@@ -88,6 +88,9 @@ export default function SummaryDeegarPage() {
     cheque: '',
     accname: '',
   });
+  // ตัวกรองของการค้นหาครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า
+  // (ไม่ใช้ค่าที่พิมพ์ค้างในฟอร์มแต่ยังไม่กดค้นหา — Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
   const [pnumberOptions, setPnumberOptions] = useState<string[]>([]);
   const [pnumberQuery, setPnumberQuery] = useState('');
   const [chequeOptions, setChequeOptions] = useState<string[]>([]);
@@ -121,6 +124,7 @@ export default function SummaryDeegarPage() {
         throw new Error(json.error || 'ไม่สามารถโหลดข้อมูลได้');
       }
       setData(json);
+      setAppliedFilters(currentFilters);
       setPage(targetPage);
       setPageSize(targetSize);
     } catch (err: any) {
@@ -142,24 +146,12 @@ export default function SummaryDeegarPage() {
     return `${start}-${end}`;
   }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 3, total - 6));
-    const end = Math.min(total, start + 6);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const handlePageChange = (nextPage: number) => {
     if (!data || nextPage === page) return;
-    void fetchData(nextPage, pageSize);
+    void fetchData(nextPage, pageSize, appliedFilters);
   };
 
-  const handlePageSizeChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const nextSize = Number(e.target.value) || 10;
-    void fetchData(1, nextSize);
-  };
 
   const onFilterChange =
     (field: keyof typeof filters) =>
@@ -277,33 +269,33 @@ export default function SummaryDeegarPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/reports/summarydeegar" />
 
-      <main className={styles.main}>
-        <section className={styles.card}>
-          <div className={styles.headRow}>
-            <div className={styles.title}>
-              <h1>สรุปฎีกา</h1>
-              <p>ยอดรับ-จ่ายตามเลขฎีกา (PNUMBER / NODEEGAR)</p>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
+            <div className="d-flex flex-column gap-1">
+              <h1 className="h5 mb-0">สรุปฎีกา</h1>
+              <p className="small text-secondary mb-0">ยอดรับ-จ่ายตามเลขฎีกา (PNUMBER / NODEEGAR)</p>
             </div>
-            <div className={styles.controls}>
-              <div className={styles.displayActions}>
-                <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <span className="small text-secondary fw-semibold">
                   {data ? `Displaying ${displayRange} of ${data.total} results.` : 'กำลังโหลด...'}
                 </span>
-                <div className={styles.actionButtons}>
+                <div className="d-flex flex-wrap align-items-center gap-2">
                   <button
                     type="submit"
                     form="summarydeegar-filter-form"
-                    className={styles.primaryBtn}
+                    className="btn btn-primary"
                     disabled={loading}
                   >
                     {loading ? 'กำลังค้นหา...' : 'ค้นหา'}
                   </button>
                   <button
                     type="button"
-                    className={styles.secondaryBtn}
+                    className="btn btn-outline-secondary"
                     onClick={handleReset}
                     disabled={loading}
                   >
@@ -314,9 +306,9 @@ export default function SummaryDeegarPage() {
             </div>
           </div>
 
-          <form id="summarydeegar-filter-form" className={styles.filterForm} onSubmit={handleSearch}>
-            <div className={styles.filtersRow}>
-              <label className={styles.filterField}>
+          <form id="summarydeegar-filter-form" className="px-3 pt-3 pb-2 border-bottom bg-light" onSubmit={handleSearch}>
+            <div className="row g-2 align-items-end">
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>เลขฎีกา (PNUMBER)</span>
                 <input
                   value={filters.pnumber}
@@ -324,12 +316,12 @@ export default function SummaryDeegarPage() {
                   onFocus={(e) => {
                     void loadPnumberOptions(e.currentTarget.value);
                   }}
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                   placeholder="ค้นหาเลขฎีกา"
                   list="pnumberOptions"
                 />
               </label>
-              <label className={styles.filterField}>
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>เลขเช็ค</span>
                 <input
                   value={filters.cheque}
@@ -337,17 +329,17 @@ export default function SummaryDeegarPage() {
                   onFocus={(e) => {
                     void loadChequeOptions(e.currentTarget.value);
                   }}
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                   placeholder="ค้นหาเลขเช็ค"
                   list="chequeOptions"
                 />
               </label>
-              <label className={styles.filterField}>
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>ชื่อบัญชี (ACCNAME)</span>
                 <input
                   value={filters.accname}
                   onChange={onFilterChange('accname')}
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                   placeholder="ค้นหาชื่อบัญชี"
                 />
               </label>
@@ -365,70 +357,70 @@ export default function SummaryDeegarPage() {
             ))}
           </datalist>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === 'PNUMBER' ? styles.sortActive : ''}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === 'PNUMBER' ? "text-decoration-underline" : ''}`}
                       onClick={() => applySort('PNUMBER')}
                     >
                       PNUMBER
-                      {sortBy === 'PNUMBER' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === 'PNUMBER' && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === 'NODEEGAR' ? styles.sortActive : ''}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === 'NODEEGAR' ? "text-decoration-underline" : ''}`}
                       onClick={() => applySort('NODEEGAR')}
                     >
                       NODEEGAR
-                      {sortBy === 'NODEEGAR' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === 'NODEEGAR' && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === 'DUPDATE' ? styles.sortActive : ''}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === 'DUPDATE' ? "text-decoration-underline" : ''}`}
                       onClick={() => applySort('DUPDATE')}
                     >
                       DUPDATE
-                      {sortBy === 'DUPDATE' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === 'DUPDATE' && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === 'CHEQUE' ? styles.sortActive : ''}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === 'CHEQUE' ? "text-decoration-underline" : ''}`}
                       onClick={() => applySort('CHEQUE')}
                     >
                       CHEQUE
-                      {sortBy === 'CHEQUE' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === 'CHEQUE' && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === 'PAYDATE' ? styles.sortActive : ''}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === 'PAYDATE' ? "text-decoration-underline" : ''}`}
                       onClick={() => applySort('PAYDATE')}
                     >
                       PAYDATE
-                      {sortBy === 'PAYDATE' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === 'PAYDATE' && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === 'ACCNAME' ? styles.sortActive : ''}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === 'ACCNAME' ? "text-decoration-underline" : ''}`}
                       onClick={() => applySort('ACCNAME')}
                     >
                       ACCNAME
-                      {sortBy === 'ACCNAME' && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === 'ACCNAME' && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>รับมา</th>
@@ -439,14 +431,14 @@ export default function SummaryDeegarPage() {
               <tbody>
                 {loading && !data && (
                   <tr>
-                    <td colSpan={9} className={styles.loading}>
+                    <td colSpan={9} className="text-center text-primary fw-semibold p-3">
                       กำลังโหลดข้อมูล...
                     </td>
                   </tr>
                 )}
                 {data?.items.map((row) => (
                   <tr key={`${row.PNUMBER}-${row.NODEEGAR}`}>
-                    <td className={styles.linkCell}>
+                    <td className="link-primary fw-semibold">
                       <a href={`/reports/summarydeegar/${row.PNUMBER}/${row.NODEEGAR}`}>
                         {row.PNUMBER || '-'}
                       </a>
@@ -456,14 +448,14 @@ export default function SummaryDeegarPage() {
                     <td>{row.CHEQUE || '-'}</td>
                     <td>{formatDate(row.PAYDATE)}</td>
                     <td>{row.ACCNAME || '-'}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.MONEY)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.MPAYALL)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.BALANCE)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.MONEY)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.MPAYALL)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.BALANCE)}</td>
                   </tr>
                 ))}
                 {data && data.items.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={9} className={styles.empty}>
+                    <td colSpan={9} className="text-center text-secondary p-3">
                       ไม่พบข้อมูล
                     </td>
                   </tr>
@@ -472,35 +464,16 @@ export default function SummaryDeegarPage() {
             </table>
           </div>
 
-          {data && data.totalPages > 0 && (
-            <div className={styles.metaRow}>
-              <div className={styles.pagination}>
-                <button
-                  className={styles.pageBtn}
-                  onClick={() => handlePageChange(Math.max(1, page - 1))}
-                  disabled={page === 1 || loading}
-                >
-                  &lt; Previous
-                </button>
-                {pageWindow.map((p) => (
-                  <button
-                    key={p}
-                    className={`${styles.pageBtn} ${p === page ? styles.currentPage : ''}`}
-                    onClick={() => handlePageChange(p)}
-                    disabled={p === page || loading}
-                  >
-                    {p}
-                  </button>
-                ))}
-                <button
-                  className={styles.pageBtn}
-                  onClick={() => handlePageChange(Math.min(page + 1, data.totalPages))}
-                  disabled={page === data.totalPages || loading}
-                >
-                  Next &gt;
-                </button>
-              </div>
-            </div>
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => handlePageChange(p)}
+              onPageSizeChange={(n) => void fetchData(1, n, appliedFilters)}
+            />
           )}
         </section>
       </main>

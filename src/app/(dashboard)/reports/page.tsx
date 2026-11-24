@@ -2,9 +2,9 @@
 
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import styles from "./page.module.css";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { Pagination, useReloadOnPageSizeChange } from "@/components/Pagination";
 
 type ReportRow = {
   CID: string;
@@ -42,8 +42,12 @@ export default function ReportsAllPage() {
     monththai: "",
     yearthai: "",
   });
+  // ตัวกรองของการค้นหาครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า
+  // (ไม่ใช้ค่าที่พิมพ์ค้างในฟอร์มแต่ยังไม่กดค้นหา — Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
 
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
+  useReloadOnPageSizeChange(pageSize, () => void fetchData(1, appliedFilters));
 
   const fetchData = async (targetPage: number, currentFilters: typeof filters = filters) => {
     setLoading(true);
@@ -68,6 +72,7 @@ export default function ReportsAllPage() {
         setData(null);
       } else {
         setData(json);
+        setAppliedFilters(currentFilters);
         setPage(targetPage);
       }
     } catch (err) {
@@ -100,16 +105,8 @@ export default function ReportsAllPage() {
     const start = (page - 1) * pageSize + 1;
     const end = Math.min(page * pageSize, data.total);
     return `${start}-${end}`;
-  }, [data, page]);
+  }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 2, total - 4));
-    const end = Math.min(total, start + 4);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const onFilterChange =
     (field: keyof typeof filters) =>
@@ -130,24 +127,24 @@ export default function ReportsAllPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/reports" />
 
-      <main className={styles.main}>
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeadRow}>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <span>รายงานทั้งหมด</span>
-            <div className={styles.tableHeadActions}>
-              <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <span className="small text-secondary fw-semibold">
                 แสดง {displayRange} จากทั้งหมด {data?.total ?? 0} รายการ
               </span>
-              <div className={styles.headButtons}>
-                <button type="submit" form="report-filter-form" className={styles.primaryBtn} disabled={loading}>
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <button type="submit" form="report-filter-form" className="btn btn-primary" disabled={loading}>
                   {loading ? "กำลังค้นหา..." : "ค้นหา"}
                 </button>
                 <button
                   type="button"
-                  className={styles.secondaryBtn}
+                  className="btn btn-outline-secondary"
                   onClick={handleReset}
                   disabled={loading}
                 >
@@ -157,35 +154,35 @@ export default function ReportsAllPage() {
             </div>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <form id="report-filter-form" className={styles.filterForm} onSubmit={handleSearch}>
-            <div className={styles.filtersRow}>
-              <div className={styles.filterField}>
+          <form id="report-filter-form" className="px-3 pt-3 pb-2 border-bottom bg-light" onSubmit={handleSearch}>
+            <div className="row g-2 align-items-end">
+              <div className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <label htmlFor="cid">CID</label>
                 <input
                   id="cid"
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                   placeholder="ค้นหา CID"
                   value={filters.cid}
                   onChange={onFilterChange("cid")}
                 />
               </div>
-              <div className={styles.filterField}>
+              <div className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <label htmlFor="name">ชื่อ-นามสกุล</label>
                 <input
                   id="name"
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                   placeholder="ค้นหาชื่อ-นามสกุล"
                   value={filters.name}
                   onChange={onFilterChange("name")}
                 />
               </div>
-              <div className={styles.filterField}>
+              <div className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <label htmlFor="monththai">เดือน</label>
                 <select
                   id="monththai"
-                  className={styles.filterInput}
+                  className="form-select form-select-sm"
                   value={filters.monththai}
                   onChange={onFilterChange("monththai")}
                 >
@@ -204,11 +201,11 @@ export default function ReportsAllPage() {
                   <option value="12">ธันวาคม</option>
                 </select>
               </div>
-              <div className={styles.filterField}>
+              <div className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <label htmlFor="yearthai">ปี (YYYY)</label>
                 <input
                   id="yearthai"
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                   placeholder="YYYY"
                   value={filters.yearthai}
                   onChange={onFilterChange("yearthai")}
@@ -217,9 +214,9 @@ export default function ReportsAllPage() {
             </div>
           </form>
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>CID</th>
                   <th>ชื่อ-นามสกุล</th>
@@ -243,10 +240,10 @@ export default function ReportsAllPage() {
                     <td>{row.NAMEMONTH_TH ?? row.MONTHTHAI}</td>
                     <td>{row.YEARTHAI}</td>
                     <td>{row.PAYNAME ?? "-"}</td>
-                    <td className={styles.numberCell}>{formatNumber(row.INCOME)}</td>
-                    <td className={styles.numberCell}>{formatNumber(row.OUTCOME)}</td>
-                    <td className={styles.actionsCell}>
-                      <button className={styles.linkBtn} type="button" onClick={() => openDetail(row)}>
+                    <td className="text-end text-nowrap">{formatNumber(row.INCOME)}</td>
+                    <td className="text-end text-nowrap">{formatNumber(row.OUTCOME)}</td>
+                    <td className="text-center text-nowrap">
+                      <button className="btn btn-link p-0 fw-semibold" type="button" onClick={() => openDetail(row)}>
                         ดูรายละเอียด
                       </button>
                     </td>
@@ -254,7 +251,7 @@ export default function ReportsAllPage() {
                 ))}
                 {!data?.items?.length && (
                   <tr>
-                    <td colSpan={9} className={styles.emptyState}>
+                    <td colSpan={9} className="text-center text-secondary p-3">
                       {loading ? "กำลังโหลดข้อมูล..." : "ไม่พบข้อมูล"}
                     </td>
                   </tr>
@@ -264,60 +261,41 @@ export default function ReportsAllPage() {
           </div>
 
           {data && (
-            <div className={styles.summaryBar}>
-              <div className={styles.summaryItem}>
+            <div className="d-flex flex-wrap justify-content-end gap-4 px-3 py-2 border-top bg-light fw-bold small">
+              <div className="d-flex gap-2 align-items-center fw-semibold">
                 <span>รวมรายรับ</span>
                 <strong>{formatNumber(data.totalIncome)}</strong>
               </div>
-              <div className={styles.summaryItem}>
+              <div className="d-flex gap-2 align-items-center fw-semibold">
                 <span>รวมรายจ่าย</span>
                 <strong>{formatNumber(data.totalOutcome)}</strong>
               </div>
             </div>
           )}
 
-          {data && data.totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.max(page - 1, 1), filters)}
-                disabled={page === 1 || loading}
-              >
-                &lt; ก่อนหน้า
-              </button>
-              {pageWindow.map((p) => (
-                <button
-                  key={p}
-                  className={`${styles.pageBtn} ${p === page ? styles.currentPage : ""}`}
-                  onClick={() => fetchData(p, filters)}
-                  disabled={p === page || loading}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.min(page + 1, data.totalPages), filters)}
-                disabled={page === data.totalPages || loading}
-              >
-                ถัดไป &gt;
-              </button>
-            </div>
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchData(p, appliedFilters)}
+              onPageSizeChange={setPageSize}
+            />
           )}
         </section>
       </main>
 
       {detailOpen && detailRow && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>รายละเอียดรายการ</h2>
-              <button className={styles.modalClose} onClick={closeDetail} aria-label="Close">
-                ✕
-              </button>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">รายละเอียดรายการ</h2>
+              <button className="btn-close" onClick={closeDetail} aria-label="Close"></button>
             </div>
-            <div className={styles.modalBody}>
-              <table className={styles.detailTable}>
+            <div className="modal-body">
+              <table className="table table-sm table-bordered mb-0">
                 <tbody>
                   <tr>
                     <th>CID</th>
@@ -350,16 +328,16 @@ export default function ReportsAllPage() {
                   
                   <tr>
                     <th>รายรับ</th>
-                    <td>{formatNumber(detailRow.INCOME)}</td>
+                    <td className="text-end text-nowrap">{formatNumber(detailRow.INCOME)}</td>
                   </tr>
                   <tr>
                     <th>รายจ่าย</th>
-                    <td>{formatNumber(detailRow.OUTCOME)}</td>
+                    <td className="text-end text-nowrap">{formatNumber(detailRow.OUTCOME)}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </div>
+          </div></div>
         </div>
       )}
 

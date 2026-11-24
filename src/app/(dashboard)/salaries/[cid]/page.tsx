@@ -23,11 +23,11 @@ export default async function SalarySummaryPage({ params }: { params: { cid: str
   const rows = await getReport(params.cid);
 
   return (
-    <main style={{ padding: '1rem', display: 'grid', gap: '1rem' }}>
-      <h1>Salary Summary for {params.cid}</h1>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse', minWidth: 720 }}>
-          <thead style={{ textAlign: 'center' }}>
+    <main className="container-fluid py-3 vstack gap-3">
+      <h1 className="h4 mb-0">Salary Summary for {params.cid}</h1>
+      <div className="table-responsive">
+        <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+          <thead className="table-light text-center">
             <tr>
               <th>Month</th>
               <th>Year</th>
@@ -45,15 +45,15 @@ export default async function SalarySummaryPage({ params }: { params: { cid: str
                 <tr key={`${r.YEARTHAI}-${r.MONTHTHAI}`}>
                   <td>{r.NAMEMONTH_TH}</td>
                   <td>{r.YEARTHAI}</td>
-                  <td>{income.toLocaleString()}</td>
-                  <td>{outcome.toLocaleString()}</td>
-                  <td>{net.toLocaleString()}</td>
+                  <td className="text-end text-nowrap">{income.toLocaleString()}</td>
+                  <td className="text-end text-nowrap">{outcome.toLocaleString()}</td>
+                  <td className="text-end text-nowrap">{net.toLocaleString()}</td>
                 </tr>
               );
             })}
             {!rows.length && (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '0.75rem' }}>
+                <td colSpan={5} className="text-center text-secondary p-3">
                   No data
                 </td>
               </tr>

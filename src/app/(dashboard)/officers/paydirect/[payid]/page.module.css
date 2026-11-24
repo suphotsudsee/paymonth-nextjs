@@ -1,3 +1,4 @@
+/* สลิปจ่ายตรงขนาด A4 + ลายน้ำ: ส่วนที่ Bootstrap ไม่มี (PRD ข้อ 11) — ตาราง/แถวข้อมูลใช้ class ของ Bootstrap */
 .page {
   min-height: 100vh;
   background: #f4f6f8;
@@ -24,6 +25,7 @@
   pointer-events: none;
   z-index: 2;
 }
+
 .a4 {
   width: 210mm;
   min-height: 297mm;
@@ -33,6 +35,7 @@
   position: relative;
   z-index: 1;
 }
+
 .slip {
   background: #ffffff;
   border: 1px solid #d1d5db;
@@ -43,90 +46,6 @@
   position: relative;
   z-index: 1;   /* ✅ ทำให้เนื้อหาทับลายน้ำ */
 }
-
-.header {
-  text-align: center;
-  font-weight: 700;
-  line-height: 1.5;
-  margin-bottom: 18px;
-}
-
-.meta {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 18px;
-  font-size: 14px;
-}
-
-.metaRow {
-  display: grid;
-  grid-template-columns: 130px 1fr;
-  align-items: center;
-  gap: 8px;
-}
-
-.metaValue {
-  border-bottom: 1px solid #e5e7eb;
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-  padding: 2px 4px;
-}
-
-.tableSection {
-  margin: 18px 0;
-}
-
-.moneyTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.moneyTable th,
-.moneyTable td {
-  border: 1px solid #d1d5db;
-  padding: 3px 6px;
-  line-height: 1.25;
-}
-
-.moneyTable th {
-  background: #f1f5f9;
-  text-align: center;
-}
-
-.groupTitle {
-  background: #f8fafc;
-  font-weight: 600;
-  text-align: left;
-}
-
-.amount {
-  text-align: right;
-  white-space: nowrap;
-}
-
-.totalRow {
-  font-weight: 700;
-  background: #f8fafc;
-}
-
-.netRow {
-  font-weight: 800;
-  background: #eef2ff;
-}
-
-.netLabel {
-  text-align: center;
-}
-
-.footer {
-  text-align: center;
-  margin-top: 16px;
-  line-height: 1.6;
-  font-size: 13px;
-}
-
 @media print {
   .page::before {
     position: fixed;

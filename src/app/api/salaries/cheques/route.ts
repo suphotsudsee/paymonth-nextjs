@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifySession } from '@/lib/auth';
 import { isStaff } from '@/lib/permissions';
+import { clampPageSize, parsePage } from '@/lib/pagination';
 
 // GET /api/salaries/cheques?cheque=...
 export async function GET(req: NextRequest) {
@@ -12,11 +13,14 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const cheque = searchParams.get('cheque')?.trim() || '';
-    const pageSize = Math.min(1000, Math.max(1, Number(searchParams.get('pageSize') || 1000)));
+    // เพดาน/ค่าเริ่มต้น 1000 คงเดิม (ผู้เรียกเก่าที่ไม่ส่ง pageSize ได้ผลเหมือนเดิม); หน้าค้นหาเช็คส่ง pageSize ตามตัวเลือก 5–100
+    const pageSize = clampPageSize(searchParams.get('pageSize'), 1000, 1000);
+    const page = parsePage(searchParams.get('page'));
+    const offset = (page - 1) * pageSize;
 
     if (!cheque) {
       return NextResponse.json(
-        { items: [], total: 0, page: 1, pageSize, totalPages: 0 },
+        { items: [], total: 0, totals: { money: 0 }, page: 1, pageSize, totalPages: 0 },
         { status: 200 },
       );
     }
@@ -34,11 +38,13 @@ export async function GET(req: NextRequest) {
           LEFT JOIN deegar ON TRIM(deegar.CHEQUE) = cheque.CHEQUE
           LEFT JOIN salary ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
         WHERE cheque.CHEQUE LIKE ?
-        ORDER BY cheque.CHEQUE, salary.PNUMBER, salary.NODEEGAR
-        LIMIT ?
+        -- deegar.ID, salary.ID ต่อท้ายให้ลำดับไม่ซ้ำ: แบ่งหน้าด้วย OFFSET แล้วแถวไม่หาย/ไม่ซ้ำข้ามหน้า
+        ORDER BY cheque.CHEQUE, salary.PNUMBER, salary.NODEEGAR, deegar.ID, salary.ID
+        LIMIT ? OFFSET ?
       `,
       `%${cheque}%`,
       pageSize,
+      offset,
     )) as {
       ACCNUMBER: string | null;
       CHEQUE: string | null;
@@ -50,14 +56,15 @@ export async function GET(req: NextRequest) {
 
     const countRows = (await prisma.$queryRawUnsafe(
       `
-        SELECT COUNT(*) as total
+        -- ยอดรวมทั้งผลค้นหา (นิพจน์เดียวกับคอลัมน์ MONEY ด้านบน) — PRD 11.1
+        SELECT COUNT(*) as total, COALESCE(SUM(COALESCE(salary.MONEY, deegar.MONEY, 0)), 0) AS sumMoney
         FROM cheque
           LEFT JOIN deegar ON TRIM(deegar.CHEQUE) = cheque.CHEQUE
           LEFT JOIN salary ON salary.PNUMBER = deegar.PNUMBER AND salary.NODEEGAR = deegar.NODEEGAR
         WHERE cheque.CHEQUE LIKE ?
       `,
       `%${cheque}%`,
-    )) as { total: bigint }[];
+    )) as { total: bigint; sumMoney: unknown }[];
 
     const safeRows = rows.map((row) => ({
       ACCNUMBER: row.ACCNUMBER ?? '-',
@@ -73,9 +80,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       items: safeRows,
       total,
-      page: 1,
+      totals: { money: Number(countRows?.[0]?.sumMoney ?? 0) },
+      page,
       pageSize,
-      totalPages: 1,
+      totalPages: Math.ceil(total / pageSize),
     });
   } catch (err: any) {
     console.error('cheque salaries report error', err);

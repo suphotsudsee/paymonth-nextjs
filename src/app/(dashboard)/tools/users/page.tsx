@@ -2,10 +2,10 @@
 
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import styles from "../../officers/page.module.css";
 import { PasswordInput } from "@/components/PasswordInput";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { Pagination, useReloadOnPageSizeChange } from "@/components/Pagination";
 
 type UserRow = {
   id: number;
@@ -52,6 +52,8 @@ export default function ManageUsersPage() {
     fname: "",
     lname: "",
   });
+  // ตัวกรองของการโหลดครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า (Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
   const [modalMode, setModalMode] = useState<"create" | "edit" | "view" | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [submitCount, setSubmitCount] = useState(0);
@@ -60,7 +62,8 @@ export default function ManageUsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [form, setForm] = useState(emptyForm);
 
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
+  useReloadOnPageSizeChange(pageSize, () => void fetchUsers(1, appliedFilters));
 
   const fetchUsers = async (targetPage: number, currentFilters: typeof filters = filters) => {
     setLoading(true);
@@ -88,6 +91,7 @@ export default function ManageUsersPage() {
         setData(null);
       } else {
         setData(json);
+        setAppliedFilters(currentFilters);
         setPage(targetPage);
       }
     } catch (_err) {
@@ -117,16 +121,8 @@ export default function ManageUsersPage() {
     const start = (page - 1) * pageSize + 1;
     const end = Math.min(page * pageSize, data.total);
     return `${start}-${end}`;
-  }, [data, page]);
+  }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 2, total - 4));
-    const end = Math.min(total, start + 4);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const setFilterField =
     (field: keyof typeof filters) =>
@@ -249,44 +245,44 @@ export default function ManageUsersPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/tools/users" />
 
-      <main className={styles.main}>
-        <div className={styles.titleArea}>
-          <h1>รายชื่อสมาชิก</h1>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <div className="mb-3">
+          <h1 className="h4 mb-0">รายชื่อสมาชิก</h1>
         </div>
 
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeadRow}>
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <span>จัดการผู้ใช้</span>
-            <div className={styles.tableHeadActions}>
-              <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <span className="small text-secondary fw-semibold">
                 Displaying {displayRange} of {data?.total ?? 0} results.
               </span>
-              <button className={styles.createBtn} type="button" onClick={openCreate}>
+              <button className="btn btn-primary" type="button" onClick={openCreate}>
                 + Create User
               </button>
             </div>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>ID</th>
                   <th>Username</th>
                   <th>CID</th>
                   <th>Fname</th>
                   <th>Lname</th>
-                  <th className={styles.toolsCol}>เครื่องมือ</th>
+                  <th className="text-center text-nowrap">เครื่องมือ</th>
                 </tr>
-                <tr className={styles.filterRow}>
+                <tr>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       value={filters.id}
                       onChange={setFilterField("id")}
                       placeholder="ค้นหา ID"
@@ -294,7 +290,7 @@ export default function ManageUsersPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       value={filters.username}
                       onChange={setFilterField("username")}
                       placeholder="ค้นหา Username"
@@ -302,7 +298,7 @@ export default function ManageUsersPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       value={filters.cid}
                       onChange={setFilterField("cid")}
                       placeholder="ค้นหา CID"
@@ -310,7 +306,7 @@ export default function ManageUsersPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       value={filters.fname}
                       onChange={setFilterField("fname")}
                       placeholder="ค้นหา Fname"
@@ -318,7 +314,7 @@ export default function ManageUsersPage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       value={filters.lname}
                       onChange={setFilterField("lname")}
                       placeholder="ค้นหา Lname"
@@ -335,37 +331,37 @@ export default function ManageUsersPage() {
                 )}
                 {!loading && data?.items?.length === 0 && (
                   <tr>
-                    <td className={styles.emptyState} colSpan={6}>
+                    <td className="text-center text-secondary p-3" colSpan={6}>
                       ไม่พบข้อมูลผู้ใช้
                     </td>
                   </tr>
                 )}
                 {!loading &&
-                  data?.items?.map((row, idx) => (
-                    <tr key={row.id} className={idx % 2 === 1 ? styles.evenRow : undefined}>
+                  data?.items?.map((row) => (
+                    <tr key={row.id}>
                       <td>{row.id}</td>
                       <td>{row.username}</td>
                       <td>{row.cid}</td>
                       <td>{row.fname}</td>
                       <td>{row.lname}</td>
-                      <td className={styles.toolsCol}>
-                        <div className={styles.actionsCell}>
+                      <td className="text-center text-nowrap">
+                        <div className="text-center text-nowrap">
                           <button
-                            className={styles.iconBtn}
+                            className="btn btn-sm btn-outline-primary mx-1"
                             type="button"
                             onClick={() => loadUserDetail(row.id, "view")}
                           >
                             ดู
                           </button>
                           <button
-                            className={styles.iconBtn}
+                            className="btn btn-sm btn-outline-primary mx-1"
                             type="button"
                             onClick={() => loadUserDetail(row.id, "edit")}
                           >
                             แก้ไข
                           </button>
                           <button
-                            className={styles.iconBtn}
+                            className="btn btn-sm btn-outline-primary mx-1"
                             type="button"
                             onClick={() => handleDelete(row.id)}
                           >
@@ -379,103 +375,86 @@ export default function ManageUsersPage() {
             </table>
           </div>
 
-          <div className={styles.pagination}>
-            <button
-              className={styles.pageBtn}
-              disabled={page <= 1 || loading}
-              onClick={() => fetchUsers(page - 1, filters)}
-            >
-              Prev
-            </button>
-            {pageWindow.map((p) => (
-              <button
-                key={p}
-                className={`${styles.pageBtn} ${p === page ? styles.currentPage : ""}`}
-                disabled={loading}
-                onClick={() => fetchUsers(p, filters)}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              className={styles.pageBtn}
-              disabled={!data || page >= (data?.totalPages ?? 1) || loading}
-              onClick={() => fetchUsers(page + 1, filters)}
-            >
-              Next
-            </button>
-          </div>
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchUsers(p, appliedFilters)}
+              onPageSizeChange={setPageSize}
+            />
+          )}
         </section>
       </main>
 
       <AppFooter />
 
       {modalMode && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>
+        <div className="modal d-block" tabIndex={-1}>
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">
                 {modalMode === "create"
                   ? "สร้างผู้ใช้ใหม่"
                   : modalMode === "edit"
                     ? "แก้ไขผู้ใช้"
                     : "รายละเอียดผู้ใช้"}
               </h2>
-              <button className={styles.modalClose} type="button" onClick={closeModal}>
-                ×
-              </button>
+              <button className="btn-close" type="button" onClick={closeModal} aria-label="ปิด"></button>
             </div>
 
-            <div className={styles.modalBody}>
-              {formError && <div className={styles.error}>{formError}</div>}
+            <div className="modal-body">
+              {formError && <div className="alert alert-danger py-2 px-3 m-2 small">{formError}</div>}
               {modalLoading ? (
                 <div>กำลังโหลด...</div>
               ) : modalMode === "view" ? (
                 <div>
-                  <div className={styles.detailRow}>
-                    <span>ID</span>
-                    <strong>{selectedUser?.id ?? "-"}</strong>
+                  <div className="row mx-0 py-2 border-bottom small">
+                    <span className="col-5 col-sm-4 text-secondary">ID</span>
+                    <strong className="col">{selectedUser?.id ?? "-"}</strong>
                   </div>
-                  <div className={styles.detailRow}>
-                    <span>Username</span>
-                    <strong>{selectedUser?.username ?? "-"}</strong>
+                  <div className="row mx-0 py-2 border-bottom small">
+                    <span className="col-5 col-sm-4 text-secondary">Username</span>
+                    <strong className="col">{selectedUser?.username ?? "-"}</strong>
                   </div>
-                  <div className={styles.detailRow}>
-                    <span>CID</span>
-                    <strong>{selectedUser?.cid ?? "-"}</strong>
+                  <div className="row mx-0 py-2 border-bottom small">
+                    <span className="col-5 col-sm-4 text-secondary">CID</span>
+                    <strong className="col">{selectedUser?.cid ?? "-"}</strong>
                   </div>
-                  <div className={styles.detailRow}>
-                    <span>ชื่อ</span>
-                    <strong>{selectedUser?.fname ?? "-"}</strong>
+                  <div className="row mx-0 py-2 border-bottom small">
+                    <span className="col-5 col-sm-4 text-secondary">ชื่อ</span>
+                    <strong className="col">{selectedUser?.fname ?? "-"}</strong>
                   </div>
-                  <div className={styles.detailRow}>
-                    <span>นามสกุล</span>
-                    <strong>{selectedUser?.lname ?? "-"}</strong>
+                  <div className="row mx-0 py-2 border-bottom small">
+                    <span className="col-5 col-sm-4 text-secondary">นามสกุล</span>
+                    <strong className="col">{selectedUser?.lname ?? "-"}</strong>
                   </div>
-                  <div className={styles.detailRow}>
-                    <span>สถานะ</span>
-                    <strong>{selectedUser?.status ?? "-"}</strong>
+                  <div className="row mx-0 py-2 border-bottom small">
+                    <span className="col-5 col-sm-4 text-secondary">สถานะ</span>
+                    <strong className="col">{selectedUser?.status ?? "-"}</strong>
                   </div>
-                  <div className={styles.detailRow}>
-                    <span>สิทธิ์</span>
-                    <strong>{selectedUser?.accessLevel ?? 0}</strong>
+                  <div className="row mx-0 py-2 border-bottom small">
+                    <span className="col-5 col-sm-4 text-secondary">สิทธิ์</span>
+                    <strong className="col">{selectedUser?.accessLevel ?? 0}</strong>
                   </div>
-                  <div className={styles.detailRow}>
-                    <span>Mobile</span>
-                    <strong>{selectedUser?.mobile ?? "-"}</strong>
+                  <div className="row mx-0 py-2 border-bottom small">
+                    <span className="col-5 col-sm-4 text-secondary">Mobile</span>
+                    <strong className="col">{selectedUser?.mobile ?? "-"}</strong>
                   </div>
-                  <div className={styles.detailRow}>
-                    <span>Email</span>
-                    <strong>{selectedUser?.email ?? "-"}</strong>
+                  <div className="row mx-0 py-2 border-bottom small">
+                    <span className="col-5 col-sm-4 text-secondary">Email</span>
+                    <strong className="col">{selectedUser?.email ?? "-"}</strong>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className={styles.formGrid}>
+                  <div className="row row-cols-1 row-cols-md-2 g-3">
                     <label>
                       Username
                       <input
-                        className={styles.input}
+                        className="form-control"
                         value={form.username}
                         onChange={(e) => setForm((prev) => ({ ...prev, username: e.target.value }))}
                       />
@@ -483,7 +462,7 @@ export default function ManageUsersPage() {
                     <label>
                       รหัสผ่าน (ปล่อยว่างเพื่อไม่เปลี่ยน)
                       <PasswordInput
-                        className={styles.input}
+                        className="form-control"
                         autoComplete="new-password"
                         concealKey={submitCount}
                         value={form.password}
@@ -493,7 +472,7 @@ export default function ManageUsersPage() {
                     <label>
                       CID
                       <input
-                        className={styles.input}
+                        className="form-control"
                         value={form.cid}
                         onChange={(e) => setForm((prev) => ({ ...prev, cid: e.target.value }))}
                       />
@@ -501,7 +480,7 @@ export default function ManageUsersPage() {
                     <label>
                       ชื่อ
                       <input
-                        className={styles.input}
+                        className="form-control"
                         value={form.fname}
                         onChange={(e) => setForm((prev) => ({ ...prev, fname: e.target.value }))}
                       />
@@ -509,7 +488,7 @@ export default function ManageUsersPage() {
                     <label>
                       นามสกุล
                       <input
-                        className={styles.input}
+                        className="form-control"
                         value={form.lname}
                         onChange={(e) => setForm((prev) => ({ ...prev, lname: e.target.value }))}
                       />
@@ -517,7 +496,7 @@ export default function ManageUsersPage() {
                     <label>
                       สถานะ
                       <input
-                        className={styles.input}
+                        className="form-control"
                         value={form.status}
                         onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
                       />
@@ -525,7 +504,7 @@ export default function ManageUsersPage() {
                     <label>
                       Access Level
                       <input
-                        className={styles.input}
+                        className="form-control"
                         type="number"
                         value={form.accessLevel}
                         onChange={(e) => setForm((prev) => ({ ...prev, accessLevel: e.target.value }))}
@@ -534,7 +513,7 @@ export default function ManageUsersPage() {
                     <label>
                       Mobile
                       <input
-                        className={styles.input}
+                        className="form-control"
                         value={form.mobile}
                         onChange={(e) => setForm((prev) => ({ ...prev, mobile: e.target.value }))}
                       />
@@ -542,7 +521,7 @@ export default function ManageUsersPage() {
                     <label>
                       Email
                       <input
-                        className={styles.input}
+                        className="form-control"
                         type="email"
                         value={form.email}
                         onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
@@ -550,18 +529,18 @@ export default function ManageUsersPage() {
                     </label>
                   </div>
 
-                  <div className={styles.saveRow}>
-                    <button className={styles.primaryBtn} type="button" onClick={submitForm} disabled={formSaving}>
+                  <div className="d-flex gap-2 mt-3">
+                    <button className="btn btn-primary" type="button" onClick={submitForm} disabled={formSaving}>
                       {formSaving ? "Saving..." : "Save"}
                     </button>
-                    <button className={styles.secondaryBtn} type="button" onClick={closeModal} disabled={formSaving}>
+                    <button className="btn btn-outline-secondary" type="button" onClick={closeModal} disabled={formSaving}>
                       Cancel
                     </button>
                   </div>
                 </>
               )}
             </div>
-          </div>
+          </div></div>
         </div>
       )}
     </div>

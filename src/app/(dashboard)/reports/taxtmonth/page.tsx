@@ -2,9 +2,9 @@
 
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import styles from './page.module.css';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { AppFooter } from '@/components/layout/AppFooter';
+import { Pagination } from '@/components/Pagination';
 
 type Item = {
   PAYNAME: string;
@@ -51,6 +51,9 @@ export default function ReportsTaxGroupPage() {
     yearthai: '',
     station: '',
   });
+  // ตัวกรองของการค้นหาครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า
+  // (ไม่ใช้ค่าที่พิมพ์ค้างในฟอร์มแต่ยังไม่กดค้นหา — Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
 
   const fetchStations = async () => {
     try {
@@ -92,6 +95,7 @@ export default function ReportsTaxGroupPage() {
         throw new Error(json.error || 'ไม่สามารถโหลดข้อมูลได้');
       }
       setData(json);
+      setAppliedFilters(currentFilters);
       setPage(targetPage);
       setPageSize(targetSize);
       if (!currentFilters.yearthai && json.yearthai) {
@@ -117,14 +121,6 @@ export default function ReportsTaxGroupPage() {
     return `${start}-${end}`;
   }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 3, total - 6));
-    const end = Math.min(total, start + 6);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const onFilterChange =
     (field: keyof typeof filters) =>
@@ -146,31 +142,31 @@ export default function ReportsTaxGroupPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/reports/taxtmonth" />
 
-      <main className={styles.main}>
-        <section className={styles.card}>
-          <div className={styles.headRow}>
-            <div className={styles.title}>
-              <h1>สรุปภาษี (กลุ่ม)</h1>
-              <p>รวมรายรับรายเดือน แยกตามรายการจ่าย</p>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
+            <div className="d-flex flex-column gap-1">
+              <h1 className="h5 mb-0">สรุปภาษี (กลุ่ม)</h1>
+              <p className="small text-secondary mb-0">รวมรายรับรายเดือน แยกตามรายการจ่าย</p>
             </div>
-            <div className={styles.controls}>
-              <div className={styles.displayActions}>
-                <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <span className="small text-secondary fw-semibold">
                   {data ? `Displaying ${displayRange} of ${data.total} results.` : 'กำลังโหลด...'}
                 </span>
-                <div className={styles.actionButtons}>
+                <div className="d-flex flex-wrap align-items-center gap-2">
                   <button
                     type="submit"
                     form="taxtmonth-filter-form"
-                    className={styles.primaryBtn}
+                    className="btn btn-primary"
                     disabled={loading}
                   >
                     {loading ? 'กำลังค้นหา...' : 'ค้นหา'}
                   </button>
-                  <button type="button" className={styles.secondaryBtn} onClick={handleReset} disabled={loading}>
+                  <button type="button" className="btn btn-outline-secondary" onClick={handleReset} disabled={loading}>
                     ล้างข้อมูล
                   </button>
                 </div>
@@ -178,24 +174,24 @@ export default function ReportsTaxGroupPage() {
             </div>
           </div>
 
-          <form id="taxtmonth-filter-form" className={styles.filterForm} onSubmit={handleSearch}>
-            <div className={styles.filtersRow}>
-              <label className={styles.filterField}>
+          <form id="taxtmonth-filter-form" className="px-3 pt-3 pb-2 border-bottom bg-light" onSubmit={handleSearch}>
+            <div className="row g-2 align-items-end">
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>ปีภาษี (พ.ศ.)</span>
                 <input
                   type="text"
                   value={filters.yearthai}
                   onChange={onFilterChange('yearthai')}
-                  className={styles.filterInput}
+                  className="form-control form-control-sm"
                   placeholder={String(thaiYear())}
                 />
               </label>
-              <label className={styles.filterField}>
+              <label className="col-12 col-sm-6 col-lg-3 d-flex flex-column gap-1 small fw-semibold mb-0">
                 <span>สถานที่ปฏิบัติงาน</span>
                 <select
                   value={filters.station}
                   onChange={onFilterChange('station')}
-                  className={styles.filterSelect}
+                  className="form-select"
                 >
                   <option value="">สถานที่ปฏิบัติงาน</option>
                   {stations.map((s) => (
@@ -209,14 +205,14 @@ export default function ReportsTaxGroupPage() {
           </form>
 
           {data?.stationName && (
-            <div className={styles.stationTitle}>{data.stationName || 'สถานที่ปฏิบัติงาน'}</div>
+            <div className="text-center fs-5 fw-bold mt-2">{data.stationName || 'สถานที่ปฏิบัติงาน'}</div>
           )}
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>PAYNAME</th>
                   <th>ม.ค.</th>
@@ -237,7 +233,7 @@ export default function ReportsTaxGroupPage() {
               <tbody>
                 {loading && !data && (
                   <tr>
-                    <td colSpan={14} className={styles.loading}>
+                    <td colSpan={14} className="text-center text-primary fw-semibold p-3">
                       กำลังโหลดข้อมูล...
                     </td>
                   </tr>
@@ -245,24 +241,24 @@ export default function ReportsTaxGroupPage() {
                 {data?.items.map((row) => (
                   <tr key={row.PAYNAME}>
                     <td>{row.PAYNAME}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m01)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m02)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m03)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m04)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m05)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m06)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m07)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m08)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m09)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m10)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m11)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.m12)}</td>
-                    <td className={styles.numberCell}>{formatMoney(row.allmonth)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m01)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m02)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m03)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m04)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m05)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m06)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m07)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m08)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m09)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m10)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m11)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.m12)}</td>
+                    <td className="text-end text-nowrap">{formatMoney(row.allmonth)}</td>
                   </tr>
                 ))}
                 {data && data.items.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={14} className={styles.empty}>
+                    <td colSpan={14} className="text-center text-secondary p-3">
                       ไม่พบข้อมูล
                     </td>
                   </tr>
@@ -272,24 +268,36 @@ export default function ReportsTaxGroupPage() {
                 <tfoot>
                   <tr>
                     <th>รวม</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m01 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m02 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m03 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m04 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m05 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m06 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m07 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m08 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m09 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m10 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m11 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.m12 ?? 0)}</th>
-                    <th className={styles.numberCell}>{formatMoney(data.totals?.allmonth ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m01 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m02 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m03 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m04 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m05 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m06 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m07 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m08 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m09 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m10 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m11 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.m12 ?? 0)}</th>
+                    <th className="text-end text-nowrap">{formatMoney(data.totals?.allmonth ?? 0)}</th>
                   </tr>
                 </tfoot>
               )}
             </table>
           </div>
+
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchData(p, pageSize, appliedFilters)}
+              onPageSizeChange={(n) => void fetchData(1, n, appliedFilters)}
+            />
+          )}
         </section>
       </main>
 

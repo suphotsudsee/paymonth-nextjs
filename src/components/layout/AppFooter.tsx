@@ -1,7 +1,6 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
-import styles from "./HeaderFooter.module.css";
 
 export function AppFooter() {
   const [year, setYear] = useState<number | null>(null);
@@ -11,7 +10,7 @@ export function AppFooter() {
   }, []);
 
   return (
-    <footer className={styles.footer}>
+    <footer className="text-center small text-secondary bg-light border-top py-3 px-2 mt-auto d-print-none">
       <div>
         Copyright © {year} by สุพจน์ สุดสี.
       </div>

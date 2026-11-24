@@ -2,9 +2,9 @@
 
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import styles from "./page.module.css";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { Pagination, useReloadOnPageSizeChange } from "@/components/Pagination";
 
 type ChequeRow = {
   CHEQUE: string;
@@ -60,12 +60,15 @@ export default function ChequePage() {
     accnumber: "",
     paydate: "",
   });
+  // ตัวกรองของการโหลดครั้งล่าสุดที่สำเร็จ ใช้ตอนเปลี่ยนหน้า/จำนวนต่อหน้า (Codex review งาน #12)
+  const [appliedFilters, setAppliedFilters] = useState(filters);
   const [sortBy, setSortBy] = useState<"CHEQUE" | "CHEQUENAME" | "ACCNUMBER" | "PAYDATE">("CHEQUE");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [chequeOptions, setChequeOptions] = useState<string[]>([]);
   const [chequeQuery, setChequeQuery] = useState("");
 
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
+  useReloadOnPageSizeChange(pageSize, () => void fetchData(1, appliedFilters));
   const fetchData = async (
     targetPage: number,
     currentFilters: typeof filters = filters,
@@ -97,6 +100,7 @@ export default function ChequePage() {
         setData(null);
       } else {
         setData(json);
+        setAppliedFilters(currentFilters);
         setPage(targetPage);
       }
     } catch (err) {
@@ -127,16 +131,8 @@ export default function ChequePage() {
     const start = (page - 1) * pageSize + 1;
     const end = Math.min(page * pageSize, data.total);
     return `${start}-${end}`;
-  }, [data, page]);
+  }, [data, page, pageSize]);
 
-  const pageWindow = useMemo(() => {
-    if (!data) return [];
-    const total = data.totalPages;
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
-    const start = Math.max(1, Math.min(page - 2, total - 4));
-    const end = Math.min(total, start + 4);
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  }, [data, page]);
 
   const onFilterChange =
     (field: keyof typeof filters) =>
@@ -324,76 +320,76 @@ export default function ChequePage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className="d-flex flex-column flex-grow-1">
       <AppHeader activePath="/cheques" />
 
-      <main className={styles.main}>
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeadRow}>
+      <main className="container-fluid flex-grow-1 py-3 px-3 px-lg-4">
+        <section className="card shadow-sm mb-3 overflow-hidden">
+          <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 fw-semibold">
             <span>ทะเบียนเช็ค</span>
-            <div className={styles.tableHeadActions}>
-              <span className={styles.resultText}>
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <span className="small text-secondary fw-semibold">
                 แสดง {displayRange} จากทั้งหมด {data?.total ?? 0} รายการ
               </span>
-              <button type="button" className={styles.createBtn} onClick={openCreate}>
+              <button type="button" className="btn btn-primary" onClick={openCreate}>
                 + เพิ่มทะเบียนเช็ค
               </button>
             </div>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          {error && <div className="alert alert-danger py-2 px-3 m-2 small">{error}</div>}
 
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped table-hover table-sm align-middle mb-0 small">
+              <thead className="table-light">
                 <tr>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "CHEQUE" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "CHEQUE" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("CHEQUE")}
                     >
                       เลขที่เช็ค
-                      {sortBy === "CHEQUE" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "CHEQUE" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "CHEQUENAME" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "CHEQUENAME" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("CHEQUENAME")}
                     >
                       ชื่อเช็ค
-                      {sortBy === "CHEQUENAME" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "CHEQUENAME" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "ACCNUMBER" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "ACCNUMBER" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("ACCNUMBER")}
                     >
                       เลขบัญชี
-                      {sortBy === "ACCNUMBER" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "ACCNUMBER" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>
                     <button
                       type="button"
-                      className={`${styles.sortBtn} ${sortBy === "PAYDATE" ? styles.sortActive : ""}`}
+                      className={`btn btn-link btn-sm p-0 fw-semibold text-decoration-none text-nowrap ${sortBy === "PAYDATE" ? "text-decoration-underline" : ""}`}
                       onClick={() => applySort("PAYDATE")}
                     >
                       วันที่จ่าย
-                      {sortBy === "PAYDATE" && <span className={styles.sortLabel}>{sortDir.toUpperCase()}</span>}
+                      {sortBy === "PAYDATE" && <span className="badge text-bg-primary ms-1">{sortDir.toUpperCase()}</span>}
                     </button>
                   </th>
                   <th>อัปเดตล่าสุด</th>
                   <th>เครื่องมือ</th>
                 </tr>
-                <tr className={styles.filterRow}>
+                <tr>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค้นหา เลขที่เช็ค"
                       maxLength={CHEQUE_MAX_LENGTH}
                       list="chequeOptions"
@@ -406,7 +402,7 @@ export default function ChequePage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค้นหา ชื่อเช็ค"
                       value={filters.chequename}
                       onChange={onFilterChange("chequename")}
@@ -414,7 +410,7 @@ export default function ChequePage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       placeholder="ค้นหา เลขบัญชี"
                       value={filters.accnumber}
                       onChange={onFilterChange("accnumber")}
@@ -422,7 +418,7 @@ export default function ChequePage() {
                   </th>
                   <th>
                     <input
-                      className={styles.filterInput}
+                      className="form-control form-control-sm"
                       type="date"
                       value={filters.paydate}
                       onChange={onFilterChange("paydate")}
@@ -438,11 +434,11 @@ export default function ChequePage() {
                     <td>{row.CHEQUE}</td>
                     <td>{row.CHEQUENAME}</td>
                     <td>{row.ACCNUMBER}</td>
-                    <td className={styles.numberCell}>{formatDate(row.PAYDATE)}</td>
-                    <td className={styles.numberCell}>{formatDate(row.DUPDATE)}</td>
-                    <td className={styles.actionsCell}>
+                    <td className="text-center">{formatDate(row.PAYDATE)}</td>
+                    <td className="text-center">{formatDate(row.DUPDATE)}</td>
+                    <td className="text-center text-nowrap">
                       <button
-                        className={styles.iconBtn}
+                        className="btn btn-sm btn-outline-primary mx-1"
                         title="ดูรายละเอียด"
                         type="button"
                         onClick={() => openDetail(row.CHEQUE)}
@@ -450,7 +446,7 @@ export default function ChequePage() {
                         🔍
                       </button>
                       <button
-                        className={styles.iconBtn}
+                        className="btn btn-sm btn-outline-primary mx-1"
                         title="แก้ไข"
                         type="button"
                         onClick={() => openEdit(row.CHEQUE)}
@@ -462,7 +458,7 @@ export default function ChequePage() {
                 ))}
                 {!data?.items?.length && (
                   <tr>
-                    <td colSpan={6} className={styles.emptyState}>
+                    <td colSpan={6} className="text-center text-secondary p-3">
                       {loading ? "กำลังโหลด..." : "ไม่พบข้อมูล"}
                     </td>
                   </tr>
@@ -471,57 +467,38 @@ export default function ChequePage() {
             </table>
           </div>
 
-          {data && data.totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.max(page - 1, 1))}
-                disabled={page === 1 || loading}
-              >
-                &lt; ก่อนหน้า
-              </button>
-              {pageWindow.map((p) => (
-                <button
-                  key={p}
-                  className={`${styles.pageBtn} ${p === page ? styles.currentPage : ""}`}
-                  onClick={() => fetchData(p)}
-                  disabled={p === page || loading}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                className={styles.pageBtn}
-                onClick={() => fetchData(Math.min(page + 1, data.totalPages))}
-                disabled={page === data.totalPages || loading}
-              >
-                ถัดไป &gt;
-              </button>
-            </div>
+          {data && (
+            <Pagination
+              page={page}
+              totalPages={data.totalPages}
+              total={data.total}
+              pageSize={pageSize}
+              disabled={loading}
+              onPageChange={(p) => fetchData(p, appliedFilters)}
+              onPageSizeChange={setPageSize}
+            />
           )}
         </section>
       </main>
 
       {modalMode && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">
                 {modalMode === "edit" ? `Update Cheque ${createForm.cheque || editCheque || ""}` : "Create Cheque"}
               </h2>
-              <button className={styles.modalClose} onClick={() => setModalMode(null)} aria-label="Close">
-                ✕
-              </button>
+              <button className="btn-close" onClick={() => setModalMode(null)} aria-label="Close"></button>
             </div>
-            <div className={styles.modalBody}>
-              <p className={styles.modalHint}>
+            <div className="modal-body">
+              <p className="small text-secondary mb-2">
                 Fields with * are required. {modalLoading ? "กำลังโหลด..." : ""}
               </p>
-              <div className={styles.formGrid}>
+              <div className="row row-cols-1 row-cols-md-2 g-3">
                 <label>
                   Cheque *
                   <input
-                    className={styles.input}
+                    className="form-control"
                     maxLength={CHEQUE_MAX_LENGTH}
                     minLength={CHEQUE_MIN_LENGTH}
                     required
@@ -535,50 +512,48 @@ export default function ChequePage() {
                 </label>
                 <label>
                   Chequename *
-                  <input className={styles.input} value={createForm.chequename} onChange={onCreateChange("chequename")} />
+                  <input className="form-control" value={createForm.chequename} onChange={onCreateChange("chequename")} />
                 </label>
                 <label>
                   Accnumber *
-                  <input className={styles.input} value={createForm.accnumber} onChange={onCreateChange("accnumber")} />
+                  <input className="form-control" value={createForm.accnumber} onChange={onCreateChange("accnumber")} />
                 </label>
                 <label>
                   Paydate
                   <input
-                    className={styles.input}
+                    className="form-control"
                     type="date"
                     value={createForm.paydate}
                     onChange={onCreateChange("paydate")}
                   />
                 </label>
               </div>
-              {formError && <div className={styles.error}>{formError}</div>}
-              <div className={styles.saveRow}>
-                <button className={styles.primaryBtn} onClick={submitForm} disabled={formSaving || modalLoading}>
+              {formError && <div className="alert alert-danger py-2 px-3 m-2 small">{formError}</div>}
+              <div className="d-flex gap-2 mt-3">
+                <button className="btn btn-primary" onClick={submitForm} disabled={formSaving || modalLoading}>
                   {formSaving ? "Saving..." : "Save"}
                 </button>
-                <button className={styles.secondaryBtn} type="button" onClick={() => setModalMode(null)}>
+                <button className="btn btn-outline-secondary" type="button" onClick={() => setModalMode(null)}>
                   Cancel
                 </button>
               </div>
             </div>
-          </div>
+          </div></div>
         </div>
       )}
 
       {detailOpen && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true">
-          <div className={styles.modal}>
-            <div className={styles.modalHeader}>
-              <h2>{detail?.CHEQUE ? `View Cheque ${detail.CHEQUE}` : "View Cheque"}</h2>
-              <button className={styles.modalClose} onClick={() => setDetailOpen(false)} aria-label="Close">
-                ✕
-              </button>
+        <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5">{detail?.CHEQUE ? `View Cheque ${detail.CHEQUE}` : "View Cheque"}</h2>
+              <button className="btn-close" onClick={() => setDetailOpen(false)} aria-label="Close"></button>
             </div>
-            <div className={styles.modalBody}>
-              {detailLoading && <p className={styles.modalHint}>กำลังโหลด...</p>}
-              {detailError && <div className={styles.error}>{detailError}</div>}
+            <div className="modal-body">
+              {detailLoading && <p className="small text-secondary mb-2">กำลังโหลด...</p>}
+              {detailError && <div className="alert alert-danger py-2 px-3 m-2 small">{detailError}</div>}
               {detail && (
-                <table className={styles.detailTable}>
+                <table className="table table-sm table-bordered mb-0">
                   <tbody>
                     <tr>
                       <th>ID</th>
@@ -604,7 +579,7 @@ export default function ChequePage() {
                 </table>
               )}
             </div>
-          </div>
+          </div></div>
         </div>
       )}
 
