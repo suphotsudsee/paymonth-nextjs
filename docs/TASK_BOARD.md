@@ -20,6 +20,7 @@
 | 12 | แบ่งหน้ามาตรฐานทุกหน้า + เลือกจำนวนต่อหน้า 5/10/15/50/100 (PRD 11.1): 12a `src/lib/pagination.ts` + `Pagination.tsx` + เทสต์ · 12b API เพดาน 50 → 100 · 12c หน้าทะเบียน/รหัส/ผู้ใช้ · 12d หน้ารายงาน (รวมส่งกรุงไทย, taxtmonth, taxdept/group ที่เดิมไม่มีปุ่มเปลี่ยนหน้า) · 12e ค้นหาฎีกา/เช็ค แบ่งหน้า + ยอดรวมทั้งผลค้นหาจาก API · 12f หน้ารายคน officers/[cid]/* · 12g tsc/test/build + ตรวจในเบราว์เซอร์ | เสร็จ (โค้ด ยังไม่ commit) | ดู "หลักฐาน: งาน #12" ด้านล่าง |
 | 13 | ตัวเลขจำนวนเงินชิดขวาทุกหน้า (PRD 11.2) | เสร็จ (โค้ด ยังไม่ commit) | ดู "หลักฐาน: งาน #13" ด้านล่าง |
 | 14 | ประวัติจ่ายตรงรายคนช้า: index `paydirect (C, A, B)` (PRD 10.2) | เสร็จ (โค้ด ยังไม่ commit) — **ต้องรัน `prisma/sql/2026-11-25_paydirect_cid_index.sql` บน DB server** | ดู "หลักฐาน: งาน #14" ด้านล่าง |
+| 15 | คู่มือ deploy ไป server (`docs/DEPLOY.md`): สำรอง, ไฟล์ค้างบน server ที่ทำให้ deploy ล้ม 3 ครั้ง, `.env`, SQL 3 ไฟล์, ตรวจหลัง deploy, ย้อนกลับ | เสร็จ (เอกสาร ยังไม่ commit) — ยังไม่ได้ทดลองบน server จริง | ดู "หลักฐาน: งาน #15" ด้านล่าง |
 
 ## หลักฐาน: งาน #1 — ลบ route ThaiID login ที่ข้ามการตรวจตัวตน
 
@@ -1013,3 +1014,89 @@ npm test exit 0
 
 ### สิ่งที่คนต้องทำ
 - **รัน `prisma/sql/2026-11-25_paydirect_cid_index.sql` บน DB ของ server** (ช่วงไม่มีคนนำเข้าข้อมูลจ่ายตรง เพราะ MyISAM ล็อกตารางระหว่างสร้าง index) — ถ้าไม่รัน หน้าบน server ยังช้าเหมือนเดิม
+
+## หลักฐาน: งาน #15 — คู่มือ deploy (`docs/DEPLOY.md`)
+
+### ตรวจข้อเท็จจริงในคู่มือกับ repo (output จริง)
+```
+$ grep -n "working-directory\|pm2 \|npm ci\|prisma generate\|npm run build" .github/workflows/deploy.yml (ตัดบรรทัดซ้ำ)
+17:        working-directory: /home/phoubon-test-paymonth/htdocs/test-paymonth.phoubon.in.th
+36:          npm ci
+41:          npx prisma generate
+46:          npm run build
+53:            pm2 restart paymonth-nextjs
+$ grep -n "\"start\"" package.json
+10:    "start": "next start -p 9102",
+$ grep -n "name:" ecosystem.config.js
+4:      name: 'paymonth-nextjs',
+$ grep -n "MIN_SECRET_BYTES =" src/lib/authSecret.ts
+6:export const MIN_SECRET_BYTES = 32;
+$ ls prisma/sql
+2026-11-23_clear_useronline_passwords.sql
+2026-11-24_report_indexes.sql
+2026-11-25_paydirect_cid_index.sql
+$ grep -c "CREATE INDEX IF NOT EXISTS" prisma/sql/2026-11-24_report_indexes.sql
+5
+$ grep -n "cleanDistDir" node_modules/next/dist/build/index.js
+477:            if (config.cleanDistDir && !isGenerateMode) {
+$ gh run view 45351428238 --log-failed | grep "overwritten" -A9 (สรุป)
+error: Your local changes to the following files would be overwritten by merge:
+	src/app/(dashboard)/reports/deegars/page.tsx
+	src/app/(dashboard)/reports/payvouchers/page.module.css
+	src/app/(dashboard)/reports/payvouchers/page.tsx
+	src/app/(dashboard)/reports/summarydeegar/[pnumber]/[nodeegar]/page.tsx
+	src/app/api/deegars/route.ts
+	src/app/api/reports/ktbcheque/export/route.ts
+	src/app/api/reports/ktbdeegar/export/route.ts
+	src/app/api/salaries/deegars/route.ts
+Please commit your changes or stash them before you merge.
+$ bash -n (ทุกบล็อกคำสั่งใน DEPLOY.md)
+syntax OK
+```
+
+### ทดลองคำสั่งสำรอง DB (ขั้น 1.2–1.3) กับ DB local (MariaDB 10.11.18 รุ่นเดียวกับ server, ใน container, ลบไฟล์ dump ทันทีหลังตรวจ เพราะมีข้อมูลบุคคลจริง)
+คำสั่ง: `umask 077; set -o pipefail; mkdir -m 700; mariadb-dump --lock-all-tables --routines test-paymonth | gzip > db.sql.gz && echo "DUMP OK" || echo "DUMP FAILED"; gzip -t; zcat | tail -n 1; ls -l` และทดสอบกรณีล้มด้วยชื่อ DB ผิด
+```
+DUMP OK
+gzip OK
+-- Dump completed on 2026-11-24  7:57:04
+drwx------ 2 root root 4096 Nov 24 07:56 /tmp/bk
+total 56684
+-rw------- 1 root root 58043315 Nov 24 07:57 db.sql.gz
+--- negative test (wrong DB name):
+DUMP FAILED — หยุด
+ls: cannot access '/tmp/bk': No such file or directory
+```
+- กรณีปกติ: DUMP OK, gzip OK, บรรทัดสุดท้าย `-- Dump completed`, โฟลเดอร์ `drwx------` ไฟล์ `-rw-------`
+- กรณี mysqldump ล้ม: `pipefail` ทำให้ขึ้น "DUMP FAILED — หยุด" (ไม่มี pipefail จะขึ้น OK เพราะ gzip สำเร็จ)
+
+### Codex รอบ 1 (CHANGES_REQUESTED) — แก้แล้ว
+- `--single-transaction` ไม่ได้ snapshot ที่สอดคล้องกันกับตาราง MyISAM → ใช้ `--lock-all-tables` และให้ทำในช่วงปิดปรับปรุง
+- `mysqldump | gzip` รายงานสำเร็จแม้ dump ล้ม → `set -o pipefail` + `&& echo DUMP OK || echo DUMP FAILED` + ตรวจ `gzip -t` และบรรทัด `-- Dump completed`
+- ไฟล์สำรองอาจอ่านได้โดยผู้ใช้อื่นบน server → `umask 077` และ `mkdir -m 700`
+- งาน #15 ไม่มีหลักฐาน → แนบข้างบน; สถานะระบุว่ายังไม่ได้ทดลองบน server จริง
+
+### Codex รอบ 2 (CHANGES_REQUESTED) — แก้แล้ว
+- deploy/ย้อนกลับทำต่อแม้ขั้นก่อนหน้าล้ม (pull ล้มแล้วยัง build, build ล้มแล้วยัง restart) → ต่อทุกขั้นด้วย `&&` จบด้วย `echo DEPLOY OK || echo DEPLOY FAILED`; pull ใช้ `--ff-only`
+- สำรองด้วย `git diff` ไม่รวมไฟล์ที่ staged และ `git checkout -- .` ไม่คืนไฟล์ที่ staged → สำรองด้วย `git diff HEAD`, คืนด้วย `git reset --hard HEAD` หลังตรวจว่ามี patch สำรองแล้ว (`test -s`)
+- ตรวจไวยากรณ์ใหม่ทุกบล็อก: `bash -n` → syntax OK
+- ทดลองใน git repo ชั่วคราว: แก้ไฟล์ f (ไม่ staged) + g (staged) → `git diff HEAD` มีทั้ง 2 บรรทัดที่เพิ่ม (`grep -c "^+[xy]"` = 2); `git reset --hard HEAD` แล้ว `git status --short` = 0 บรรทัด
+
+### Codex รอบ 3 (CHANGES_REQUESTED) — แก้แล้ว
+- `git reset --hard HEAD` ยังทำงานแม้ตรวจ patch สำรองไม่ผ่าน → ต่อด้วย `&&`: `test -s <patch> && git reset --hard HEAD && echo RESET OK || echo "ไม่ได้ reset"`
+- ทดลองใน git repo ชั่วคราว (ไฟล์ f ถูกแก้ค้าง) — ไม่มีไฟล์ patch / patch ว่าง ต้องไม่ reset, patch จริงจึง reset (output จริง):
+```
+--- case 1: no patch file
+NOT RESET
+ M f
+--- case 2: empty patch
+NOT RESET
+ M f
+--- case 3: real patch (7 lines)
+HEAD is now at 638302e init
+RESET OK
+0
+```
+
+### ยังไม่ได้ทำ
+- ยังไม่ได้รันขั้นตอนบน server จริง (ไม่มีสิทธิ์เข้า server จากเครื่องนี้)

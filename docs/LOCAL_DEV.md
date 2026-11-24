@@ -36,6 +36,8 @@ node scripts/local-smoke.mjs      # ยิง API จริงที่ dev serv
   — `.gitignore` กันไว้แล้ว (`/*.sql`) ใช้เสร็จควรลบไฟล์ออกจากเครื่อง
 
 ## ก่อน deploy ไป test-paymonth.phoubon.in.th
+ขั้นตอนเต็ม (สำรอง, จัดการไฟล์ค้างบน server, SQL, ตรวจหลัง deploy, ย้อนกลับ): `docs/DEPLOY.md`
+
 1. `.env` บน server: `DATABASE_URL` ชี้ DB ของ server, `NEXTAUTH_URL=https://test-paymonth.phoubon.in.th`,
    `AUTH_SECRET` ค่าสุ่มใหม่ ≥ 32 ไบต์ (ห้ามใช้ค่าเดียวกับเครื่องนี้) — แอปจะไม่ออก session ถ้าไม่ตั้ง (งาน #4)
 2. `AUTH_THAIID_CALLBACK=https://test-paymonth.phoubon.in.th/callback` และต้องตรงกับที่ลงทะเบียนกับ DOPA
