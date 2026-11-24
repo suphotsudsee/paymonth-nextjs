@@ -1,6 +1,6 @@
 # Deploy บน Coolify (งาน #19) — build แบบ multi-stage ได้ image ที่มีเฉพาะ .next/standalone
-# node 20 = รุ่นเดียวกับ @types/node ^20 ใน package.json; bookworm-slim (glibc) ใช้ Prisma engine ตัวปกติได้ ไม่ต้องตั้ง binaryTargets แบบ musl
-FROM node:20-bookworm-slim AS deps
+# node 24 = Active LTS (node 20 หมดอายุ เม.ย. 2026 — Codex งาน #19); ตรงกับ @types/node ^24 ใน package.json; bookworm-slim (glibc) ใช้ Prisma engine ตัวปกติได้ ไม่ต้องตั้ง binaryTargets แบบ musl
+FROM node:24-bookworm-slim AS deps
 WORKDIR /app
 # openssl: Prisma query engine ต้องใช้ตรวจรุ่น libssl
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
@@ -9,7 +9,7 @@ COPY prisma ./prisma
 # postinstall รัน prisma generate ให้เอง (ต้อง copy prisma/ ก่อน)
 RUN npm ci
 
-FROM node:20-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/node_modules ./node_modules
@@ -17,7 +17,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-FROM node:20-bookworm-slim AS runner
+FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl curl && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production \

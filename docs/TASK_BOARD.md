@@ -1263,3 +1263,8 @@ $ npm test
 ℹ fail 0
 ```
 
+### Codex (งาน #19) รอบ 1 (CHANGES_REQUESTED) — แก้แล้ว
+- Dockerfile ใช้ Node 20 ซึ่งหมดอายุ เม.ย. 2026 → เปลี่ยนเป็น `node:24-bookworm-slim` ทั้ง 3 stage + `@types/node` ^24
+- ทดสอบใหม่: `docker exec pm-test node -v` → `v24.22.3`; `node scripts/local-smoke.mjs http://localhost:3999` → `ALL PASSED`; `npm test` → `pass 75 / fail 0`; `npx tsc --noEmit` ไม่มี error
+- (รอบก่อนหน้านั้น hook ปฏิเสธเพราะ diff 184,988 ตัวอักษร: สาเหตุคือแก้ TASK_BOARD ด้วย Python บน Windows แล้ว line ending กลายเป็น CRLF ทั้งไฟล์ — คืนเป็น LF แล้ว ไม่ได้ใช้ --rebaseline)
+
