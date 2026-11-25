@@ -1280,11 +1280,14 @@ $ npm test
 1. แก้ `DATABASE_URL` ของ paymonth-nextjs เป็น "MariaDB URL (internal)" ของ paymonth-db (`mysql://paymonth:…@rv6igjl77z30h2cog8nftzwx:3306/paymonth`) — ตอนนี้ยังเป็น `…@localhost:3306/test-paymonth` ของ server เดิม ซึ่ง container ต่อไม่ได้
    - ข้อควรรู้: ช่อง URL ใน Coolify เป็น password field — ต้องกดรูปตาให้แสดงก่อน Ctrl+C ไม่งั้นเบราว์เซอร์ไม่ copy (ลองแล้ว 3 รอบค่าไม่เปลี่ยน)
 2. **ซ้อมก่อน (ไม่ใช่รอบจริง):** dump แบบ DEPLOY.md ขั้น 1.2 (`pm2 stop` → `mysqldump --lock-tables --routines` + ตัด `DEFINER` → `pm2 start`) → import ผ่าน paymonth-db → Import Backup (ไม่มี SSH เข้าเครื่อง Coolify) → ทำข้อ 3 เพื่อพิสูจน์ว่าแอปบน Coolify ใช้งานได้ — ข้อมูลรอบซ้อมจะเก่าทันทีที่แอปเดิมเปิดกลับ
-2b. **รอบจริง (ปิดการเขียนตั้งแต่ dump จนสลับเสร็จ — Codex งาน #19):** แจ้งผู้ใช้ปิดปรับปรุง → `pm2 stop paymonth-nextjs` แล้ว**ไม่เปิดกลับ** → dump → import (แทนข้อมูลรอบซ้อม) → ตรวจจำนวนแถวเทียบ server เดิมขณะที่ยังหยุดอยู่ → ทำข้อ 4 — ระหว่าง DNS กระจาย ใครที่ยังวิ่งไป server เดิมจะเข้าไม่ได้ (ดีกว่าเขียนลง DB เก่าแล้วหาย) — ลบ dump ทุกที่หลัง import
+2b. **รอบจริง (ปิดการเขียนตั้งแต่ dump จนสลับเสร็จ — Codex งาน #19):** ปิด workflow deploy เดิมก่อน (`gh workflow disable deploy.yml --repo suphotsudsee/paymonth-nextjs`) แล้วรอ/ยกเลิก run ที่ค้าง (`gh run list --workflow deploy.yml` ต้องไม่มี queued/in_progress) — กัน push ระหว่างสลับปลุกแอปเดิม → แจ้งผู้ใช้ปิดปรับปรุง → `pm2 stop paymonth-nextjs` แล้ว**ไม่เปิดกลับ** → dump → import (แทนข้อมูลรอบซ้อม) → ตรวจจำนวนแถวเทียบ server เดิมขณะที่ยังหยุดอยู่ → ทำข้อ 4 — ระหว่าง DNS กระจาย ใครที่ยังวิ่งไป server เดิมจะเข้าไม่ได้ (ดีกว่าเขียนลง DB เก่าแล้วหาย) — ลบ dump ทุกที่หลัง import
 3. ตรวจจำนวนแถวทุกตารางเทียบ server เดิม (ใช้ `COUNT(*)` ต่อตาราง) → ยกเลิก deploy ที่ค้าง แล้ว Redeploy → ทดสอบ login / รายงาน
 4. ชี้ DNS `test-paymonth.phoubon.in.th` (ตอนนี้ A → 49.231.243.201) ไปเครื่อง Coolify — ทำหลังข้อ 3 ผ่าน; callback ThaiID เป็นโดเมนเดิม ไม่ต้องลงทะเบียน DOPA ใหม่
-5. หลังย้ายเสร็จ: ปิด GitHub Actions deploy บน server เดิม (ไม่งั้น push ครั้งต่อไปจะ `pm2 restart` แอปเดิมกลับมารับการเขียนลง DB เก่า), `pm2 delete paymonth-nextjs` + `pm2 save`, อัปเดต `docs/DEPLOY.md`
+5. หลังย้ายเสร็จ: workflow deploy เดิมปิดไว้แล้วตั้งแต่ 2b — ห้ามเปิดกลับ (ลบ/แก้ `.github/workflows/deploy.yml` ใน repo), `pm2 delete paymonth-nextjs` + `pm2 save`, อัปเดต `docs/DEPLOY.md`
 
 ### Codex (งาน #19) รอบ 2 (CHANGES_REQUESTED) — แก้แล้ว
-- แผนเดิมเปิดแอปเก่ากลับหลัง dump รอบสุดท้าย → การเขียนระหว่างนั้นจนถึงสลับ DNS จะหายจาก DB ใหม่: แยกเป็นรอบซ้อม (2) กับรอบจริง (2b) ที่หยุดแอปเดิมตั้งแต่ dump จนสลับเสร็จ และตรวจจำนวนแถวขณะยังหยุดอยู่; ข้อ 5 ปิด GitHub Actions ก่อนเพื่อไม่ให้ push ปลุกแอปเดิม
+- แผนเดิมเปิดแอปเก่ากลับหลัง dump รอบสุดท้าย → การเขียนระหว่างนั้นจนถึงสลับ DNS จะหายจาก DB ใหม่: แยกเป็นรอบซ้อม (2) กับรอบจริง (2b) ที่หยุดแอปเดิมตั้งแต่ dump จนสลับเสร็จ และตรวจจำนวนแถวขณะยังหยุดอยู่
+
+### Codex (งาน #19) รอบ 3 (CHANGES_REQUESTED) — แก้แล้ว
+- ปิด GitHub Actions แค่หลังย้ายไม่พอ (run ที่ค้าง/push ระหว่างสลับปลุกแอปเดิมได้): ย้ายการ `gh workflow disable` + เคลียร์ run ที่ค้างไปเป็นขั้นแรกของ 2b ก่อนหยุดแอป; ข้อ 5 แค่ห้ามเปิดกลับ
 
