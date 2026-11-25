@@ -24,7 +24,7 @@
 | 16 | รวมการแก้บน server เข้า repo (PRD 12): BigInt ตอนสร้างฎีกา, ชื่อไฟล์ export ภาษาไทย, ส่งออก Excel ทะเบียนคุมหลักฐานการจ่าย (+isStaff), คำผิด ทดรอง, ค้นหาฎีกาแสดงทีละรายการเงิน (+ยอดรวมไม่นับภาษีซ้ำ) | เสร็จ — deploy แล้ว (#17) |  ดู "หลักฐาน: งาน #16" ด้านล่าง |
 | 17 | Deploy `4ac8434` ขึ้น test-paymonth (ssh ผ่าน VPN) + รัน SQL 3 ไฟล์ | เสร็จ — แอปล่มราว 2.5 นาทีระหว่าง deploy (ดูหลักฐาน); **หน้า "รายงานทั้งหมด" บน server ยังช้า ~5 วินาที** (local 0.5–1 วินาที) | ดู "หลักฐาน: งาน #17" ด้านล่าง |
 | 18 | รายงานทั้งหมดบน server ช้า ~5 s: รวมยอด salary ก่อน join officer/cpay (ผลเท่าเดิม) (PRD 10.3) | เสร็จ — deploy `851a4e7` แล้ว: server ~5 s → ~1.7 s | ดู "หลักฐาน: งาน #18" ด้านล่าง |
-| 19 | ย้าย test-paymonth ไป Coolify (coolify.phoubon.in.th): Dockerfile + `output: "standalone"`, MariaDB ใหม่ใน Coolify + import dump, ชี้โดเมนเดิม | กำลังทำ — image ผ่าน smoke test local แล้ว ยังไม่ deploy | ดู "หลักฐาน: งาน #19" ด้านล่าง |
+| 19 | ย้าย test-paymonth ไป Coolify (coolify.phoubon.in.th): Dockerfile + `output: "standalone"`, MariaDB ใหม่ใน Coolify + import dump, ชี้โดเมนเดิม | **พักไว้** — Coolify ตั้งแล้วแต่ DB ว่าง, `DATABASE_URL` ยังชี้ DB เก่า, DNS ยังชี้ server เดิม (ดูหลักฐาน "สถานะตอนพัก") | ดู "หลักฐาน: งาน #19" ด้านล่าง |
 
 ## หลักฐาน: งาน #1 — ลบ route ThaiID login ที่ข้ามการตรวจตัวตน
 
@@ -1267,4 +1267,20 @@ $ npm test
 - Dockerfile ใช้ Node 20 ซึ่งหมดอายุ เม.ย. 2026 → เปลี่ยนเป็น `node:24-bookworm-slim` ทั้ง 3 stage + `@types/node` ^24
 - ทดสอบใหม่: `docker exec pm-test node -v` → `v24.22.3`; `node scripts/local-smoke.mjs http://localhost:3999` → `ALL PASSED`; `npm test` → `pass 75 / fail 0`; `npx tsc --noEmit` ไม่มี error
 - (รอบก่อนหน้านั้น hook ปฏิเสธเพราะ diff 184,988 ตัวอักษร: สาเหตุคือแก้ TASK_BOARD ด้วย Python บน Windows แล้ว line ending กลายเป็น CRLF ทั้งไฟล์ — คืนเป็น LF แล้ว ไม่ได้ใช้ --rebaseline)
+
+### สถานะตอนพัก (2026-11-25)
+ทำแล้ว:
+- Coolify (coolify.phoubon.in.th) project **paymonth** / env production:
+  - `paymonth-db` — MariaDB 11, user `paymonth`, database `paymonth`, Running — **ยังว่าง ไม่มีตาราง** (ตรวจด้วย Terminal ของ container)
+  - `paymonth-nextjs` — Dockerfile build pack, พอร์ต 3000, โดเมน `https://test-paymonth.phoubon.in.th`; build แรก (`2d92cb0`) ผ่าน; redeploy `65ecd7b` ค้างสถานะ In Progress ไม่มี log
+  - env ครบ 13 ตัว (`AUTH_SECRET` และ `AUTH_THAIID_*` คัดลอกจาก `.env` server เดิม — ใช้ AUTH_SECRET เดิมได้ ผู้ใช้ไม่ต้อง login ใหม่ตอนย้าย)
+- dump ทดลอง 2026-11-24 17:26 (แอปเดิมหยุด 33 วินาที, 16 ตาราง) — **ลบทั้งบนเครื่องและบน server แล้ว 2026-11-25** (ตรวจ `ls` ไม่พบ, `.env` ยังอยู่, `/login` 200)
+
+ยังเหลือ (ตามลำดับ):
+1. แก้ `DATABASE_URL` ของ paymonth-nextjs เป็น "MariaDB URL (internal)" ของ paymonth-db (`mysql://paymonth:…@rv6igjl77z30h2cog8nftzwx:3306/paymonth`) — ตอนนี้ยังเป็น `…@localhost:3306/test-paymonth` ของ server เดิม ซึ่ง container ต่อไม่ได้
+   - ข้อควรรู้: ช่อง URL ใน Coolify เป็น password field — ต้องกดรูปตาให้แสดงก่อน Ctrl+C ไม่งั้นเบราว์เซอร์ไม่ copy (ลองแล้ว 3 รอบค่าไม่เปลี่ยน)
+2. dump ใหม่ (วิธีเดียวกับ DEPLOY.md ขั้น 1.2: `pm2 stop` → `mysqldump --lock-tables --routines` + ตัด `DEFINER` → `pm2 start`) แล้ว import ผ่าน paymonth-db → Import Backup (ไม่มี SSH เข้าเครื่อง Coolify) — ลบ dump ทุกที่หลัง import
+3. ตรวจจำนวนแถวทุกตารางเทียบ server เดิม (ใช้ `COUNT(*)` ต่อตาราง) → ยกเลิก deploy ที่ค้าง แล้ว Redeploy → ทดสอบ login / รายงาน
+4. ชี้ DNS `test-paymonth.phoubon.in.th` (ตอนนี้ A → 49.231.243.201) ไปเครื่อง Coolify — ทำหลังข้อ 3 ผ่าน; callback ThaiID เป็นโดเมนเดิม ไม่ต้องลงทะเบียน DOPA ใหม่
+5. หลังย้ายเสร็จ: ปิด PM2 + GitHub Actions deploy บน server เดิม, อัปเดต `docs/DEPLOY.md`
 
